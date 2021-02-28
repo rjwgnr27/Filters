@@ -1,0 +1,16 @@
+[Desktop Entry]
+Exec=filters
+Icon=filters
+Type=Application
+Categories=Qt;KDE;Utility;
+#MimeType=text/x-omneon-monitor-log;
+StartupNotify=true
+
+#X-DCOP-ServiceType=Unique
+X-KDE-StartupNotify=true
+#X-DocPath=filters/index.html
+#X-KDE-HasTempFileOption=true
+
+Name=filters
+GenericName=Interactive regex file filter
+Comment=An application to interactively filter a file through a regular expression chain
