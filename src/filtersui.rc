@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gui name="Filtersui"
+     version="13"
+     xmlns="http://www.kde.org/standards/kxmlgui/1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
+     http://www.kde.org/standards/kxmlgui/1.0/kxmlgui.xsd" >
+
+    <MenuBar>
+        <Menu name="file">
+            <Action name="file_open" />
+            <Action name="file_open_recent" />
+            <Separator lineSeparator="true" />
+            <Action name="save_result" />
+            <Action name="save_result_as" />
+        </Menu>
+
+        <Menu name="edit">
+            <!--
+            <Action name="filter_cut" />
+            <Action name="filter_copy" />
+            <Action name="filter_paste" />
+            <Separator lineSeparator="true" />
+            -->
+            <Action name="insert_row" />
+            <Action name="delete_row" />
+            <Action name="clear_row" />
+        </Menu>
+
+        <Menu name="filters">
+            <text context="@title:menu">&amp;Filters</text>
+            <Action name="run_filters" />
+            <Action name="auto_run_filters" />
+            <Action name="re_dialect" />
+            <Separator lineSeparator="true" />
+            <Action name="save_filters" />
+            <Action name="save_filters_as" />
+            <Separator lineSeparator="true" />
+            <Action name="load_filters" />
+            <Action name="load_filters_recent" />
+            <Action name="insert_filters" />
+            <Separator lineSeparator="true" />
+            <Action name="clear_filters" />
+        </Menu>
+
+        <Menu name="settings">
+            <Action name="filter_font" />
+            <Action name="result_font" />
+        </Menu>
+    </MenuBar>
+
+    <!--
+    <ToolBar name="filterToolBar" >
+        <text>Filters Toolbar</text>
+        <Action name="run_filters" />
+        <Action name="auto_run_filters" />
+        <Action name="save_filters" />
+        <Action name="save_filters_as" />
+        <Action name="load_filters" />
+        <Action name="insert_filters" />
+    </ToolBar>
+    -->
+
+    <!-- Action state groups: -->
+    <State name="results_save">
+        <Enable>
+            <Action name="save_result" />
+            <Action name="save_result_as" />
+        </Enable>
+    </State>
+
+    <State name="filters_save">
+        <Enable>
+            <Action name="save_filters" />
+            <Action name="save_filters_as" />
+        </Enable>
+    </State>
+
+</gui>
