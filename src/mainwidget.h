@@ -78,7 +78,8 @@ private:
 
     bool doInitialApply = false;
 
-    bool modified = false;
+    bool reModified = false;
+    bool subjModified = false;
 
     /** Vector of results for each step. The input file is read into results[0].
      * Each results[n] is the input to filter(n), and the filter result goes

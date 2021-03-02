@@ -255,7 +255,7 @@ mainWidget::~mainWidget()
 
 void mainWidget::updateApplicationTitle()
 {
-    mainWindow->setCaption(titleFile, modified);
+    mainWindow->setCaption(titleFile, subjModified | reModified);
 }
 
 bool mainWidget::initialLoad(const commandLineOptions& opts)
@@ -328,7 +328,7 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
     QFile source(localFile);
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
         titleFile = QFileInfo(localFile).fileName();
-        modified = false;
+        subjModified = false;
         updateApplicationTitle();
         sourceLines = -1;
         clearResultsAfter(0);
@@ -408,9 +408,9 @@ void mainWidget::applyFrom(size_t start)
         results.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
             auto result = applyExpression(row, results[row]);
+            subjModified |= results[row].size() != result.size();
             results[row+1] = result;
         }
-        modified = true;
         updateApplicationTitle();
         displayResult();
         QGuiApplication::restoreOverrideCursor();
@@ -764,7 +764,10 @@ bool mainWidget::doSaveFilters(const QString& fileName)
         filters["about"] = about;
         filters["dialect"] = actionDialect->currentText();
         filters["filters"] = filterArray;
-        return dest.write(QJsonDocument(filters).toJson()) >= 0;
+        auto jDoc = QJsonDocument(filters).toJson();
+        bool success = dest.write(jDoc) == jDoc.size();
+        reModified &= !success;
+        return success;
     }
     return false;
 }
@@ -791,7 +794,7 @@ bool mainWidget::doSaveResult(const QString& fileName)
     QFile dest(fileName);
     bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
            dest.write((result->toPlainText() + QLatin1Char('\n')).toLatin1()) >= 0;
-    modified = !saved;
+    subjModified = !saved;
     if (saved) {
         titleFile = QFileInfo(fileName).fileName();
         updateApplicationTitle();
