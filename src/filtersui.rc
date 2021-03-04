@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="Filtersui"
-     version="13"
+     version="15"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -49,9 +49,8 @@
         </Menu>
     </MenuBar>
 
-    <!--
-    <ToolBar name="filterToolBar" >
-        <text>Filters Toolbar</text>
+    <ToolBar name="mainToolBar" >
+        <text>Main Toolbar</text>
         <Action name="run_filters" />
         <Action name="auto_run_filters" />
         <Action name="save_filters" />
@@ -59,7 +58,6 @@
         <Action name="load_filters" />
         <Action name="insert_filters" />
     </ToolBar>
-    -->
 
     <!-- Action state groups: -->
     <State name="results_save">

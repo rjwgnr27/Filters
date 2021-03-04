@@ -39,6 +39,7 @@ Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
     setupActions();
     StandardWindowOptions options = Default;
     options.setFlag(ToolBar, false);
+    setStandardToolBarMenuEnabled(true);
     setupGUI(options);
     m_ui->initialLoad(opts);
 }
@@ -317,7 +318,7 @@ void mainWidget::showEvent(QShowEvent *ev)
 
 void mainWidget::loadSubjectFile()
 {
-    loadSubjectFile(QFileDialog::getOpenFileName(this, i18n("Open File")));
+    loadSubjectFile(QFileDialog::getOpenFileName(this, i18n("Open Subject File")));
 }
 
 bool mainWidget::loadSubjectFile(const QString& localFile)
@@ -633,7 +634,7 @@ void mainWidget::tableItemChanged(QTableWidgetItem *item)
 
 QString mainWidget::getFilterFile()
 {
-    return QFileDialog::getOpenFileName(this, i18n("Open File"), QString(),
+    return QFileDialog::getOpenFileName(this, i18n("Open Filter File"), QString(),
                 QStringLiteral("JSON files (*.json)"));
 }
 
