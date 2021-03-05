@@ -590,6 +590,7 @@ void mainWidget::autoRunClicked()
 
 void mainWidget::dialectChanged(QString text)
 {
+    Q_UNUSED(text)
     maybeAutoApply(0);
 }
 
