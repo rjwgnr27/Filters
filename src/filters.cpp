@@ -278,6 +278,10 @@ void mainWidget::updateApplicationTitle()
 
 bool mainWidget::initialLoad(const commandLineOptions& opts)
 {
+    if (opts.stdin)
+      QMessageBox::warning(this, i18n("Option Not Supported"),
+		   i18n("--stdin option not supported in graphic mode"));
+    
     bool subjecFileLoaded = false;
     if (!opts.subjectFile.isEmpty()) {
         if (loadSubjectFile(opts.subjectFile))
