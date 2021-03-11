@@ -63,6 +63,9 @@ int main(int argc, char *argv[])
                                 i18n("regex file to load"), i18n("REFILE"));
     parser.addOption(reOption);
 
+    QCommandLineOption stdinOption(i18n("stdin"), i18n("Load subject from stdin"));
+    parser.addOption(stdinOption);
+
     QCommandLineOption subjectOption(QStringList() << "s" << i18n("subject"),
                        i18n("subject file to load"), i18n("SUBJECTFILE"));
     parser.addOption(subjectOption);
@@ -76,13 +79,19 @@ int main(int argc, char *argv[])
     opts.autoRun = parser.isSet(autoRunOption);
     opts.filters = parser.values(reOption);
     opts.subjectFile = parser.value(subjectOption);
+    opts.stdin = parser.isSet(stdinOption);
+
     if (parser.isSet(batchOption)) {
         if (opts.filters.empty()) {
-            std::cout << "No filters file specified in batch mode\n";
+            std::cerr << "No filters file specified in batch mode\n";
             return -2;
         }
-        if (opts.subjectFile.isEmpty()) {
-            std::cout << "No subject file specified in batch mode\n";
+        if (opts.subjectFile.isEmpty() && !opts.stdin) {
+            std::cerr << "No subject source specified in batch mode\n";
+            return -2;
+        }
+        if (!opts.subjectFile.isEmpty() && opts.stdin) {
+            std::cerr << "Can not specify both subject file and stdin\n";
             return -2;
         }
         return doBatch(opts);

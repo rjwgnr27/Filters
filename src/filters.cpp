@@ -976,6 +976,18 @@ static QStringList batchLoadSubjectFile(const commandLineOptions& opts)
     throw subjectLoadException(opts.subjectFile);
 }
 
+static QStringList readStdIn(const commandLineOptions& opts)
+{
+  QStringList lines;
+  while(cin) {
+    string line;
+    getline(cin, line);
+    lines << QString::fromStdString(line);
+  }
+  return lines;
+}
+
+
 static QStringList batchApplyQRegularExpressions(const filterData& filters, QStringList lines)
 {
     for (const filterEntry& entry : filters.filters) {
@@ -1000,13 +1012,11 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
     return lines;
 }
 
-static QStringList batchApplyFilters(const filterData& filters, QStringList lines)
+static QStringList batchApplyFilters(const filterData& filters, const QStringList& lines)
 {
-    if (filters.dialect == "QRegularExpression") {
-        lines = batchApplyQRegularExpressions(filters, lines);
-    } else
-        throw dialectTypeException(filters.dialect);
-    return lines;
+    if (filters.dialect == "QRegularExpression") 
+        return batchApplyQRegularExpressions(filters, QStringList(lines));
+    throw dialectTypeException(filters.dialect);
 }
 
 int doBatch(const commandLineOptions& opts)
@@ -1015,10 +1025,13 @@ int doBatch(const commandLineOptions& opts)
     QStringList lines;
     try {
         filters = batchLoadFilters(opts);
-        lines = batchLoadSubjectFile(opts);
-        cerr << filters.filters.size() << " re lines, dialect: " << filters.dialect.toUtf8().constData() << ", " << lines.size() << " subject lines\n";
+	if (opts.stdin)
+	  lines = readStdIn(opts);
+	else
+	  lines = batchLoadSubjectFile(opts);
+        // cerr << filters.filters.size() << " re lines, dialect: " << filters.dialect.toUtf8().constData() << ", " << lines.size() << " subject lines\n";
         lines = batchApplyFilters(filters, lines);
-        cerr << "result = " << lines.size() << "lines\n";
+        // cerr << "result = " << lines.size() << "lines\n";
         for (auto const& line : lines)
             cout << line.toUtf8().constData() << '\n';
     }

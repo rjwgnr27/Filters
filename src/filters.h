@@ -27,6 +27,7 @@ struct commandLineOptions {
     QString subjectFile;
     bool autoRun = false;
     bool batchMode = false;
+  bool stdin = false;
 };
 
 class Filters : public KXmlGuiWindow
