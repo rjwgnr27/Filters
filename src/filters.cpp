@@ -44,6 +44,8 @@
 #include <KSelectAction>
 #include <KStandardAction>
 
+#include <exception>
+#include <iostream>
 #include <utility>
 using namespace::std;
 
@@ -288,8 +290,7 @@ bool mainWidget::initialLoad(const commandLineOptions& opts)
     if (!opts.filters.empty()) {
         filterData data;
         bool initial = true;
-        for (int i = 0, j = opts.filters.size(); i < j; ++i) {
-            const QString& fileName = opts.filters[i];
+        for (const QString& fileName : opts.filters) {
             filterData t = loadFiltersFile(fileName);
             if (!t.valid) {
                 QMessageBox::critical(this, i18n("Not Valid"),
@@ -713,7 +714,7 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
         QByteArray data = file.readAll();
         QJsonDocument doc(QJsonDocument::fromJson(data));
         QJsonObject filters = doc.object();
-        if (filters.contains("dialect") && filters["dialect"].isObject())
+        if (filters.contains("dialect") && filters["dialect"].isString())
             result.dialect = filters["dialect"].toString();
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
@@ -866,3 +867,164 @@ filterEntry filterEntry::fromJson(const QJsonObject& jentry)
 }
 
 #include "moc_mainwidget.cpp"
+
+class batchException : public std::exception
+{
+protected:
+    std::string errorString;
+
+public:
+    batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
+    virtual ~batchException() {}
+    virtual const char* what() const noexcept override {return errorString.c_str();}
+};
+
+class filterLoadException : public batchException
+{
+public:
+    filterLoadException(QString const& str) :
+        batchException(QStringLiteral("Error loading filter file: %1").arg(str)) {}
+    virtual ~filterLoadException() {}
+};
+
+class loadDialectException : public batchException
+{
+public:
+    loadDialectException(QString const& str) :
+        batchException(QStringLiteral("Dialect mismatch loading filter file: %1").arg(str)) {}
+    virtual ~loadDialectException() {}
+};
+
+class dialectTypeException : public batchException
+{
+public:
+    dialectTypeException(QString const& str) :
+        batchException(QStringLiteral("Unsupported dialect: %1").arg(str)) {}
+    virtual ~dialectTypeException() {}
+};
+
+class badRegexException : public batchException
+{
+public:
+    badRegexException(QString const& str) :
+        batchException(QStringLiteral("bad regular expression: '%1'").arg(str)) {}
+    virtual ~badRegexException() {}
+};
+
+class subjectLoadException : public batchException
+{
+public:
+    subjectLoadException(QString const& str) :
+        batchException(QStringLiteral("Error loading subject file: %1").arg(str)) {}
+    virtual ~subjectLoadException() {}
+};
+
+
+static filterData batchLoadFilterFile(const QString& fileName)
+{
+    filterData result;
+
+    QFile file(fileName);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QByteArray data = file.readAll();
+        QJsonDocument doc(QJsonDocument::fromJson(data));
+        QJsonObject filters = doc.object();
+        if (filters.contains("dialect") && filters["dialect"].isString())
+            result.dialect = filters["dialect"].toString();
+
+        if (filters.contains("filters") && filters["filters"].isArray()) {
+            QJsonArray filterArray = filters["filters"].toArray();
+            for (int i = 0; i < filterArray.size(); ++i)
+                result.filters << filterEntry::fromJson(filterArray[i].toObject());
+            result.valid = true;
+        }
+    }
+    if (!result.valid)
+        throw filterLoadException(fileName);
+    return result;
+}
+
+
+static filterData batchLoadFilters(const commandLineOptions& opts)
+{
+    filterData result;
+    bool initial = true;
+    for (const QString& fileName : opts.filters) {
+        filterData t = batchLoadFilterFile(fileName);
+        if (initial) {
+            initial = false;
+            result = t;
+        } else if (t.dialect == result.dialect)
+            result.filters << t.filters;
+        else
+            throw loadDialectException(fileName);
+    }
+    return result;
+}
+
+
+static QStringList batchLoadSubjectFile(const commandLineOptions& opts)
+{
+    QFile source(opts.subjectFile);
+    if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream stream(&source);
+        QStringList lines;
+        while(!stream.atEnd())
+            lines.push_back(stream.readLine());
+        return lines;
+    }
+    throw subjectLoadException(opts.subjectFile);
+}
+
+static QStringList batchApplyQRegularExpressions(const filterData& filters, QStringList lines)
+{
+    for (const filterEntry& entry : filters.filters) {
+        if (entry.enabled) {
+            bool exclude = entry.exclude;
+            QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
+            if (entry.ignoreCase)
+                pOpts |= QRegularExpression::CaseInsensitiveOption;
+            QRegularExpression re(entry.re);
+            if (!re.isValid())
+                throw badRegexException(entry.re);
+            QStringList result;
+            for (const QString& str : lines) {
+                if (re.match(str).hasMatch() ^ exclude)
+                    result.push_back(str);
+            }
+            lines = result;
+            if (lines.empty())
+                break;
+        }
+    }
+    return lines;
+}
+
+static QStringList batchApplyFilters(const filterData& filters, QStringList lines)
+{
+    if (filters.dialect == "QRegularExpression") {
+        lines = batchApplyQRegularExpressions(filters, lines);
+    } else
+        throw dialectTypeException(filters.dialect);
+    return lines;
+}
+
+int doBatch(const commandLineOptions& opts)
+{
+    filterData filters;
+    QStringList lines;
+    try {
+        filters = batchLoadFilters(opts);
+        lines = batchLoadSubjectFile(opts);
+        cerr << filters.filters.size() << " re lines, dialect: " << filters.dialect.toUtf8().constData() << ", " << lines.size() << " subject lines\n";
+        lines = batchApplyFilters(filters, lines);
+        cerr << "result = " << lines.size() << "lines\n";
+        for (auto const& line : lines)
+            cout << line.toUtf8().constData() << '\n';
+    }
+    catch (std::exception const &except) {
+        cerr << except.what() << endl;
+        return -3;
+    }
+    return 0;
+}

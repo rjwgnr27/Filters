@@ -21,6 +21,8 @@
 #include <KDBusService>
 #include <KLocalizedString>
 
+#include <iostream>
+
 #include "filters_config.h"
 #include "mainwidget.h"
 
@@ -53,6 +55,10 @@ int main(int argc, char *argv[])
     QCommandLineOption autoRunOption(i18n("auto"), i18n("Set auto-run mode"));
     parser.addOption(autoRunOption);
 
+    QCommandLineOption batchOption(QStringList{} << "b" << i18n("batch"),
+                                   i18n("batch mode"));
+    parser.addOption(batchOption);
+
     QCommandLineOption reOption(QStringList() << "r" << i18n("refile"),
                                 i18n("regex file to load"), i18n("REFILE"));
     parser.addOption(reOption);
@@ -70,9 +76,19 @@ int main(int argc, char *argv[])
     opts.autoRun = parser.isSet(autoRunOption);
     opts.filters = parser.values(reOption);
     opts.subjectFile = parser.value(subjectOption);
-    Filters *w = new Filters(opts);
-    w->show();
-
-    return app.exec();
+    if (parser.isSet(batchOption)) {
+        if (opts.filters.empty()) {
+            std::cout << "No filters file specified in batch mode\n";
+            return -2;
+        }
+        if (opts.subjectFile.isEmpty()) {
+            std::cout << "No subject file specified in batch mode\n";
+            return -2;
+        }
+        return doBatch(opts);
+    } else {
+        Filters *w = new Filters(opts);
+        w->show();
+        return app.exec();
+    }
 }
-

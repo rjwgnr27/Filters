@@ -1,5 +1,6 @@
 # Filters - KDE application for interactive file filtering
 
+## GUI mode
 This application allows the interactive filtering of a text file, by the 
 sequential application of regular expressions. When started, the program will
 present a screen, with two main divisions. On the top is a grid of expressions 
@@ -35,6 +36,14 @@ you will want to put the most exclusive expressions at the top. This will make
 subsequent expressions faster. If the "Auto Run" option is enabled, any changes
 in the expression list are evaluated immediately.
 
+## Batch Mode
+The application can be run in batch mode, to run a saved RE file against a
+subject file from a command line or script. It is invoked by using the
+"--batch" option. When started in batch mode, the GUI is not opened.
+
+When starting in batch mode, "--refile" and "--subject" parameters must also
+be specified. The RE file(s) will be loaded and verified. The subject file
+will then be loaded, the filters applied, and the result printed to stdout.
 
 # Building
 ## Prerequisites

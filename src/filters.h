@@ -26,6 +26,7 @@ struct commandLineOptions {
     QStringList filters;
     QString subjectFile;
     bool autoRun = false;
+    bool batchMode = false;
 };
 
 class Filters : public KXmlGuiWindow
@@ -48,5 +49,7 @@ private:
      **/
     virtual void closeEvent(QCloseEvent *event) override;
 };
+
+int doBatch(const commandLineOptions& opts);
 
 #endif // FILTERS_H
