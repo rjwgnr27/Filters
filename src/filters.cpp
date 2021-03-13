@@ -394,8 +394,7 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
                 QStringList result;
                 QRegularExpression re(reStr, pOpts);
                 if (re.isValid()) {
-                    for (int i = 0, end = src.size(); i < end; ++i) {
-                        const QString& str = src[i];
+                    for (const QString& str : src) {
                         if (re.match(str).hasMatch() ^ exclude)
                             result.push_back(str);
                     }
@@ -442,8 +441,7 @@ void mainWidget::applyFrom(size_t start)
 bool mainWidget::validateExpressions(int entry)
 {
     auto table = filtersTable;
-    int rows = table->rowCount();
-    for (; entry < rows; ++entry) {
+    for (int rows = table->rowCount(); entry < rows; ++entry) {
         if (table->item(entry, ColEnable)->checkState() == Qt::Checked) {
             auto reStr = table->item(entry, ColRegEx)->text();
             if (!reStr.isEmpty()) {
@@ -484,8 +482,8 @@ void mainWidget::displayResult()
     if (!results.empty()) {
         QStringList lines = results.back();
         if (!results.empty())
-            for (int i = 0; i < lines.size(); ++i)
-                result->appendPlainText(lines[i]);
+            for (const QString& str : lines)
+                result->appendPlainText(str);
         status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLines).arg(lines.size()));
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
@@ -723,8 +721,8 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
             QJsonArray filterArray = filters["filters"].toArray();
-            for (int i = 0; i < filterArray.size(); ++i)
-                result.filters << filterEntry::fromJson(filterArray[i].toObject());
+            for (const auto& entry : filterArray)
+                result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
             filtersFileName = fileName;
         }
@@ -739,9 +737,10 @@ void mainWidget::insertFiltersAt(int at, const filterData& filters)
         actionDialect->setCurrentAction(filters.dialect);
 
     int nFilters = filters.filters.size();
-    for (int i=0; i < nFilters; ++at, ++i) {
+    for (int i=0; i < nFilters; ++i) {
         insertEmptyRowAt(at);
         setFilterRow(at, filters.filters[i]);
+        ++at;
     }
 }
 
@@ -938,8 +937,8 @@ static filterData batchLoadFilterFile(const QString& fileName)
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
             QJsonArray filterArray = filters["filters"].toArray();
-            for (int i = 0; i < filterArray.size(); ++i)
-                result.filters << filterEntry::fromJson(filterArray[i].toObject());
+            for (const auto& entry : filterArray)
+                result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
         }
     }
