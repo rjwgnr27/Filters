@@ -34,7 +34,6 @@
 #include <QPair>
 #include <QStatusBar>
 #include <QTextStream>
-#include <QTimer>
 
 #include <KAboutData>
 #include <KActionCollection>
@@ -54,17 +53,13 @@ Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
 {
     setCentralWidget(m_ui);
     setupActions();
+    setStandardToolBarMenuEnabled(true);
     StandardWindowOptions options = Default;
     options.setFlag(ToolBar, false);
-    setStandardToolBarMenuEnabled(true);
     setupGUI(options);
     m_ui->initialLoad(opts);
 }
 
-
-Filters::~Filters()
-{
-}
 
 void Filters::closeEvent(QCloseEvent *event)
 {
@@ -88,7 +83,6 @@ void Filters::setupActions()
 void mainWidget::setupActions()
 {
     KActionCollection *ac = mainWindow->actionCollection();
-    QAction *action;
 
     /***********************/
     /***    File menu    ***/
@@ -99,23 +93,21 @@ void mainWidget::setupActions()
     recentFileAction->loadEntries(KConfigGroup(KSharedConfig::openConfig(),
                                 QStringLiteral("RecentURLs")));
 
-    action = ac->addAction(QStringLiteral("save_result"), this, SLOT(saveResult()));
-    action->setText(i18n("Save Result..."));
-    action->setToolTip(i18n("Save the filtered result."));
-    action->setWhatsThis(i18n("Save the results of applying the filters to the source."));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
-    action->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
-    action->setEnabled(false);
-    actionSaveResults = action;
+    actionSaveResults = ac->addAction(QStringLiteral("save_result"), this, SLOT(saveResult()));
+    actionSaveResults->setText(i18n("Save Result..."));
+    actionSaveResults->setToolTip(i18n("Save the filtered result."));
+    actionSaveResults->setWhatsThis(i18n("Save the results of applying the filters to the source."));
+    //ac->setDefaultShortcut(actionSaveResults, QKeySequence(QStringLiteral("Ctrl+N"));
+    actionSaveResults->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
+    actionSaveResults->setEnabled(false);
 
-    action = ac->addAction(QStringLiteral("save_result_as"), this, SLOT(saveResultAs()));
-    action->setText(i18n("Save Result As..."));
-    action->setToolTip(i18n("Save the result as a new file."));
-    action->setWhatsThis(i18n("Save the results of applying the filters to the source as a new file."));
+    actionSaveResultsAs = ac->addAction(QStringLiteral("save_result_as"), this, SLOT(saveResultAs()));
+    actionSaveResultsAs->setText(i18n("Save Result As..."));
+    actionSaveResultsAs->setToolTip(i18n("Save the result as a new file."));
+    actionSaveResultsAs->setWhatsThis(i18n("Save the results of applying the filters to the source as a new file."));
     //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
-    action->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
-    action->setEnabled(false);
-    actionSaveResultsAs = action;
+    actionSaveResultsAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
+    actionSaveResultsAs->setEnabled(false);
 
     /***********************/
     /***   Filters menu  ***/
@@ -138,7 +130,7 @@ void mainWidget::setupActions()
     actionDialect = new KSelectAction(i18n("Dialect"), this);
     actionDialect->addAction(QStringLiteral("QRegularExpression"));
     actionDialect->setCurrentItem(0);
-    action = ac->addAction(QStringLiteral("re_dialect"), actionDialect);
+    QAction *action = ac->addAction(QStringLiteral("re_dialect"), actionDialect);
     connect(actionDialect, SIGNAL(triggered(const QString&)), this, SLOT(dialectChanged(const QString&)));
     action->setText(i18n("Dialect"));
     action->setToolTip(i18n("Select the RE dialect used"));
@@ -166,21 +158,19 @@ void mainWidget::setupActions()
     recentFiltersAction->loadEntries(KConfigGroup(KSharedConfig::openConfig(),
                                             QStringLiteral("RecentFilters")));
 
-    action = ac->addAction(QStringLiteral("save_filters"), this, SLOT(saveFilters()));
-    action->setText(i18n("Save Filters..."));
-    action->setToolTip(i18n("Save the filters to a file."));
-    action->setWhatsThis(i18n("Save the filter list to a file."));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
-    action->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
-    actionSaveFilters = action;
+    actionSaveFilters = ac->addAction(QStringLiteral("save_filters"), this, SLOT(saveFilters()));
+    actionSaveFilters->setText(i18n("Save Filters..."));
+    actionSaveFilters->setToolTip(i18n("Save the filters to a file."));
+    actionSaveFilters->setWhatsThis(i18n("Save the filter list to a file."));
+    //ac->setDefaultShortcut(actionSaveFilters, QKeySequence(QStringLiteral("Ctrl+N"));
+    actionSaveFilters->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
 
-    action = ac->addAction(QStringLiteral("save_filters_as"), this, SLOT(saveFiltersAs()));
-    action->setText(i18n("Save Filters As..."));
-    action->setToolTip(i18n("Save the filters as a new file."));
-    action->setWhatsThis(i18n("Save the filter list as a new file."));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
-    action->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
-    actionSaveFiltersAs = action;
+    actionSaveFiltersAs = ac->addAction(QStringLiteral("save_filters_as"), this, SLOT(saveFiltersAs()));
+    actionSaveFiltersAs->setText(i18n("Save Filters As..."));
+    actionSaveFiltersAs->setToolTip(i18n("Save the filters as a new file."));
+    actionSaveFiltersAs->setWhatsThis(i18n("Save the filter list as a new file."));
+    //ac->setDefaultShortcut(actionSaveFiltersAs, QKeySequence(QStringLiteral("Ctrl+N"));
+    actionSaveFiltersAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
 
     action = ac->addAction(QStringLiteral("clear_filters"), this, SLOT(clearFilters()));
     action->setText(i18n("Clear"));
@@ -265,10 +255,6 @@ mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
 
     filtersTable->horizontalHeaderItem(ColRegEx)->setToolTip(i18n("Regular expression string"));
     appendEmptyRow();
-}
-
-mainWidget::~mainWidget()
-{
 }
 
 void mainWidget::updateApplicationTitle()
@@ -357,7 +343,7 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         QStringList lines;
         while(!stream.atEnd())
             lines.push_back(stream.readLine());
-        results[0] = lines;
+        stepResults[0] = lines;
         sourceLines = lines.size();
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
         status->setText(QStringLiteral("%1: %2 lines").arg(localFile).arg(sourceLines));
@@ -420,22 +406,22 @@ void mainWidget::applyFrom(size_t start)
     clearResultsAfter(start);
     size_t rows = filtersTable->rowCount();
 
-    if (results.size() > start) {
+    if (stepResults.size() > start) {
         if (!validateExpressions(start))
             return;
 
         QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-        results.resize(rows+1);
+        stepResults.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
-            auto result = applyExpression(row, results[row]);
-            subjModified |= results[row].size() != result.size();
-            results[row+1] = result;
+            auto result = applyExpression(row, stepResults[row]);
+            subjModified |= stepResults[row].size() != result.size();
+            stepResults[row+1] = result;
         }
         updateApplicationTitle();
         displayResult();
         QGuiApplication::restoreOverrideCursor();
     } else
-        qWarning() << QStringLiteral("No source entry %1/%2").arg(start).arg(results.size());
+        qWarning() << QStringLiteral("No source entry %1/%2").arg(start).arg(stepResults.size());
 }
 
 bool mainWidget::validateExpressions(int entry)
@@ -461,9 +447,9 @@ bool mainWidget::validateExpressions(int entry)
 void mainWidget::clearResultsAfter(size_t entry)
 {
     int rowCount = filtersTable->rowCount() + 1;
-    results.resize(rowCount);
+    stepResults.resize(rowCount);
     for (int i = entry + 1; i < rowCount; ++i)
-        results[i].clear();
+        stepResults[i].clear();
     clearResults();
     status->clear();
 }
@@ -479,11 +465,10 @@ void mainWidget::displayResult()
 {
     result->setUpdatesEnabled(false);
     result->clear();
-    if (!results.empty()) {
-        QStringList lines = results.back();
-        if (!results.empty())
-            for (const QString& str : lines)
-                result->appendPlainText(str);
+    if (!stepResults.empty()) {
+        QStringList lines = stepResults.back();
+        for (const QString& str : lines)
+            result->appendPlainText(str);
         status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLines).arg(lines.size()));
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
@@ -507,7 +492,7 @@ void mainWidget::insertEmptyRowAt(int row)
 {
     QSignalBlocker blocker(filtersTable);
     filtersTable->insertRow(row);
-    auto item = new QTableWidgetItem();
+    QTableWidgetItem *item = new QTableWidgetItem();
     item->setCheckState(Qt::Checked);
     filtersTable->setItem(row, ColEnable, item);
 
@@ -527,32 +512,32 @@ void mainWidget::insertEmptyRowAt(int row)
 void mainWidget::insertEmptyFilterAbove()
 {
     int row = filtersTable->currentRow();
-    if (row < 0 || row >= filtersTable->rowCount())
-        return;
-    insertEmptyRowAt(row);
-    maybeAutoApply(row);
+    if (row >= 0 && row < filtersTable->rowCount()) {
+        insertEmptyRowAt(row);
+        maybeAutoApply(row);
+    }
 }
 
 void mainWidget::deleteFilterRow()
 {
     int row = filtersTable->currentRow();
-    if (row < 0 || row >= filtersTable->rowCount())
-        return;
-    QSignalBlocker blocker(filtersTable);
-    filtersTable->removeRow(row);
-    if (filtersTable->rowCount() == 0)
-        appendEmptyRow();
-    blocker.unblock();
-    maybeAutoApply(row);
+    if (row >= 0 && row < filtersTable->rowCount()) {
+        QSignalBlocker blocker(filtersTable);
+        filtersTable->removeRow(row);
+        if (filtersTable->rowCount() == 0)
+            appendEmptyRow();
+        blocker.unblock();
+        maybeAutoApply(row);
+    }
 }
 
 void mainWidget::clearFilterRow()
 {
     int row = filtersTable->currentRow();
-    if (row < 0 || row >= filtersTable->rowCount())
-        return;
-    setFilterRow(row, filterEntry());
-    maybeAutoApply(row);
+    if (row >= 0 && row < filtersTable->rowCount()) {
+        setFilterRow(row, filterEntry());
+        maybeAutoApply(row);
+    }
 }
 
 void mainWidget::moveFilterUp()
@@ -731,15 +716,14 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
     return result;
 }
 
-void mainWidget::insertFiltersAt(int at, const filterData& filters)
+void mainWidget::insertFiltersAt(int at, const filterData& fData)
 {
-    if (!filters.dialect.isEmpty())
-        actionDialect->setCurrentAction(filters.dialect);
+    if (!fData.dialect.isEmpty())
+        actionDialect->setCurrentAction(fData.dialect);
 
-    int nFilters = filters.filters.size();
-    for (int i=0; i < nFilters; ++i) {
+    for (const auto& entry : fData.filters) {
         insertEmptyRowAt(at);
-        setFilterRow(at, filters.filters[i]);
+        setFilterRow(at, entry);
         ++at;
     }
 }
@@ -771,8 +755,7 @@ bool mainWidget::doSaveFilters(const QString& fileName)
         int rows = filtersTable->rowCount();
         QJsonArray filterArray;
         for (int row = 0; row < rows; ++row) {
-            QString reText = filtersTable->item(row, ColRegEx)->text();
-            if (!reText.isEmpty()) {
+            if (!filtersTable->item(row, ColRegEx)->text().isEmpty()) {
                 filterEntry filter = getFilterRow(row);
                 filterArray.append(filter.toJson());
             }
@@ -999,7 +982,7 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
             QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
             if (entry.ignoreCase)
                 pOpts |= QRegularExpression::CaseInsensitiveOption;
-            QRegularExpression re(entry.re);
+            QRegularExpression re(entry.re, pOpts);
             if (!re.isValid())
                 throw badRegexException(entry.re);
             QStringList result;
@@ -1028,13 +1011,11 @@ int doBatch(const commandLineOptions& opts)
     QStringList lines;
     try {
         filters = batchLoadFilters(opts);
-	if (opts.stdin)
-	  lines = readStdIn(opts);
-	else
-	  lines = batchLoadSubjectFile(opts);
-        // cerr << filters.filters.size() << " re lines, dialect: " << filters.dialect.toUtf8().constData() << ", " << lines.size() << " subject lines\n";
+        if (opts.stdin)
+            lines = readStdIn(opts);
+        else
+            lines = batchLoadSubjectFile(opts);
         lines = batchApplyFilters(filters, lines);
-        // cerr << "result = " << lines.size() << "lines\n";
         for (auto const& line : lines)
             cout << line.toUtf8().constData() << '\n';
     }

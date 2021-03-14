@@ -34,7 +34,6 @@ class Filters : public KXmlGuiWindow
 {
 public:
     explicit Filters(const commandLineOptions& opts, QWidget *parent=nullptr);
-    virtual ~Filters();
 
 private:
     /** application widget placed in the main window */

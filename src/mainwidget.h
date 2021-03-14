@@ -58,7 +58,6 @@ private:
 
 public:
     mainWidget(KXmlGuiWindow *main, QWidget *parent = nullptr);
-    virtual ~mainWidget() override;
     void setupActions();
     bool initialLoad(const commandLineOptions& opts);
 
@@ -100,7 +99,7 @@ private:
     /** Vector of results for each step. The input file is read into results[0].
      * Each results[n] is the input to filter(n), and the filter result goes
      * to results[n+1]. The final displayed result is at results.back(). */
-    std::vector<QStringList> results;
+    std::vector<QStringList> stepResults;
 
     /** label widget placed in the status bar */
     QLabel *status;
@@ -178,7 +177,7 @@ private:
      */
     bool doSaveResult(const QString& fileName);
 
-    void insertFiltersAt(int at, const filterData& filters);
+    void insertFiltersAt(int at, const filterData& fData);
 
     QString getFilterFile();
     bool loadFiltersTable(const QString& localFile);
