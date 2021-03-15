@@ -19,6 +19,7 @@
 #include "ui_mainwidget.h"
 
 #include <QCheckBox>
+#include <QClipboard>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFontDialog>
@@ -31,6 +32,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QPair>
 #include <QStatusBar>
 #include <QTextStream>
@@ -93,11 +95,19 @@ void mainWidget::setupActions()
     recentFileAction->loadEntries(KConfigGroup(KSharedConfig::openConfig(),
                                 QStringLiteral("RecentURLs")));
 
+    actionLoadFromClipboard = ac->addAction("file_load_from_clipboard", this, SLOT(loadSubjectFromCB()));
+    actionLoadFromClipboard->setText(i18n("Load from clipboard"));
+    actionLoadFromClipboard->setWhatsThis(i18n("Set subject to text contents of the clipboard"));
+    actionLoadFromClipboard->setToolTip(i18n("Set subject to clipboard"));
+    //actionLoadFromClipboard->setDefaultShortcut();
+    //actionLoadFromClipboard->setIcon();
+    //actionLoadFromClipboard->setEnabled(false);
+
     actionSaveResults = ac->addAction(QStringLiteral("save_result"), this, SLOT(saveResult()));
     actionSaveResults->setText(i18n("Save Result..."));
     actionSaveResults->setToolTip(i18n("Save the filtered result."));
     actionSaveResults->setWhatsThis(i18n("Save the results of applying the filters to the source."));
-    //ac->setDefaultShortcut(actionSaveResults, QKeySequence(QStringLiteral("Ctrl+N"));
+    //actionSaveResults->setDefaultShortcut(actionSaveResults, QKeySequence(QStringLiteral("Ctrl+N"));
     actionSaveResults->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
     actionSaveResults->setEnabled(false);
 
@@ -334,16 +344,16 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         titleFile = QFileInfo(localFile).fileName();
         subjModified = false;
         updateApplicationTitle();
-        sourceLines = -1;
+        sourceLineCount = -1;
         clearResultsAfter(0);
         QTextStream stream(&source);
         QStringList lines;
         while(!stream.atEnd())
             lines.push_back(stream.readLine());
         stepResults[0] = lines;
-        sourceLines = lines.size();
+        sourceLineCount = lines.size();
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
-        status->setText(QStringLiteral("%1: %2 lines").arg(localFile).arg(sourceLines));
+        status->setText(QStringLiteral("%1: %2 lines").arg(localFile, sourceLineCount ));
         maybeAutoApply(0);
         return true;
     } else {
@@ -356,6 +366,33 @@ void mainWidget::loadRecentSubject(const QUrl& url)
 {
     loadSubjectFile(url.toLocalFile());
 }
+
+void mainWidget::loadSubjectFromCB()
+{
+    const QClipboard *clipboard = QApplication::clipboard();
+    QString text = clipboard->text();
+    if (text.isEmpty()) {
+        QMessageBox::information(this, i18n("No Data"),
+                              i18n("Clipboard does not contain text data"));
+        return;
+    }
+
+    QTextStream stream(&text, QIODevice::ReadOnly);
+    QStringList lines;
+    while (!stream.atEnd())
+        lines << stream.readLine();
+
+    titleFile = i18n("<clipboard>");
+    subjModified = false;
+    updateApplicationTitle();
+    sourceLineCount = -1;
+    clearResultsAfter(0);
+    stepResults[0] = lines;
+    sourceLineCount = lines.size();
+    status->setText(QStringLiteral("%1: %2 lines").arg(titleFile, sourceLineCount ));
+    maybeAutoApply(0);
+}
+
 
 QStringList mainWidget::applyExpression(size_t entry, QStringList src)
 {
@@ -466,7 +503,7 @@ void mainWidget::displayResult()
         QStringList lines = stepResults.back();
         for (const QString& str : lines)
             result->appendPlainText(str);
-        status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLines).arg(lines.size()));
+        status->setText(QStringLiteral("Source: %1, final %2 lines").arg( sourceLineCount ).arg(lines.size()));
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
     }

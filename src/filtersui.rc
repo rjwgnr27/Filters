@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="Filtersui"
-     version="15"
+     version="16"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -10,6 +10,7 @@
         <Menu name="file">
             <Action name="file_open" />
             <Action name="file_open_recent" />
+            <Action name="file_load_from_clipboard" />
             <Separator lineSeparator="true" />
             <Action name="save_result" />
             <Action name="save_result_as" />

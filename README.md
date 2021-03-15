@@ -36,6 +36,18 @@ you will want to put the most exclusive expressions at the top. This will make
 subsequent expressions faster. If the "Auto Run" option is enabled, any changes
 in the expression list are evaluated immediately.
 
+### Subject files
+##### From file
+The "File"->"Open" and "File"->"Open Recent" commands will load (replace) the
+subject source with the contents of a local or remote file.
+
+##### From clipboard
+"File"->"Load from clipboard" will replace load (replace) the subject source 
+with the contents of the system clipboard, if the clipboard contents are text,
+or convertible to text. If the clipboard does not contain any text, an 
+informational dialog will pop-up, and the original subject will remain
+unchanged.
+
 ## Batch Mode
 The application can be run in batch mode, to run a saved RE file against a
 subject file from a command line or script. It is invoked by using the

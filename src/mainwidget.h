@@ -79,6 +79,8 @@ private Q_SLOTS:
     void loadSubjectFile();
     bool loadSubjectFile(const QString& localFile);
     void loadRecentSubject(const QUrl& url);
+    void loadSubjectFromCB();
+
     void runButtonClicked();
     void saveFilters();
     void saveFiltersAs();
@@ -105,13 +107,14 @@ private:
     QLabel *status;
 
     /** lines read from the source file */
-    int sourceLines = -1;
+    int sourceLineCount = -1;
 
     KRecentFilesAction *recentFileAction;
 
     /** subject file name to display in the application title; latest of last loaded or saved */
     QString titleFile;
 
+    QAction *actionLoadFromClipboard;
     QAction *actionSaveResults;
     QAction *actionSaveResultsAs;
     QString resultFileName;
