@@ -268,11 +268,8 @@ bool mainWidget::initialLoad(const commandLineOptions& opts)
       QMessageBox::warning(this, i18n("Option Not Supported"),
 		   i18n("--stdin option not supported in graphic mode"));
     
-    bool subjecFileLoaded = false;
     if (!opts.subjectFile.isEmpty()) {
-        if (loadSubjectFile(opts.subjectFile))
-            subjecFileLoaded = true;
-        else
+        if (!loadSubjectFile(opts.subjectFile))
             QMessageBox::warning(this, i18n("Could Not Load"),
                     i18n("Subject file '%1' could not be loaded").arg(opts.subjectFile));
     }
@@ -380,12 +377,12 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
                 QStringList result;
                 QRegularExpression re(reStr, pOpts);
                 if (re.isValid()) {
-                    for (const QString& str : src) {
+                    for (const QString& str : qAsConst(src)) {
                         if (re.match(str).hasMatch() ^ exclude)
                             result.push_back(str);
                     }
                 } else
-                    status->setText(QStringLiteral("Invalid RE '%1': %2").arg(reStr).arg(re.errorString()));
+                    status->setText(QStringLiteral("Invalid RE '%1': %2").arg(reStr, re.errorString()));
                 return result;
             }
         }
@@ -705,7 +702,7 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
             result.dialect = filters["dialect"].toString();
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
-            QJsonArray filterArray = filters["filters"].toArray();
+            const QJsonArray filterArray = filters["filters"].toArray();
             for (const auto& entry : filterArray)
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
@@ -919,7 +916,7 @@ static filterData batchLoadFilterFile(const QString& fileName)
             result.dialect = filters["dialect"].toString();
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
-            QJsonArray filterArray = filters["filters"].toArray();
+            const QJsonArray filterArray = filters["filters"].toArray();
             for (const auto& entry : filterArray)
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
@@ -962,7 +959,7 @@ static QStringList batchLoadSubjectFile(const commandLineOptions& opts)
     throw subjectLoadException(opts.subjectFile);
 }
 
-static QStringList readStdIn(const commandLineOptions& opts)
+static QStringList readStdIn()
 {
   QStringList lines;
   while(cin) {
@@ -1012,11 +1009,11 @@ int doBatch(const commandLineOptions& opts)
     try {
         filters = batchLoadFilters(opts);
         if (opts.stdin)
-            lines = readStdIn(opts);
+            lines = readStdIn();
         else
             lines = batchLoadSubjectFile(opts);
         lines = batchApplyFilters(filters, lines);
-        for (auto const& line : lines)
+        for (auto const& line : qAsConst(lines))
             cout << line.toUtf8().constData() << '\n';
     }
     catch (std::exception const &except) {
