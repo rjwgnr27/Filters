@@ -8,6 +8,6 @@ StartupNotify=true
 X-KDE-StartupNotify=true
 #X-DocPath=filters/index.html
 
-Name=filters
+Name=Filters
 GenericName=Interactive regex file filter
 Comment=An application to interactively filter a file through a regular expression chain
