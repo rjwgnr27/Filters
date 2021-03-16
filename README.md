@@ -58,10 +58,10 @@ be specified. The RE file(s) will be loaded and verified. The subject file
 will then be loaded, the filters applied, and the result printed to stdout.
 
 # Building
-## Prerequisites
+#### Prerequisites
 You need Qt5, KDE Frameworks 5, and CMake 2.8.11 or higher
 
-## Getting the source
+#### Getting the source
 "SOURCE_BASE" is the base directory for your project builds, i.e. "~/source":
 
 ```shell
@@ -76,12 +76,17 @@ mkdir build
 cd build
 ```
 
-Configure and make:
+#### Configure and make:
 
-Where:
+The application can be configured to install to the user's bin path (i.e. 
+```~/bin/```), or system wide (```/usr/local/…``` or ```/usr/…```.
+
+**NOTE** Commonly, locally built and installed apps will go into 
+```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+ system package manager.
 
 	BUILD_TYPE := Debug|RelWithDebInfo|Release
-	INSTALL := install base path, i.e. "/usr" | "/usr/local"
+	INSTALL := install base path, i.e. "/usr" | "/usr/local" | "~/"
 	CMAKE-OPTIONS:
 		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
 		-DUSE_GCC:BOOL=ON
@@ -93,30 +98,37 @@ Where:
 
 ```shell
 cmake [CMAKE-OPTIONS] -DCMAKE_BUILD_TYPE=BUILD_TYPE -DCMAKE_INSTALL_PREFIX=INSTALL ../
-make
+cmake --build . [-- BUILDOPTIONS]
 ```
 
-To run local build:
+#### Run in build directory:
+The application can be run without installing, for instance, for debugging:
 
 ```shell
 ./filters
 ```
-
 *NOTE*
-To run locally, the application UI .rc file must be copied into the kxmlgui5 path, i.e.:
+To run from the build directory, the application UI .rc file must be copied 
+into the kxmlgui5 path, i.e.:
 
 ```shell
 sudo cp ../src/APPui.rc /usr/local/share/kxmlgui5/filters/
 ```
 
-To install in user directory:
+#### To install in your private directory:
 
 ```shell
-make install/fast
+cmake --install .
 ```
 
-To install in system directory:
+#### To install in system directory:
+Use this option to make the application available to all users in the system.
+
+**NOTE** Commonly, locally built and installed apps will go into 
+```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+ system package manager.
+
 
 ```shell
-sudo make install/fast
+sudo cmake --install .
 ```
