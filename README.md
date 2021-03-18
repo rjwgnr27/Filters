@@ -27,7 +27,8 @@ matches will be *excluded* from the output.
 * "IC" uses case insensitive matching in the regular expression for that step
 
 * The "Regular Expression" field is the RE string for the step. The syntax is 
-checked on entry, according to the "Dialect" option under the "Filters" menu.
+checked on entry, according to the "Dialect" option under the "Filters" menu. 
+Currently, only QRegularExpression (PCRE) dialect is supported.
 
 **NOTE** Since application of the regular expressions on very large files can be
 very time consuming, "Auto Run" is disabled by default. After adding, deleting,
