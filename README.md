@@ -1,8 +1,14 @@
-# Filters - KDE application for interactive file filtering
+# Filters - An Application for Interactive File Filtering
+This application allows the the filtering of a text file, by the sequential 
+application of regular expressions.
+
+The application can be run in interactive mode, presenting a UI with a list 
+of regurlar expressions, and the final results of the applied filters. It can 
+also be run in non-interactive "batch" mode, applyng a filter set saved from 
+a previous interative session to an input file.
 
 ## GUI mode
-This application allows the interactive filtering of a text file, by the 
-sequential application of regular expressions. When started, the program will
+When started, the program will
 present a screen, with two main divisions. On the top is a grid of expressions 
 to be applied to the input file. On the bottom is the resultant text output
 from the application of the filters to the input.
