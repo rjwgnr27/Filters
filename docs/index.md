@@ -1,37 +1,135 @@
-## Welcome to GitHub Pages
+# Filters - KDE application for interactive file filtering
 
-You can use the [editor on GitHub](https://github.com/rjwgnr27/Filters/edit/gh-pages/docs/index.md) to maintain and preview the content for your website in Markdown files.
+## GUI mode
+This application allows the interactive filtering of a text file, by the 
+sequential application of regular expressions. When started, the program will
+present a screen, with two main divisions. On the top is a grid of expressions 
+to be applied to the input file. On the bottom is the resultant text output
+from the application of the filters to the input.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+For each (enabled) RE string in the filter list, the RE is applied to the input,
+and the result passed to the next RE. The expressions are evaluated in order,
+from top to bottom. Each step is cached, so changing a later expression only
+evaluates from that point down. 
 
-### Markdown
+Each expression line has three check boxes, and an expression string. The check
+boxes are labeled "En", "Ex", and "IC". 
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+* "En" is the enable option. Toggling this check mark will re-run the evaluation
+sequence from that point down. Any disabled expression (where "En" check is 
+cleared), will pass through the input of that step unchanged to the next step.
 
-```markdown
-Syntax highlighted code block
+* "Ex" is the "exclude" flag. By default, this flag is cleared, and only inputs
+to this step which *match* the RE will pass through to the next step. When this
+flag is set, the expression is an "exclusion"; any input for which the RE 
+matches will be *excluded* from the output.
 
-# Header 1
-## Header 2
-### Header 3
+* "IC" uses case insensitive matching in the regular expression for that step
 
-- Bulleted
-- List
+* The "Regular Expression" field is the RE string for the step. The syntax is 
+checked on entry, according to the "Dialect" option under the "Filters" menu. 
+Currently, only QRegularExpression (PCRE) dialect is supported.
 
-1. Numbered
-2. List
+**NOTE** Since application of the regular expressions on very large files can be
+very time consuming, "Auto Run" is disabled by default. After adding, deleting,
+or changing an expression, the "Run" command must be issued. As a best practice,
+you will want to put the most exclusive expressions at the top. This will make
+subsequent expressions faster. If the "Auto Run" option is enabled, any changes
+in the expression list are evaluated immediately.
 
-**Bold** and _Italic_ and `Code` text
+### Subject files
+##### From file
+The "File"->"Open" and "File"->"Open Recent" commands will load (replace) the
+subject source with the contents of a local or remote file.
 
-[Link](url) and ![Image](src)
+##### From clipboard
+"File"->"Load from clipboard" will replace load (replace) the subject source 
+with the contents of the system clipboard, if the clipboard contents are text,
+or convertible to text. If the clipboard does not contain any text, an 
+informational dialog will pop-up, and the original subject will remain
+unchanged.
+
+## Batch Mode
+The application can be run in batch mode, to run a saved RE file against a
+subject file from a command line or script. It is invoked by using the
+"--batch" option. When started in batch mode, the GUI is not opened.
+
+When starting in batch mode, "--refile" and "--subject" parameters must also
+be specified. The RE file(s) will be loaded and verified. The subject file
+will then be loaded, the filters applied, and the result printed to stdout.
+
+# Building
+#### Prerequisites
+You need Qt5, KDE Frameworks 5, and CMake 2.8.11 or higher
+
+#### Getting the source
+"SOURCE_BASE" is the base directory for your project builds, i.e. "~/source":
+
+```shell
+cd SOURCE_BASE
+git clone git@github.com:rjwgnr27/Filters.git
+cd Filters
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+Create the out-of-source build directory:
+```shell
+mkdir build
+cd build
+```
 
-### Jekyll Themes
+#### Configure and make:
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/rjwgnr27/Filters/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+The application can be configured to install to the user's bin path (i.e. 
+```~/bin/```), or system wide (```/usr/local/…``` or ```/usr/…```.
 
-### Support or Contact
+**NOTE** Commonly, locally built and installed apps will go into 
+```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+ system package manager.
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+	BUILD_TYPE := Debug|RelWithDebInfo|Release
+	INSTALL := install base path, i.e. "/usr" | "/usr/local" | "~/"
+	CMAKE-OPTIONS:
+		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+		-DUSE_GCC:BOOL=ON
+		-DUSE_CLANG:BOOL=ON
+	USE_GCC and USE_CLANG are mutually exclusive; only one or none
+	of the two may be selected. If neither is selected, the system
+	default is used.
+
+
+```shell
+cmake [CMAKE-OPTIONS] -DCMAKE_BUILD_TYPE=BUILD_TYPE -DCMAKE_INSTALL_PREFIX=INSTALL ../
+cmake --build . [-- BUILDOPTIONS]
+```
+
+#### Run in build directory:
+The application can be run without installing, for instance, for debugging:
+
+```shell
+./filters
+```
+*NOTE*
+To run from the build directory, the application UI .rc file must be copied 
+into the kxmlgui5 path, i.e.:
+
+```shell
+sudo cp ../src/APPui.rc /usr/local/share/kxmlgui5/filters/
+```
+
+#### To install in your private directory:
+
+```shell
+cmake --install .
+```
+
+#### To install in system directory:
+Use this option to make the application available to all users in the system.
+
+**NOTE** Commonly, locally built and installed apps will go into 
+```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+ system package manager.
+
+
+```shell
+sudo cmake --install .
+```
