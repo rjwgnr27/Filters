@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16.0)
 
 # The version number.
 set(APP_VERSION_MAJOR "1")
@@ -73,7 +73,7 @@ qt5_wrap_ui(filters_SRC
 )
 
 add_executable(filters ${filters_SRC})
-target_compile_features(filters PUBLIC "cxx_std_11")
+target_compile_features(filters PUBLIC "cxx_std_17")
 
 target_link_libraries(filters
     Qt5::Widgets
@@ -87,9 +87,9 @@ target_link_libraries(filters
 )
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    SET (CMAKE_CXX_FLAGS "-std=c++11")
+    SET (CMAKE_CXX_FLAGS "-std=c++17")
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    SET (CMAKE_CXX_FLAGS "-std=c++11")
+    SET (CMAKE_CXX_FLAGS "-std=c++17")
 else ()
     message(FATAL_ERROR "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
 endif ()

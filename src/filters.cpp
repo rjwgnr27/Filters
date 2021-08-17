@@ -514,6 +514,7 @@ void mainWidget::displayResult()
 void mainWidget::clearFilters()
 {
     QSignalBlocker blocker(filtersTable);
+    filtersFileName.clear();
     filtersTable->setRowCount(0);
     appendEmptyRow();
 }
