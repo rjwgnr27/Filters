@@ -53,7 +53,7 @@ using namespace::std;
 Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
         KXmlGuiWindow(parent), m_ui(new mainWidget(this))
 {
-    setCentralWidget(m_ui);
+	setCentralWidget(m_ui);
     setupActions();
     setStandardToolBarMenuEnabled(true);
     StandardWindowOptions options = Default;
@@ -277,7 +277,7 @@ bool mainWidget::initialLoad(const commandLineOptions& opts)
     if (opts.stdin)
       QMessageBox::warning(this, i18n("Option Not Supported"),
 		   i18n("--stdin option not supported in graphic mode"));
-    
+
     if (!opts.subjectFile.isEmpty()) {
         if (!loadSubjectFile(opts.subjectFile))
             QMessageBox::warning(this, i18n("Could Not Load"),
@@ -343,6 +343,7 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
         titleFile = QFileInfo(localFile).fileName();
         subjModified = false;
+        resultFileName.clear();
         updateApplicationTitle();
         sourceLineCount = -1;
         clearResultsAfter(0);
@@ -820,8 +821,8 @@ void mainWidget::saveResult()
 
 void mainWidget::saveResultAs()
 {
-    QString localFile = QFileDialog::getSaveFileName(this, "Save Results To",
-                            QString(), i18n("Text file (*.txt);;All files (*.*)"));
+    QString localFile = QFileDialog::getSaveFileName(this, "Save Results To"/*,
+                            QString(), i18n("Log files (*.txt *.log);;All files (*.*)")*/);
     if (!localFile.isEmpty())
         if (doSaveResult(localFile))
             resultFileName = localFile;
@@ -1034,7 +1035,7 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
 
 static QStringList batchApplyFilters(const filterData& filters, const QStringList& lines)
 {
-    if (filters.dialect == "QRegularExpression") 
+    if (filters.dialect == "QRegularExpression")
         return batchApplyQRegularExpressions(filters, QStringList(lines));
     throw dialectTypeException(filters.dialect);
 }

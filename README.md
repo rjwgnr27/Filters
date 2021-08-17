@@ -102,10 +102,16 @@ The application can be configured to install to the user's bin path (i.e.
 	of the two may be selected. If neither is selected, the system
 	default is used.
 
+    BUILDOPTIONS:
+        --clean-first
+        --parallel N        : Use N concurrent threads
+        --preset PRESET
+        --target TARGET     : build TARGET (may be multiple) instead of default
+        --verbose
 
 ```shell
 cmake [CMAKE-OPTIONS] -DCMAKE_BUILD_TYPE=BUILD_TYPE -DCMAKE_INSTALL_PREFIX=INSTALL ../
-cmake --build . [-- BUILDOPTIONS]
+cmake --build [BUILDOPTIONS] . [-- TOOLOPTIONS]
 ```
 
 #### Run in build directory:
