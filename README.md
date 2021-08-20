@@ -152,7 +152,7 @@ sudo cmake --install .
   very long time, while processing the complete chain.
 
 ## Todo
-There are a number of improvements yet to be made:
+There are a number of improvements to be made:
 
 * Big baddy here (see the "Bugs" section above): move the filter chain
   out of the event loop. This is a poor design, in that filtering
@@ -167,10 +167,10 @@ There are a number of improvements yet to be made:
   multiple thereads. Probably only if the number if subject lines is
   greater than a threshold. Possibly different approaches to consider:
 
-** At the input to each step, if the input size is large enough, split
-   the input into chuncks, which get filtered in parallel; then merged
-   at the end of the step.
+  * At the input to each step, if the input size is large enough, split
+    the input into chuncks, which get filtered in parallel; then merged
+    at the end of the step.
 
-** Make each step a unique thread, and pipe the output of one step
-   (thread) into the next step (thread).
+  * Make each step a unique thread, and pipe the output of one step
+    (thread) into the next step (thread).
 
