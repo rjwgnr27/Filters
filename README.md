@@ -147,30 +147,26 @@ sudo cmake --install .
 ```
 
 ## Bugs
-* The whole filter chain runs in the context of the UI event
-  loop. This causes large subject to block the UI, for potentially a
-  very long time, while processing the complete chain.
+* The whole filter chain runs in the context of the UI event loop. It uses
+  QtConcurrent::blockingFiltered() to multi-thread filter application. Note
+  however, on very large subject files, the big time consumer seems to be the
+  "setPlainText()" of the result text widget, which has to be done in the UI
+  event loop.
 
 ## Todo
 There are a number of improvements to be made:
 
 * Big baddy here (see the "Bugs" section above): move the filter chain
-  out of the event loop. This is a poor design, in that filtering
-  large files will block the UI during processing.
+  out of the event loop. See also the note above about setPlainText().
 
 * For inclusion filters, add an "or" option, so that two or more
   expressions can be sequenced so that if one fails, the next is
   tried; and only if all in the group fail, is the inclusion false.
 
-* Multi-threaded: see the first item. Once the filter chain is moved
-  out of the event loop (into a thread), perform the evaluations in
-  multiple thereads. Probably only if the number if subject lines is
-  greater than a threshold. Possibly different approaches to consider:
+* Add a (optional?) "applied count" column to the filters table, so show the number of
+  inclusions/exclusions for a given filter. This could be used to optimize the
+  filter order, i.e. to give biggest exclusions at the top.
 
-  * At the input to each step, if the input size is large enough, split
-    the input into chuncks, which get filtered in parallel; then merged
-    at the end of the step.
-
-  * Make each step a unique thread, and pipe the output of one step
-    (thread) into the next step (thread).
-
+* (optional) application time to give the filter step. And/or, time per
+  application to rank the complexity of the expression; again could be used to
+  optimize the expression order.

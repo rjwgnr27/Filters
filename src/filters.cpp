@@ -20,6 +20,7 @@
 
 #include <QCheckBox>
 #include <QClipboard>
+#include <QtConcurrent>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFontDialog>
@@ -351,10 +352,11 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         QStringList lines;
         while(!stream.atEnd())
             lines.push_back(stream.readLine());
-        stepResults[0] = lines;
         sourceLineCount = lines.size();
+        stepResults[0] = std::move(lines);
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
-        status->setText(QStringLiteral("%1: %2 lines").arg(localFile, sourceLineCount ));
+        // FIXME: After loading huge file, this line hangs:
+        //status->setText(QStringLiteral("%1: %2 lines").arg(localFile, sourceLineCount));
         maybeAutoApply(0);
         return true;
     } else {
@@ -402,31 +404,40 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
 
     auto table = filtersTable;
     size_t rows = table->rowCount();
-    if (rows > entry) {
-        bool enabled = table->item(entry, ColEnable)->checkState() == Qt::Checked;
-        auto item = table->item(entry, ColRegEx);
-        if (item) {
-            auto reStr = item->text();
-            if (enabled && !reStr.isEmpty()) {
-                bool exclude = table->item(entry, ColExclude)->checkState() == Qt::Checked;
-                QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
-                if (table->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
-                    pOpts |= QRegularExpression::CaseInsensitiveOption;
-                QStringList result;
-                QRegularExpression re(reStr, pOpts);
-                if (re.isValid()) {
-                    for (const QString& str : qAsConst(src)) {
-                        if (re.match(str).hasMatch() ^ exclude)
-                            result.push_back(str);
-                    }
-                } else
-                    status->setText(QStringLiteral("Invalid RE '%1': %2").arg(reStr, re.errorString()));
-                return result;
-            }
-        }
-    } else
-        qWarning() << QStringLiteral("Failure %1/%2").arg(entry).arg(rows);
-    return src;
+    if (entry >= rows) {
+        qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
+        return QStringList{};
+    }
+
+    if (table->item(entry, ColEnable)->checkState() != Qt::Checked)
+        return src;
+
+    const auto item = table->item(entry, ColRegEx);
+    if (!item || item->text().isEmpty())
+        return src;
+
+    auto reStr = item->text();
+    bool exclude = table->item(entry, ColExclude)->checkState() == Qt::Checked;
+    QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
+    if (table->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
+        pOpts |= QRegularExpression::CaseInsensitiveOption;
+    QRegularExpression re(reStr, pOpts);
+    if (!re.isValid())
+        return src;
+
+    re.optimize();
+#if 1
+    return QtConcurrent::blockingFiltered(src,
+        [&re, exclude](const QString& str) -> bool {return re.match(str).hasMatch() ^ exclude;});
+#else
+    QStringList result;
+    result.reserve(src.count());
+    for (const QString& str : qAsConst(src)) {
+        if (re.match(str).hasMatch() ^ exclude)
+            result.push_back(str);
+    }
+    return result;
+#endif
 }
 
 
@@ -439,25 +450,21 @@ void mainWidget::maybeAutoApply(int entry)
 void mainWidget::applyFrom(size_t start)
 {
     clearResultsAfter(start);
-    size_t rows = filtersTable->rowCount();
-
     if (stepResults.size() > start) {
         if (!validateExpressions(start))
             return;
 
-        if (rows > 1000)
-            status->setText(i18n("Filtering ..."));
-
+        size_t rows = filtersTable->rowCount();
         QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+        qApp->processEvents();
         stepResults.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
-            if ((row % 1000) == 0)
-                QApplication::processEvents();
             auto result = applyExpression(row, stepResults[row]);
             subjModified |= stepResults[row].size() != result.size();
             stepResults[row+1] = result;
         }
         updateApplicationTitle();
+        qApp->processEvents();
         displayResult();
         QGuiApplication::restoreOverrideCursor();
     } else
@@ -506,9 +513,13 @@ void mainWidget::displayResult()
     result->setUpdatesEnabled(false);
     result->clear();
     if (!stepResults.empty()) {
-        QStringList lines = stepResults.back();
-        for (const QString& str : lines)
+        const QStringList& lines = stepResults.back();
+#if 1
+        result->setPlainText(lines.join(QChar('\n')));
+#else
+        for (const QString& str : qAsConst(lines))
             result->appendPlainText(str);
+#endif
         status->setText(QStringLiteral("Source: %1, final %2 lines").arg( sourceLineCount ).arg(lines.size()));
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
