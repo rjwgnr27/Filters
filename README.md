@@ -145,3 +145,32 @@ Use this option to make the application available to all users in the system.
 ```shell
 sudo cmake --install .
 ```
+
+## Bugs
+* The whole filter chain runs in the context of the UI event
+  loop. This causes large subject to block the UI, for potentially a
+  very long time, while processing the complete chain.
+
+## Todo
+There are a number of improvements yet to be made:
+
+* Big baddy here (see the "Bugs" section above): move the filter chain
+  out of the event loop. This is a poor design, in that filtering
+  large files will block the UI during processing.
+
+* For inclusion filters, add an "or" option, so that two or more
+  expressions can be sequenced so that if one fails, the next is
+  tried; and only if all in the group fail, is the inclusion false.
+
+* Multi-threaded: see the first item. Once the filter chain is moved
+  out of the event loop (into a thread), perform the evaluations in
+  multiple thereads. Probably only if the number if subject lines is
+  greater than a threshold. Possibly different approaches to consider:
+
+** At the input to each step, if the input size is large enough, split
+   the input into chuncks, which get filtered in parallel; then merged
+   at the end of the step.
+
+** Make each step a unique thread, and pipe the output of one step
+   (thread) into the next step (thread).
+

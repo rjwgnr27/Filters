@@ -445,9 +445,14 @@ void mainWidget::applyFrom(size_t start)
         if (!validateExpressions(start))
             return;
 
+        if (rows > 1000)
+            status->setText(i18n("Filtering ..."));
+
         QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
         stepResults.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
+            if ((row % 1000) == 0)
+                QApplication::processEvents();
             auto result = applyExpression(row, stepResults[row]);
             subjModified |= stepResults[row].size() != result.size();
             stepResults[row+1] = result;
