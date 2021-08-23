@@ -26,6 +26,12 @@
 #include "filters_config.h"
 #include "mainwidget.h"
 
+template <typename T>
+std::basic_ostream<char, T>& operator << (std::basic_ostream<char, T>& os, QString const& str)
+{
+    return os << str.toLatin1().constData();
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -72,6 +78,14 @@ int main(int argc, char *argv[])
 
     parser.process(app);
     aboutData.processCommandLine(&parser);
+
+    if (!parser.positionalArguments().empty()) {
+        std::cerr << "Extra parameters on command line: ";
+        for (const auto& opt : parser.positionalArguments())
+            std::cerr << '\'' << opt << "' ";
+        std::cerr << '\n';
+        return -2;
+    }
 
     KDBusService service(KDBusService::Multiple, &app);
 
