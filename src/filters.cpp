@@ -426,18 +426,8 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
         return src;
 
     re.optimize();
-#if 1
     return QtConcurrent::blockingFiltered(src,
         [&re, exclude](const QString& str) -> bool {return re.match(str).hasMatch() ^ exclude;});
-#else
-    QStringList result;
-    result.reserve(src.count());
-    for (const QString& str : qAsConst(src)) {
-        if (re.match(str).hasMatch() ^ exclude)
-            result.push_back(str);
-    }
-    return result;
-#endif
 }
 
 
@@ -515,6 +505,7 @@ void mainWidget::displayResult()
     if (!stepResults.empty()) {
         const QStringList& lines = stepResults.back();
 #if 1
+        /* joining first appears to be faster than using appendPlainText() in a loop */
         result->setPlainText(lines.join(QChar('\n')));
 #else
         for (const QString& str : qAsConst(lines))
@@ -1037,12 +1028,9 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
             QRegularExpression re(entry.re, pOpts);
             if (!re.isValid())
                 throw badRegexException(entry.re);
-            QStringList result;
-            for (const QString& str : lines) {
-                if (re.match(str).hasMatch() ^ exclude)
-                    result.push_back(str);
-            }
-            lines = result;
+            re.optimize();
+            lines = QtConcurrent::blockingFiltered(lines,
+                    [&re, exclude](const QString& str) -> bool {return re.match(str).hasMatch() ^ exclude;});
             if (lines.empty())
                 break;
         }
