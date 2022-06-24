@@ -19,7 +19,7 @@ from top to bottom. Each step is cached, so changing a later expression only
 evaluates from that point down. 
 
 Each expression line has three check boxes, and an expression string. The check
-boxes are labeled "En", "Ex", and "IC". 
+boxes are labeled "En", "Ex", and "IC".
 
 * "En" is the enable option. Toggling this check mark will re-run the evaluation
 sequence from that point down. Any disabled expression (where "En" check is 
@@ -86,21 +86,19 @@ cd build
 #### Configure and make:
 
 The application can be configured to install to the user's bin path (i.e. 
-```~/bin/```), or system wide (```/usr/local/…``` or ```/usr/…```.
+`~/bin/`), or system wide (`/usr/local/…` or `/usr/…` by defining the
+`-DCMAKE_INSTALL_PREFIX=…` parameter. If not specified, it will use the install prefix
+as determined by the GNUInstallDirs package.
 
 **NOTE** Commonly, locally built and installed apps will go into 
-```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+`/opt/…` or `/usr/local/…`; with `/usr/…` reserved for applications managed by the
  system package manager.
 
 	BUILD_TYPE := Debug|RelWithDebInfo|Release
 	INSTALL := install base path, i.e. "/usr" | "/usr/local" | "~/"
 	CMAKE-OPTIONS:
 		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-		-DUSE_GCC:BOOL=ON
-		-DUSE_CLANG:BOOL=ON
-	USE_GCC and USE_CLANG are mutually exclusive; only one or none
-	of the two may be selected. If neither is selected, the system
-	default is used.
+                -DCMAKE_UNITY_BUILD:BOOL=ON
 
     BUILDOPTIONS:
         --clean-first
@@ -109,9 +107,31 @@ The application can be configured to install to the user's bin path (i.e.
         --target TARGET     : build TARGET (may be multiple) instead of default
         --verbose
 
+Application specific options can be enabled using the -DOPT=TRUE option, where OPT is:
+
+| OPT | Description |
+| --- | ----------- |
+| WITH_LTO | Enable *link-time optimization*, aka, *inter-procedural optimization* |
+| WITH_ASAN | Enable *address sanitizer* |
+| WITH_UBSAN | Enable *undefined behavior sanitizer* |
+
+For example, to enable LTO and ASAN: `cmake .. -DWITH_ASAN=TRUE -DWITH_LTO=TRUE`.
+
+You can override the default make file generator with the ```-G``` GENERATOR, where
+GENERATOR is i.e. 'Unix Makefiles' | 'Ninja' | ...
+
+To use an alternate tool chain from the default, specify a tool chain file on with the
+`--toolchain=TOOL_FILE` option. Several tool-chain files are located in
+`./cmake/tools_XXX.cmake`.
+
 ```shell
-cmake [CMAKE-OPTIONS] -DCMAKE_BUILD_TYPE=BUILD_TYPE -DCMAKE_INSTALL_PREFIX=INSTALL ../
-cmake --build [BUILDOPTIONS] . [-- TOOLOPTIONS]
+cmake [CMAKE-OPTIONS] [--toolchain=TOOL_FILE]-DCMAKE_BUILD_TYPE=BUILD_TYPE [-DCMAKE_INSTALL_PREFIX=INSTALL] [-G GENERATOR] ../
+cmake --build . [BUILDOPTIONS]
+```
+
+ex:
+```shell
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -G ninja
 ```
 
 #### Run in build directory:
@@ -138,7 +158,7 @@ cmake --install .
 Use this option to make the application available to all users in the system.
 
 **NOTE** Commonly, locally built and installed apps will go into 
-```/usr/local/…```; with ```/usr/…``` reserved for applications managed by the
+`/usr/local/…`; with `/usr/…` reserved for applications managed by the
  system package manager.
 
 
@@ -148,16 +168,16 @@ sudo cmake --install .
 
 ## Bugs
 * The whole filter chain runs in the context of the UI event loop. It uses
-  QtConcurrent::blockingFiltered() to multi-thread filter application. Note
+  `QtConcurrent::blockingFiltered()` to multi-thread filter application. Note
   however, on very large subject files, the big time consumer seems to be the
-  "setPlainText()" of the result text widget, which has to be done in the UI
+  `setPlainText()` of the result text widget, which has to be done in the UI
   event loop.
 
 ## Todo
 There are a number of improvements to be made:
 
 * Big baddy here (see the "Bugs" section above): move the filter chain
-  out of the event loop. See also the note above about setPlainText().
+  out of the event loop. See also the note above about `setPlainText()`.
 
 * For inclusion filters, add an "or" option, so that two or more
   expressions can be sequenced so that if one fails, the next is

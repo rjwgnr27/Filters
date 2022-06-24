@@ -58,18 +58,19 @@ int main(int argc, char *argv[])
     QCommandLineParser parser;
     aboutData.setupCommandLine(&parser);
 
-    QCommandLineOption autoRunOption(i18n("auto"), i18n("Set auto-run mode"));
+    QCommandLineOption autoRunOption(i18n("auto"),
+                                     i18n("Auto-run mode; changes in a filter automatically runs filter chain"));
     parser.addOption(autoRunOption);
 
     QCommandLineOption batchOption(QStringList{} << "b" << i18n("batch"),
-                                   i18n("batch mode"));
+                                   i18n("batch mode; does not open GUI"));
     parser.addOption(batchOption);
 
     QCommandLineOption reOption(QStringList() << "r" << i18n("refile"),
                                 i18n("regex file to load"), i18n("REFILE"));
     parser.addOption(reOption);
 
-    QCommandLineOption stdinOption(i18n("stdin"), i18n("Load subject from stdin"));
+    QCommandLineOption stdinOption(i18n("stdin"), i18n("Load subject from stdin; only applies to batch-mode."));
     parser.addOption(stdinOption);
 
     QCommandLineOption subjectOption(QStringList() << "s" << i18n("subject"),
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     aboutData.processCommandLine(&parser);
 
     if (!parser.positionalArguments().empty()) {
-        std::cerr << "Extra parameters on command line: ";
+        std::cerr << i18n("Extra parameters on command line: ");
         for (const auto& opt : parser.positionalArguments())
             std::cerr << '\'' << opt << "' ";
         std::cerr << '\n';
@@ -97,19 +98,23 @@ int main(int argc, char *argv[])
 
     if (parser.isSet(batchOption)) {
         if (opts.filters.empty()) {
-            std::cerr << "No filters file specified in batch mode\n";
+            std::cerr << i18n("No filters file specified in batch mode") << '\n';
             return -2;
         }
         if (opts.subjectFile.isEmpty() && !opts.stdin) {
-            std::cerr << "No subject source specified in batch mode\n";
+            std::cerr << i18n("No subject source specified in batch mode") << '\n';
             return -2;
         }
         if (!opts.subjectFile.isEmpty() && opts.stdin) {
-            std::cerr << "Can not specify both subject file and stdin\n";
+            std::cerr << i18n("Can not specify both subject file and stdin") << '\n';
             return -2;
         }
         return doBatch(opts);
     } else {
+        if (opts.stdin) {
+            std::cerr << i18n("Can not specify 'stdin' without 'batch'") << '\n';
+            return -2;
+        }
         Filters *w = new Filters(opts);
         w->show();
         return app.exec();

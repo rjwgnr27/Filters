@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.16.0)
 
+# cmake command line options:
+# --toolchain=cmake/XXX
+#
+# -DCMAKE_BUILD_TYPE={Debug|RelWithDebInfo|Release}
+# -DWITH_ASAN=true      -- build with address sanitizer
+# -DWITH_UBSAN=true     -- build with undefined behavior sanitizer
+# -DWITH_LTO=true       -- build with link-time (inter-procedural) optimization (LTO, IPO)
+
 # The version number.
 set(APP_VERSION_MAJOR "1")
 set(APP_VERSION_MINOR "0")
@@ -8,25 +16,21 @@ set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_
 
 project(filters VERSION ${APP_VERSION_STRING} LANGUAGES CXX)
 
-# use either of these option to override the system default compiler
-option(USE_GCC "build application with gcc" OFF) # OFF is the default
-option(USE_CLANG "build application with clang" OFF) # OFF is the default
+option(WITH_ASAN "build with address sanitizer" FALSE)
+option(WITH_UBSAN "build with undefined behavior sanitizer" FALSE)
+option(WITH_LTO "build with link-time (inter-procedural) optimization (LTO, IPO)" FALSE)
 
-if (USE_GCC AND USE_CLANG)
-    message(FATAL_ERROR "conflicting compiler selections")
-endif (USE_GCC AND USE_CLANG)
+include(GNUInstallDirs)
+if(NOT WIN32 AND CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    #set(CMAKE_INSTALL_PREFIX "/opt/${PROJECT_NAME}")
+    set(CMAKE_INSTALL_PREFIX "/usr/local")
+endif()
 
-if (USE_GCC)
-    message(STATUS "Using GCC compilers")
-    set(CMAKE_C_COMPILER "/usr/bin/gcc" CACHE STRING "gcc compiler" FORCE)
-    set(CMAKE_CXX_COMPILER "/usr/bin/g++" CACHE STRING "g++ compiler" FORCE)
-endif (USE_GCC)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
-if (USE_CLANG)
-    message(STATUS "Using LLVM/CLANG compilers")
-    set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE STRING "clang compiler" FORCE)
-    set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE STRING "clang++ compiler" FORCE)
-endif (USE_CLANG)
+# Make cmake-gui use a selection, rather than text entry, for the likely build types:
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo )
 
 configure_file(src/filters_config.h.in filters_config.h)
 
@@ -34,10 +38,8 @@ configure_file(src/filters_config.h.in filters_config.h)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
-# Instruct CMake to create code from Qt designer ui files
+# Instruct CMake to create code from Qt designer UI files
 set(CMAKE_AUTOUIC ON)
-
-set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(QT_MIN_VERSION "5.3.0")
 set(KF5_MIN_VERSION "5.2.0")
@@ -73,9 +75,15 @@ qt5_wrap_ui(filters_SRC
 )
 
 add_executable(filters ${filters_SRC})
-target_compile_features(filters PUBLIC "cxx_std_17")
+target_compile_features(filters PUBLIC "cxx_std_20")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options(-Wall -Werror -Wextra -pedantic)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-Wall -Werror -Wextra -pedantic)
+endif ()
 
-target_link_libraries(filters
+target_link_libraries(filters PRIVATE
+    Qt5::Core
     Qt5::Widgets
     KF5::CoreAddons
     KF5::DBusAddons
@@ -86,13 +94,34 @@ target_link_libraries(filters
     KF5::XmlGui
 )
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    SET (CMAKE_CXX_FLAGS "-std=c++17")
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    SET (CMAKE_CXX_FLAGS "-std=c++17")
-else ()
-    message(FATAL_ERROR "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
-endif ()
+# Optional sanitizers
+# see https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+#
+# with sanatize=address: At runtime set environment variable
+#   "ASAN_OPTIONS=detect_stack_use_after_return=1"
+
+# note, that if both asan and ubsan are used, asan must appear first in
+# the list of libraries
+if(WITH_ASAN)
+    target_compile_options(filters PRIVATE -fsanitize=address)
+    target_link_libraries(filters PRIVATE asan)
+endif()
+add_feature_info(asan WITH_ASAN "memory address sanitizer (ASAN)")
+
+if(WITH_UBSAN)
+    target_compile_options(filters PRIVATE -fsanitize=undefined)
+    target_link_libraries(filters PRIVATE ubsan)
+endif()
+add_feature_info(ubsan WITH_UBSAN "undefined behavior sanitizer (UBSAN)")
+
+if(${WITH_LTO})
+    if(${ipo_supported})
+        set_property(TARGET filters PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(SEND_ERROR "inter-procedural optimization (LTO) requested but not supported")
+    endif()
+endif()
+add_feature_info(lto WITH_LTO "inter-procedural optimization (LTO)")
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
