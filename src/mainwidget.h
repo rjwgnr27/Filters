@@ -90,6 +90,10 @@ private Q_SLOTS:
     void selectResultFont();
     void tableItemChanged(QTableWidgetItem *item);
 
+    void resultFind();
+    void resultFindNext();
+    void resultFindPrev();
+
 private:
     KXmlGuiWindow *mainWindow;
 
@@ -131,6 +135,8 @@ private:
     QAction *actionMoveFilterUp = nullptr;
     QAction *actionMoveFilterDown = nullptr;
     QAction *actionInsertFilters = nullptr;
+
+    QString lastFoundText;
 
     /**
      * @brief apply an expression entry

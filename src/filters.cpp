@@ -25,6 +25,7 @@
 #include <QFileDialog>
 #include <QFontDialog>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -189,6 +190,20 @@ void mainWidget::setupActions()
     //action->setWhatsThis(i18n(""));
     //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
     action->setIcon(QIcon::fromTheme(QStringLiteral("delete-table")));
+
+    /**********************/
+    /*** Result Menu  ***/
+    action = KStandardAction::find(this, SLOT(resultFind()), ac);
+    action->setText(i18n("Result &Find..."));
+    action->setToolTip(i18n("Find text in result"));
+
+    action = KStandardAction::findNext(this, SLOT(resultFindNext()), ac);
+    action->setText(i18n("Result Find &Next"));
+    action->setToolTip(i18n("Find next occurrence of the find text in result"));
+
+    action = KStandardAction::findPrev(this, SLOT(resultFindPrev()), ac);
+    action->setText(i18n("Result Find &Previous"));
+    action->setToolTip(i18n("Find previous occurrence of the find text in result"));
 
     /**********************/
     /*** Settings Menu  ***/
@@ -817,6 +832,30 @@ bool mainWidget::doSaveFilters(const QString& fileName)
         return success;
     }
     return false;
+}
+
+void mainWidget::resultFind()
+{
+    bool ok;
+    QString text = QInputDialog::getText(this, tr("Find string"),
+                                         tr("Search for:"), QLineEdit::Normal,
+                                         lastFoundText, &ok);
+    if (ok && !text.isEmpty()) {
+        lastFoundText = text;
+        result->find(lastFoundText);
+    }
+}
+
+void mainWidget::resultFindNext()
+{
+    if (!lastFoundText.isEmpty())
+        result->find(lastFoundText);
+}
+
+void mainWidget::resultFindPrev()
+{
+    if (!lastFoundText.isEmpty())
+        result->find(lastFoundText, QTextDocument::FindBackward);
 }
 
 void mainWidget::saveResult()

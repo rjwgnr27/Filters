@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="Filtersui"
-     version="16"
+     version="20"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -23,9 +23,6 @@
             <Action name="filter_paste" />
             <Separator lineSeparator="true" />
             -->
-            <Action name="insert_row" />
-            <Action name="delete_row" />
-            <Action name="clear_row" />
         </Menu>
 
         <Menu name="filters">
@@ -40,6 +37,10 @@
             <Action name="load_filters" />
             <Action name="load_filters_recent" />
             <Action name="insert_filters" />
+            <Separator lineSeparator="true" />
+            <Action name="insert_row" />
+            <Action name="delete_row" />
+            <Action name="clear_row" />
             <Separator lineSeparator="true" />
             <Action name="clear_filters" />
         </Menu>
