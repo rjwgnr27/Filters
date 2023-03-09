@@ -49,6 +49,12 @@ struct filterData {
     QList<filterEntry> filters;
 };
 
+struct textItem {
+    int srcLineNumber;
+    QString text;
+};
+using itemList = QList<textItem>;
+
 class mainWidget : public QWidget, public Ui::mainwidget {
     friend class Filters;
     Q_OBJECT
@@ -105,7 +111,7 @@ private:
     /** Vector of results for each step. The input file is read into results[0].
      * Each results[n] is the input to filter(n), and the filter result goes
      * to results[n+1]. The final displayed result is at results.back(). */
-    std::vector<QStringList> stepResults;
+    std::vector<itemList> stepResults;
 
     /** label widget placed in the status bar */
     QLabel *status;
@@ -148,7 +154,7 @@ private:
      * @param src input string list to apply
      * @return result of the filter applied to the input list @p entry
      */
-    QStringList applyExpression(size_t entry, QStringList src);
+    itemList applyExpression(size_t entry, itemList src);
 
     /**
      * @brief apply filter chain from point and those following

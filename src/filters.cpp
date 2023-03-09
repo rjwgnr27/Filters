@@ -55,7 +55,7 @@ using namespace::std;
 Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
         KXmlGuiWindow(parent), m_ui(new mainWidget(this))
 {
-	setCentralWidget(m_ui);
+        setCentralWidget(m_ui);
     setupActions();
     setStandardToolBarMenuEnabled(true);
     StandardWindowOptions options = Default;
@@ -292,7 +292,7 @@ bool mainWidget::initialLoad(const commandLineOptions& opts)
 {
     if (opts.stdin)
       QMessageBox::warning(this, i18n("Option Not Supported"),
-		   i18n("--stdin option not supported in graphic mode"));
+                   i18n("--stdin option not supported in graphic mode"));
 
     if (!opts.subjectFile.isEmpty()) {
         if (!loadSubjectFile(opts.subjectFile))
@@ -364,10 +364,10 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         sourceLineCount = -1;
         clearResultsAfter(0);
         QTextStream stream(&source);
-        QStringList lines;
+        itemList lines;
+        sourceLineCount = 0;
         while(!stream.atEnd())
-            lines.push_back(stream.readLine());
-        sourceLineCount = lines.size();
+            lines << textItem{++sourceLineCount, stream.readLine()};
         stepResults[0] = std::move(lines);
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
         // FIXME: After loading huge file, this line hangs:
@@ -396,9 +396,10 @@ void mainWidget::loadSubjectFromCB()
     }
 
     QTextStream stream(&text, QIODevice::ReadOnly);
-    QStringList lines;
+    itemList lines;
+    int srcLine = 0;
     while (!stream.atEnd())
-        lines << stream.readLine();
+        lines << textItem(++srcLine, stream.readLine());
 
     titleFile = i18n("<clipboard>");
     subjModified = false;
@@ -412,7 +413,7 @@ void mainWidget::loadSubjectFromCB()
 }
 
 
-QStringList mainWidget::applyExpression(size_t entry, QStringList src)
+itemList mainWidget::applyExpression(size_t entry, itemList src)
 {
     if (src.empty())
         return src;
@@ -421,7 +422,7 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
     size_t rows = table->rowCount();
     if (entry >= rows) {
         qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
-        return QStringList{};
+        return itemList{};
     }
 
     if (table->item(entry, ColEnable)->checkState() != Qt::Checked)
@@ -442,7 +443,7 @@ QStringList mainWidget::applyExpression(size_t entry, QStringList src)
 
     re.optimize();
     return QtConcurrent::blockingFiltered(src,
-        [&re, exclude](const QString& str) -> bool {return re.match(str).hasMatch() ^ exclude;});
+        [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
 }
 
 
@@ -518,13 +519,13 @@ void mainWidget::displayResult()
     result->setUpdatesEnabled(false);
     result->clear();
     if (!stepResults.empty()) {
-        const QStringList& lines = stepResults.back();
-#if 1
+        const itemList& lines = stepResults.back();
+#if 0
         /* joining first appears to be faster than using appendPlainText() in a loop */
         result->setPlainText(lines.join(QChar('\n')));
 #else
-        for (const QString& str : qAsConst(lines))
-            result->appendPlainText(str);
+        for (const auto& item : qAsConst(lines))
+            result->appendPlainText(item.text);
 #endif
         status->setText(QStringLiteral("Source: %1, final %2 lines").arg( sourceLineCount ).arg(lines.size()));
         actionSaveResults->setEnabled(true);
@@ -1031,32 +1032,34 @@ static filterData batchLoadFilters(const commandLineOptions& opts)
 }
 
 
-static QStringList batchLoadSubjectFile(const commandLineOptions& opts)
+static itemList batchLoadSubjectFile(const commandLineOptions& opts)
 {
     QFile source(opts.subjectFile);
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream stream(&source);
-        QStringList lines;
+        itemList lines;
+        int srcLine = 0;
         while(!stream.atEnd())
-            lines.push_back(stream.readLine());
+          lines << textItem{++srcLine, stream.readLine()};
         return lines;
     }
     throw subjectLoadException(opts.subjectFile);
 }
 
-static QStringList readStdIn()
+static itemList readStdIn()
 {
-  QStringList lines;
+  itemList lines;
+  int srcLine = 0;
   while(cin) {
     string line;
     getline(cin, line);
-    lines << QString::fromStdString(line);
+    lines << textItem{++srcLine, QString::fromStdString(line)};
   }
   return lines;
 }
 
 
-static QStringList batchApplyQRegularExpressions(const filterData& filters, QStringList lines)
+static itemList batchApplyQRegularExpressions(const filterData& filters, itemList lines)
 {
     for (const filterEntry& entry : filters.filters) {
         if (entry.enabled) {
@@ -1069,7 +1072,7 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
                 throw badRegexException(entry.re);
             re.optimize();
             lines = QtConcurrent::blockingFiltered(lines,
-                    [&re, exclude](const QString& str) -> bool {return re.match(str).hasMatch() ^ exclude;});
+                    [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
             if (lines.empty())
                 break;
         }
@@ -1077,26 +1080,26 @@ static QStringList batchApplyQRegularExpressions(const filterData& filters, QStr
     return lines;
 }
 
-static QStringList batchApplyFilters(const filterData& filters, const QStringList& lines)
+static itemList batchApplyFilters(const filterData& filters, const itemList& lines)
 {
     if (filters.dialect == "QRegularExpression")
-        return batchApplyQRegularExpressions(filters, QStringList(lines));
+        return batchApplyQRegularExpressions(filters, itemList(lines));
     throw dialectTypeException(filters.dialect);
 }
 
 int doBatch(const commandLineOptions& opts)
 {
     filterData filters;
-    QStringList lines;
+    itemList items;
     try {
         filters = batchLoadFilters(opts);
-        if (opts.stdin)
-            lines = readStdIn();
+        if (opts.stdin) 
+            items = readStdIn();
         else
-            lines = batchLoadSubjectFile(opts);
-        lines = batchApplyFilters(filters, lines);
-        for (auto const& line : qAsConst(lines))
-            cout << line.toUtf8().constData() << '\n';
+            items = batchLoadSubjectFile(opts);
+        items = batchApplyFilters(filters, items);
+        for (auto const& item : qAsConst(items))
+            cout << item.text.toUtf8().constData() << '\n';
     }
     catch (std::exception const &except) {
         cerr << except.what() << endl;
