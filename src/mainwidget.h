@@ -17,6 +17,7 @@
 #ifndef MAINWIDGET_H
 #define MAINWIDGET_H
 
+#include <QDialog>
 #include <QFile>
 #include <QScopedPointer>
 #include <QStringList>
@@ -96,6 +97,8 @@ private Q_SLOTS:
     void selectResultFont();
     void tableItemChanged(QTableWidgetItem *item);
 
+    void gotoLine();
+
     void resultFind();
     void resultFindNext();
     void resultFindPrev();
@@ -112,6 +115,16 @@ private:
      * Each results[n] is the input to filter(n), and the filter result goes
      * to results[n+1]. The final displayed result is at results.back(). */
     std::vector<itemList> stepResults;
+
+    /**
+     * Map of display line number to source line number. The index into the
+     * vector is the display line number, and the entry is the source line
+     * number. Since this array is filled from monotonically increasing source
+     * line numbers, the vector will be automatically sorted; thus, looking up
+     * the source line number becomes a binary search. The display line number
+     * is the index+1 of the matched source line number.
+     */
+    std::vector<int> sourceLineMap;
 
     /** label widget placed in the status bar */
     QLabel *status;
@@ -136,7 +149,7 @@ private:
     QAction *actionRun;
     QAction *actionAutorun;
     KSelectAction *actionDialect;
-
+    QAction *actionLineNumbers;
     QMenu *filtersTableMenu = nullptr;
     QAction *actionMoveFilterUp = nullptr;
     QAction *actionMoveFilterDown = nullptr;
@@ -223,6 +236,24 @@ private:
      * expressions are invalid
      */
     bool validateExpressions(int entry=0);
+};
+
+class FindDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    FindDialog(QWidget *parent = nullptr, QString text={});
+    QString getFindText() const {return findText;}
+    // void setFindText(QString text);
+
+public slots:
+    void findClicked();
+
+private:
+    QPushButton *findButton;
+    QLineEdit *lineEdit;
+    QString findText;
 };
 
 #endif // MAINWIDGET_H

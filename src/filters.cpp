@@ -36,6 +36,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPair>
+#include <QPushButton>
 #include <QStatusBar>
 #include <QTextStream>
 
@@ -50,7 +51,6 @@
 #include <exception>
 #include <iostream>
 #include <utility>
-using namespace::std;
 
 Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
         KXmlGuiWindow(parent), m_ui(new mainWidget(this))
@@ -120,6 +120,9 @@ void mainWidget::setupActions()
     //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
     actionSaveResultsAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
     actionSaveResultsAs->setEnabled(false);
+
+    /***********************/
+    /***   Edit menu     ***/
 
     /***********************/
     /***   Filters menu  ***/
@@ -207,6 +210,13 @@ void mainWidget::setupActions()
 
     /**********************/
     /*** Settings Menu  ***/
+    actionLineNumbers = ac->addAction(QStringLiteral("show_line_numbers"));
+    actionLineNumbers->setIcon(QIcon::fromTheme(QStringLiteral("list-ol")));
+    actionLineNumbers->setText(i18n("Show &Line Numbers"));
+    actionLineNumbers->setToolTip(i18n("Toggle showing of source line numbers"));
+    actionLineNumbers->setCheckable(true);
+    actionLineNumbers->setChecked(true);
+
     action = ac->addAction(QStringLiteral("filter_font"), this, SLOT(selectFilterFont()));
     action->setText(i18n("Filter Font..."));
     action->setToolTip(i18n("Select the font for the filters table"));
@@ -399,7 +409,7 @@ void mainWidget::loadSubjectFromCB()
     itemList lines;
     int srcLine = 0;
     while (!stream.atEnd())
-        lines << textItem(++srcLine, stream.readLine());
+        lines << textItem{++srcLine, stream.readLine()};
 
     titleFile = i18n("<clipboard>");
     subjModified = false;
@@ -518,16 +528,41 @@ void mainWidget::displayResult()
 {
     result->setUpdatesEnabled(false);
     result->clear();
+    const itemList& items = stepResults.back();
+    sourceLineMap.resize(stepResults.size());
+    auto mapIt = sourceLineMap.begin();
     if (!stepResults.empty()) {
-        const itemList& lines = stepResults.back();
 #if 0
-        /* joining first appears to be faster than using appendPlainText() in a loop */
-        result->setPlainText(lines.join(QChar('\n')));
+        QString line;
+        if (actionLineNumbers->isChecked()) {
+            /* joining first appears to be faster than using appendPlainText() in a loop */
+            int width = QString("%1").arg(items.back().srcLineNumber).size();
+            for (const auto& item : qAsConst(items)) {
+                line += QString("%1| ").arg(item.srcLineNumber, width) + item.text + QChar('\n');
+                *(mapIt++) = item.srcLineNumber;
+            }
+        } else {
+            for (const auto& item : qAsConst(items)) {
+                line += item.text + QChar('\n');
+                *(mapIt++) = item.srcLineNumber;
+            }
+        }
+        result->setPlainText(line);
 #else
-        for (const auto& item : qAsConst(lines))
-            result->appendPlainText(item.text);
+        if (actionLineNumbers->isChecked()) {
+            int width = QString("%1").arg(items.back().srcLineNumber).size();
+            for (const auto& item : qAsConst(items)) {
+                result->appendPlainText(QString("%1| ").arg(item.srcLineNumber, width) + item.text);
+                *(mapIt++) = item.srcLineNumber;
+            }
+        } else {
+            for (const auto& item : qAsConst(items)) {
+                result->appendPlainText(item.text);
+                *(mapIt++) = item.srcLineNumber;
+            }
+        }
 #endif
-        status->setText(QStringLiteral("Source: %1, final %2 lines").arg( sourceLineCount ).arg(lines.size()));
+        status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(items.size()));
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
     }
@@ -639,7 +674,7 @@ void mainWidget::swapFiltersRows(int a, int b)
     auto temp = getFilterRow(a);
     setFilterRow(a, getFilterRow(b));
     setFilterRow(b, temp);
-    maybeAutoApply(min(a, b));
+    maybeAutoApply(std::min(a, b));
 }
 
 void mainWidget::autoRunClicked()
@@ -765,7 +800,7 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
 
         if (filters.contains("filters") && filters["filters"].isArray()) {
             const QJsonArray filterArray = filters["filters"].toArray();
-            for (const auto& entry : filterArray)
+            for (const auto& entry : qAsConst(filterArray))
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
             filtersFileName = fileName;
@@ -780,7 +815,7 @@ void mainWidget::insertFiltersAt(int at, const filterData& fData)
     if (!fData.dialect.isEmpty())
         actionDialect->setCurrentAction(fData.dialect);
 
-    for (const auto& entry : fData.filters) {
+    for (const auto& entry : qAsConst(fData.filters)) {
         insertEmptyRowAt(at);
         setFilterRow(at, entry);
         ++at;
@@ -835,28 +870,43 @@ bool mainWidget::doSaveFilters(const QString& fileName)
     return false;
 }
 
-void mainWidget::resultFind()
+void mainWidget::gotoLine()
 {
     bool ok;
-    QString text = QInputDialog::getText(this, tr("Find string"),
-                                         tr("Search for:"), QLineEdit::Normal,
-                                         lastFoundText, &ok);
-    if (ok && !text.isEmpty()) {
-        lastFoundText = text;
-        result->find(lastFoundText);
+    auto cursor = result->textCursor();
+    int lineNo = QInputDialog::getInt(this, tr("Go to line"), tr("Source line number:"),
+                                      cursor.blockNumber(), 1, result->blockCount(), 1, &ok);
+    if (ok) {
+//        cursor.movePosition(..);
+        result->setTextCursor(cursor);
+    }
+}
+
+void mainWidget::resultFind()
+{
+    FindDialog dialog(this, lastFoundText);
+    if (dialog.exec() == QDialog::Accepted) {
+        QString text = dialog.getFindText();
+        if (text.size() > 0) {
+            lastFoundText = text;
+            if (!result->find(lastFoundText))
+                QMessageBox::information(this, tr("Not found"), tr("Text not found"));
+        }
     }
 }
 
 void mainWidget::resultFindNext()
 {
     if (!lastFoundText.isEmpty())
-        result->find(lastFoundText);
+        if (!result->find(lastFoundText))
+            QMessageBox::information(this, tr("Not found"), tr("Text not found"));
 }
 
 void mainWidget::resultFindPrev()
 {
     if (!lastFoundText.isEmpty())
-        result->find(lastFoundText, QTextDocument::FindBackward);
+        if (!result->find(lastFoundText, QTextDocument::FindBackward))
+            QMessageBox::information(this, tr("Not found"), tr("Text not found"));
 }
 
 void mainWidget::saveResult()
@@ -1050,16 +1100,16 @@ static itemList readStdIn()
 {
   itemList lines;
   int srcLine = 0;
-  while(cin) {
-    string line;
-    getline(cin, line);
+  while(std::cin) {
+    std::string line;
+    std::getline(std::cin, line);
     lines << textItem{++srcLine, QString::fromStdString(line)};
   }
   return lines;
 }
 
 
-static itemList batchApplyQRegularExpressions(const filterData& filters, itemList lines)
+static itemList batchApplyQRegularExpressions(const filterData& filters, itemList items)
 {
     for (const filterEntry& entry : filters.filters) {
         if (entry.enabled) {
@@ -1071,13 +1121,13 @@ static itemList batchApplyQRegularExpressions(const filterData& filters, itemLis
             if (!re.isValid())
                 throw badRegexException(entry.re);
             re.optimize();
-            lines = QtConcurrent::blockingFiltered(lines,
+            items = QtConcurrent::blockingFiltered(items,
                     [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
-            if (lines.empty())
+            if (items.empty())
                 break;
         }
     }
-    return lines;
+    return items;
 }
 
 static itemList batchApplyFilters(const filterData& filters, const itemList& lines)
@@ -1099,11 +1149,47 @@ int doBatch(const commandLineOptions& opts)
             items = batchLoadSubjectFile(opts);
         items = batchApplyFilters(filters, items);
         for (auto const& item : qAsConst(items))
-            cout << item.text.toUtf8().constData() << '\n';
+            std::cout << item.text.toUtf8().constData() << '\n';
     }
     catch (std::exception const &except) {
-        cerr << except.what() << endl;
+        std::cerr << except.what() << std::endl;
         return -3;
     }
     return 0;
+}
+
+FindDialog::FindDialog(QWidget *parent, QString text)
+    : QDialog(parent)
+{
+    lineEdit = new QLineEdit;
+    findButton = new QPushButton(tr("&Find"));
+
+    QHBoxLayout *layout = new QHBoxLayout;
+    layout->addWidget(new QLabel(tr("Find:")));
+    layout->addWidget(lineEdit);
+    layout->addWidget(findButton);
+
+    setLayout(layout);
+    setWindowTitle(tr("Find text"));
+    connect(findButton, &QPushButton::clicked,
+            this, &FindDialog::findClicked);
+    connect(findButton, &QPushButton::clicked,
+            this, &FindDialog::accept);
+
+    lineEdit->setText(text);
+}
+
+void FindDialog::findClicked()
+{
+    QString text = lineEdit->text();
+
+    if (text.isEmpty()) {
+        QMessageBox::information(this, tr("Empty Field"),
+                                 tr("Please enter a name."));
+        return;
+    } else {
+        findText = text;
+        lineEdit->clear();
+        hide();
+    }
 }

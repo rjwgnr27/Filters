@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="Filtersui"
-     version="20"
+     version="23"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -17,6 +17,7 @@
         </Menu>
 
         <Menu name="edit">
+            <Action name="goto_line" />
             <!--
             <Action name="filter_cut" />
             <Action name="filter_copy" />
@@ -46,6 +47,8 @@
         </Menu>
 
         <Menu name="settings">
+            <Action name="show_line_numbers" />
+            <Separator/>
             <Action name="filter_font" />
             <Action name="result_font" />
         </Menu>
@@ -55,6 +58,9 @@
         <text>Main Toolbar</text>
         <Action name="run_filters" />
         <Action name="auto_run_filters" />
+        <Separator/>
+        <Action name="show_line_numbers" />
+        <Separator/>
         <Action name="save_filters" />
         <Action name="save_filters_as" />
         <Action name="load_filters" />
@@ -66,6 +72,7 @@
         <Enable>
             <Action name="save_result" />
             <Action name="save_result_as" />
+            <Action name="goto-line" />
         </Enable>
     </State>
 
