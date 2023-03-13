@@ -25,13 +25,13 @@
 
 #include "ui_mainwidget.h"
 
+class QCheckBox;
 class QLabel;
 class QMenu;
 class QTableWidgetItem;
 class KXmlGuiWindow;
 class KRecentFilesAction;
 class KSelectAction;
-
 struct commandLineOptions;
 
 struct filterEntry {
@@ -156,6 +156,7 @@ private:
     QAction *actionInsertFilters = nullptr;
 
     QString lastFoundText;
+    bool findIgnoreCase = false;
 
     /**
      * @brief apply an expression entry
@@ -190,6 +191,14 @@ private:
      * @brief update result display with the results of the final evaluation
      */
     void displayResult();
+
+    /**
+     * @brief common perform find
+     *
+     * Helper function for resultFind/resultFindNext/resultFindPrev
+     * @param flags QTextDocument::FindFlag for search; default={} for forward
+     */
+    void doResultFind(QTextDocument::FindFlags flags={});
 
     /**
      * @brief save the filters to a JSON file
@@ -245,6 +254,8 @@ class FindDialog : public QDialog
 public:
     FindDialog(QWidget *parent = nullptr, QString text={});
     QString getFindText() const {return findText;}
+    bool getIgnoreCase() const;
+    void setIgnoreCase(bool ic);
     // void setFindText(QString text);
 
 public slots:
@@ -252,6 +263,7 @@ public slots:
 
 private:
     QPushButton *findButton;
+    QCheckBox *findIgnoreCase;
     QLineEdit *lineEdit;
     QString findText;
 };

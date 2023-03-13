@@ -528,44 +528,49 @@ void mainWidget::displayResult()
 {
     result->setUpdatesEnabled(false);
     result->clear();
-    const itemList& items = stepResults.back();
-    sourceLineMap.resize(stepResults.size());
-    auto mapIt = sourceLineMap.begin();
+    size_t resultLines = 0;
     if (!stepResults.empty()) {
-#if 0
+        const itemList& items = stepResults.back();
+        sourceLineMap.resize(items.size());
+        std::vector<int>::iterator mapIt = sourceLineMap.begin();
+#if 1
         QString line;
-        if (actionLineNumbers->isChecked()) {
-            /* joining first appears to be faster than using appendPlainText() in a loop */
+        if (false && actionLineNumbers->isChecked()) {
+            /* joining all the lines first appears to be faster than using
+             * appendPlainText() in a loop */
             int width = QString("%1").arg(items.back().srcLineNumber).size();
             for (const auto& item : qAsConst(items)) {
-                line += QString("%1| ").arg(item.srcLineNumber, width) + item.text + QChar('\n');
+                QString str = QString("%1| %2\n").arg(item.srcLineNumber, width).arg(item.text);
+                line += str;
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
-            for (const auto& item : qAsConst(items)) {
+            for (auto item : qAsConst(items)) {
                 line += item.text + QChar('\n');
                 *(mapIt++) = item.srcLineNumber;
             }
         }
         result->setPlainText(line);
 #else
-        if (actionLineNumbers->isChecked()) {
-            int width = QString("%1").arg(items.back().srcLineNumber).size();
-            for (const auto& item : qAsConst(items)) {
+        if (false && actionLineNumbers->isChecked()) {
+            auto lineNo = items.back().srcLineNumber;
+            int width = QString("%1").arg(lineNo).size();
+            for (const auto& item : items) {
                 result->appendPlainText(QString("%1| ").arg(item.srcLineNumber, width) + item.text);
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
-            for (const auto& item : qAsConst(items)) {
+            for (const auto& item : items) {
                 result->appendPlainText(item.text);
                 *(mapIt++) = item.srcLineNumber;
             }
         }
 #endif
-        status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(items.size()));
+        resultLines = items.size();
         actionSaveResults->setEnabled(true);
         actionSaveResultsAs->setEnabled(true);
     }
+    status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(resultLines));
     result->setUpdatesEnabled(true);
 }
 
@@ -885,28 +890,35 @@ void mainWidget::gotoLine()
 void mainWidget::resultFind()
 {
     FindDialog dialog(this, lastFoundText);
+    dialog.setIgnoreCase(findIgnoreCase);
     if (dialog.exec() == QDialog::Accepted) {
         QString text = dialog.getFindText();
         if (text.size() > 0) {
             lastFoundText = text;
-            if (!result->find(lastFoundText))
-                QMessageBox::information(this, tr("Not found"), tr("Text not found"));
+            findIgnoreCase = dialog.getIgnoreCase();
+            doResultFind();
         }
     }
 }
 
 void mainWidget::resultFindNext()
 {
-    if (!lastFoundText.isEmpty())
-        if (!result->find(lastFoundText))
-            QMessageBox::information(this, tr("Not found"), tr("Text not found"));
+    doResultFind();
 }
 
 void mainWidget::resultFindPrev()
 {
+    doResultFind(QTextDocument::FindBackward);
+}
+
+void mainWidget::doResultFind(QTextDocument::FindFlags flags)
+{
     if (!lastFoundText.isEmpty())
-        if (!result->find(lastFoundText, QTextDocument::FindBackward))
-            QMessageBox::information(this, tr("Not found"), tr("Text not found"));
+        if (!result->find(lastFoundText, flags)) {
+            if (!findIgnoreCase)
+                flags |= QTextDocument::FindFlag::FindCaseSensitively;
+            QMessageBox::information(this, tr("Search failed"), tr("Text not found"));
+        }
 }
 
 void mainWidget::saveResult()
@@ -1163,19 +1175,18 @@ FindDialog::FindDialog(QWidget *parent, QString text)
 {
     lineEdit = new QLineEdit;
     findButton = new QPushButton(tr("&Find"));
+    findIgnoreCase = new QCheckBox(tr("&Ignore case:"));
 
     QHBoxLayout *layout = new QHBoxLayout;
     layout->addWidget(new QLabel(tr("Find:")));
     layout->addWidget(lineEdit);
+    layout->addWidget(findIgnoreCase);
     layout->addWidget(findButton);
 
     setLayout(layout);
     setWindowTitle(tr("Find text"));
-    connect(findButton, &QPushButton::clicked,
-            this, &FindDialog::findClicked);
-    connect(findButton, &QPushButton::clicked,
-            this, &FindDialog::accept);
-
+    connect(findButton, &QPushButton::clicked, this, &FindDialog::findClicked);
+    connect(findButton, &QPushButton::clicked, this, &FindDialog::accept);
     lineEdit->setText(text);
 }
 
@@ -1184,8 +1195,8 @@ void FindDialog::findClicked()
     QString text = lineEdit->text();
 
     if (text.isEmpty()) {
-        QMessageBox::information(this, tr("Empty Field"),
-                                 tr("Please enter a name."));
+        QMessageBox::information(this, tr("Empty Search Field"),
+                                 tr("Please enter a text to find."));
         return;
     } else {
         findText = text;
@@ -1193,3 +1204,14 @@ void FindDialog::findClicked()
         hide();
     }
 }
+
+bool FindDialog::getIgnoreCase() const
+{
+    return findIgnoreCase->checkState() == Qt::Checked;
+}
+
+void FindDialog::setIgnoreCase(bool ic)
+{
+    findIgnoreCase->setCheckState(ic ? Qt::Checked : Qt::Unchecked);
+}
+

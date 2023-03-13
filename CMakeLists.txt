@@ -123,6 +123,8 @@ if(${WITH_LTO})
 endif()
 add_feature_info(lto WITH_LTO "inter-procedural optimization (LTO)")
 
+include_directories(icons)
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
 # Install the executable
