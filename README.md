@@ -117,6 +117,9 @@ Application specific options can be enabled using the -DOPT=TRUE option, where O
 
 For example, to enable LTO and ASAN: `cmake .. -DWITH_ASAN=TRUE -DWITH_LTO=TRUE`.
 
+Note: Using ASAN may require preloading the libasan.so library:
+  ex: LD_PRELOAD=/usr/lib64/libasan.so.8 ./filters
+
 You can override the default make file generator with the ```-G``` GENERATOR, where
 GENERATOR is i.e. 'Unix Makefiles' | 'Ninja' | ...
 
