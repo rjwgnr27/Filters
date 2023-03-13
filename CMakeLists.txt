@@ -49,6 +49,7 @@ set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(KDEInstallDirs)
 include(KDECMakeSettings)
+include(ECMInstallIcons)
 #include(KDECompilerSettings NO_POLICY_SCOPE)
 include(FeatureSummary)
 
@@ -123,7 +124,7 @@ if(${WITH_LTO})
 endif()
 add_feature_info(lto WITH_LTO "inter-procedural optimization (LTO)")
 
-include_directories(icons)
+add_subdirectory(icons)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
