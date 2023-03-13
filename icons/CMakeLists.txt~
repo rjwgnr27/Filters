@@ -1,1 +1,0 @@
-ecm_install_icons(ICONS sc-actions-list-ol.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons)

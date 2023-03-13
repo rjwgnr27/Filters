@@ -125,7 +125,7 @@ To use an alternate tool chain from the default, specify a tool chain file on wi
 `./cmake/tools_XXX.cmake`.
 
 ```shell
-cmake [CMAKE-OPTIONS] [--toolchain=TOOL_FILE]-DCMAKE_BUILD_TYPE=BUILD_TYPE [-DCMAKE_INSTALL_PREFIX=INSTALL] [-G GENERATOR] ../
+cmake [CMAKE-OPTIONS] [--toolchain=TOOL_FILE] -DCMAKE_BUILD_TYPE=BUILD_TYPE [-DCMAKE_INSTALL_PREFIX=INSTALL] [-G GENERATOR] ../
 cmake --build . [BUILDOPTIONS]
 ```
 
