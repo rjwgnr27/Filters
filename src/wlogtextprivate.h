@@ -45,7 +45,7 @@ public:
      * @param w Pointer to QWidget to manage
      */
     updatesDisableScope(QWidget *w) : widget(w), initial(w->updatesEnabled())
-    {widget->setUpdatesEnabled(false);}
+        {widget->setUpdatesEnabled(false);}
 
     /**
      * @brief Destructor; restore widget's update state to state at ctor.
@@ -89,7 +89,7 @@ public:
 
 
 /** State of text drag */
-enum dragState_t {
+enum class dragStates {
     dragNone,           //!< No text dragging in progress
     dragMaybe,          //!< Text is selected, and mouse is down, but not yet dragging
     dragDragging        //!< Selected text is dragging
@@ -284,53 +284,53 @@ class wLogTextPrivate {
 protected:
     friend class wLogText;
     
-    wLogText *const q;          //!< Public wLogText which this implements
+    wLogText *const q = nullptr;    //!< Public wLogText which this implements
 
-    QPixmap *drawPixMap = nullptr; //!< Rendering pixmap for the draw event
-    QSize pmSize{0,0};          //!< Allocation size of the drawPixMap
+    QPixmap *drawPixMap = nullptr;  //!< Rendering pixmap for the draw event
+    QSize pmSize{0,0};              //!< Allocation size of the drawPixMap
 
-    bool timeDraw = false;      //!< Diagnostic to enable draw timing
-    QTime drawTimer;            //!< Diagnostic timer used for timing draw events
+    bool timeDraw = false;          //!< Diagnostic to enable draw timing
+    QTime drawTimer;                //!< Diagnostic timer used for timing draw events
 
-    QPalette m_qpalette;        //!< System style palette for the widget
-    QMap<int, QPixmap> itemPixMaps;     //!< Map from pixmapId to QPixmap for the gutter pixmaps.
+    QPalette m_qpalette;            //!< System style palette for the widget
+    QMap<int, QPixmap> itemPixMaps; //!< Map from pixmapId to QPixmap for the gutter pixmaps.
 
-    int gutterWidth = 0;        //!< Space on left edge left of pixmaps.
-    int m_gutterOffset;         //!< gutterWidth + gutterBorder, or zero.
+    int gutterWidth = 0;            //!< Space on left edge left of pixmaps.
+    int m_gutterOffset;             //!< gutterWidth + gutterBorder, or zero.
 
-    int m_textLineHeight = 0;   //!< Calculated text line height, based on current (zommed) fint size.
+    int m_textLineHeight = 0;       //!< Calculated text line height, based on current (zommed) fint size.
     int textLineBaselineOffset = 0; //!< Physical offset of line bottom from baseline, font.descent().
-    int m_characterWidth = 0;   //!< calculated character width,  based on current (zommed) fint size.
-    int fontBaseSize = 10;      //!< Selected base font size in pixels
-    int magnify = 0;            //!< Increment from base font size for font zooming
+    int m_characterWidth = 0;       //!< calculated character width,  based on current (zommed) fint size.
+    int fontBaseSize = 10;          //!< Selected base font size in pixels
+    int magnify = 0;                //!< Increment from base font size for font zooming
 
-    uint32_t visibleLines = 0;  //!< Number of lines visible based on font size and physical viweport size.
+    uint32_t visibleLines = 0;      //!< Number of lines visible based on font size and physical viweport size.
     bool m_mouseIsEditCursor = true; //!< If the last set of the mouse cursor was edit, as opposed to arrow cursor.
-    int m_maxVScroll = 0;      //!< Maximum value for the vertical scroll bar, indicating last line showing.
+    int m_maxVScroll = 0;           //!< Maximum value for the vertical scroll bar, indicating last line showing.
 
-    bool selecting = false;     //!< Whether text is being or is selected.
-    cell selectionOrigin;       //!< Character cell (line, col) of selection origin
-    cell selectTop;             //!< Top of the selection region, regardless of selection direction.
-    cell selectBottom;          //!< Bottom of the selection region, regardless of selection direction.
-    int selectScrollTimerId = 0; //!< Timer when mouse-down and shift selecting out of range
-    int timedVScrollStep = 0;   //!< Last scroll step: <0 for up, >0 for down, == 0 none
+    bool selecting = false;         //!< Whether text is being or is selected.
+    cell selectionOrigin;           //!< Character cell (line, col) of selection origin
+    cell selectTop;                 //!< Top of the selection region, regardless of selection direction.
+    cell selectBottom;              //!< Bottom of the selection region, regardless of selection direction.
+    int selectScrollTimerId = 0;    //!< Timer when mouse-down and shift selecting out of range
+    int timedVScrollStep = 0;       //!< Last scroll step: <0 for up, >0 for down, == 0 none
 
-    dragState_t dragState = dragNone; //!< Current state of dragging
-    cell dragStart;             //!< Mouse position of drag start
+    dragStates dragState = dragStates::dragNone; //!< Current state of dragging
+    cell dragStart;                 //!< Mouse position of drag start
 
-    bool m_ShowCaret = false;   //!< Should caret be shown?
+    bool m_ShowCaret = false;       //!< Should caret be shown?
 
-    cell caretPosition = {0,0}; //!< QPoint caret position. QPoint.y() is line, QPoint.x() is column.
-    int caretBlinkTimer = -1;   //!< QWidget timer number for caret blink
-    bool caretBlinkOn = false;  //!< If the current blnk state of the caret is on
+    cell caretPosition = {0,0};     //!< QPoint caret position. QPoint.y() is line, QPoint.x() is column.
+    int caretBlinkTimer = -1;       //!< QWidget timer number for caret blink
+    bool caretBlinkOn = false;      //!< If the current blnk state of the caret is on
 
-    bool hardLocked = false;    //!< Are new lines are prevented from scrolling view due to ScrlLk key.
-    bool softLocked = false;    //!< Are new lines are prevented from scrolling view due to soft things.
-    bool escJump = false;       //!< Flag whether the ESC key will unlock and jump to end
+    bool hardLocked = false;        //!< Are new lines are prevented from scrolling view due to ScrlLk key.
+    bool softLocked = false;        //!< Are new lines are prevented from scrolling view due to soft things.
+    bool escJump = false;           //!< Flag whether the ESC key will unlock and jump to end
 
-    activatedPalette *activePalette;    //!< Pointer to current activated palette
-    paletteMap palettes;        //!< Map by name of available palettes.
-    QString activatedPaletteName = nullptr;  //!< name of active palette.
+    activatedPalette *activePalette = nullptr;    //!< Pointer to current activated palette
+    paletteMap palettes;            //!< Map by name of available palettes.
+    QString activatedPaletteName;   //!< name of active palette.
 
     /**
      * Constructor for private data of a wLogText
@@ -599,7 +599,5 @@ protected:
      **/
     inline lineNumber_t yToLine(int y) const;
 };
-
-
 
 #endif //ifndef LOGTEXTPRIVATE_H

@@ -729,14 +729,14 @@ void wLogTextPrivate::setSelection(const cell& a, const cell& b)
 void wLogText::mouseMoveEvent(QMouseEvent *event)
 {
     mouseRawPos = event->pos();
-    if (d->dragState != dragNone) {
+    if (d->dragState != dragStates::dragNone) {
         // If this is a move following a mouse down in a selection, then start a
         // a drag operation.
-        if (d->dragState == dragMaybe) {
+        if (d->dragState == dragStates::dragMaybe) {
             if ((event->pos() - d->dragStart).manhattanLength()
                 < QApplication::startDragDistance())
                 return;
-            d->dragState = dragDragging;
+            d->dragState = dragStates::dragDragging;
 
             // Do not delete the mimeData or drag objects; that is handled by Qt.
             QDrag *drag = new QDrag(this);
@@ -844,7 +844,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
                 if ((event->modifiers() & Qt::ShiftModifier) == 0) {
                     if (d->selecting &&
                          (at >= d->selectTop) && (at <= d->selectBottom)) {
-                        d->dragState = dragMaybe;
+                        d->dragState = dragStates::dragMaybe;
                         d->dragStart = at;
                     } else {
                         if (d->selecting) {
@@ -874,14 +874,14 @@ void wLogText::mouseReleaseEvent(QMouseEvent *event)
             d->selectScrollTimerId = 0;
         }
 
-        if (d->dragState != dragNone) {
+        if (d->dragState != dragStates::dragNone) {
             // A mouse down in a selection set drageMaybe.  If this was a click,
             // clear the selection.
-            if (d->dragState == dragMaybe) {
+            if (d->dragState == dragStates::dragMaybe) {
                 clearSelection();
             }
             // In any case, the drag is done.
-            d->dragState = dragNone;
+            d->dragState = dragStates::dragNone;
         }
 
         // If we were in the process of d->selecting, finalize it here:
