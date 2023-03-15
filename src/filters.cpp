@@ -16,7 +16,6 @@
 
 #include "filters.h"
 #include "mainwidget.h"
-#include "ui_mainwidget.h"
 
 #include <QCheckBox>
 #include <QClipboard>
@@ -533,9 +532,9 @@ void mainWidget::displayResult()
         const itemList& items = stepResults.back();
         sourceLineMap.resize(items.size());
         std::vector<int>::iterator mapIt = sourceLineMap.begin();
-#if 1
+#if 0
         QString line;
-        if (false && actionLineNumbers->isChecked()) {
+        if (actionLineNumbers->isChecked()) {
             /* joining all the lines first appears to be faster than using
              * appendPlainText() in a loop */
             int width = QString("%1").arg(items.back().srcLineNumber).size();
@@ -552,16 +551,19 @@ void mainWidget::displayResult()
         }
         result->setPlainText(line);
 #else
-        if (false && actionLineNumbers->isChecked()) {
+        if (actionLineNumbers->isChecked()) {
             auto lineNo = items.back().srcLineNumber;
             int width = QString("%1").arg(lineNo).size();
             for (const auto& item : items) {
-                result->appendPlainText(QString("%1| ").arg(item.srcLineNumber, width) + item.text);
+                QString line = QString("%1| ").arg(item.srcLineNumber, width) + item.text;
+                result->append(new logTextItem(line, 0));
+                // result->appendPlainText(line);
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
             for (const auto& item : items) {
-                result->appendPlainText(item.text);
+                result->append(new logTextItem(item.text, 0));
+                // result->appendPlainText(item.text);
                 *(mapIt++) = item.srcLineNumber;
             }
         }
@@ -877,14 +879,14 @@ bool mainWidget::doSaveFilters(const QString& fileName)
 
 void mainWidget::gotoLine()
 {
-    bool ok;
-    auto cursor = result->textCursor();
-    int lineNo = QInputDialog::getInt(this, tr("Go to line"), tr("Source line number:"),
-                                      cursor.blockNumber(), 1, result->blockCount(), 1, &ok);
-    if (ok) {
-//        cursor.movePosition(..);
-        result->setTextCursor(cursor);
-    }
+    // bool ok;
+    // auto cursor = result->textCursor();
+    // int lineNo = QInputDialog::getInt(this, tr("Go to line"), tr("Source line number:"),
+    //                                   cursor.blockNumber(), 1, result->blockCount(), 1, &ok);
+    // if (ok) {
+    //     cursor.movePosition(..);
+    //     result->setTextCursor(cursor);
+    // }
 }
 
 void mainWidget::resultFind()
@@ -914,7 +916,7 @@ void mainWidget::resultFindPrev()
 void mainWidget::doResultFind(QTextDocument::FindFlags flags)
 {
     if (!lastFoundText.isEmpty())
-        if (!result->find(lastFoundText, flags)) {
+        if (!result->find(lastFoundText/*, flags*/)) {
             if (!findIgnoreCase)
                 flags |= QTextDocument::FindFlag::FindCaseSensitively;
             QMessageBox::information(this, tr("Search failed"), tr("Text not found"));
@@ -940,15 +942,16 @@ void mainWidget::saveResultAs()
 
 bool mainWidget::doSaveResult(const QString& fileName)
 {
-    QFile dest(fileName);
-    bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
-           dest.write((result->toPlainText() + QLatin1Char('\n')).toLatin1()) >= 0;
-    subjModified = !saved;
-    if (saved) {
-        titleFile = QFileInfo(fileName).fileName();
-        updateApplicationTitle();
-    }
-    return saved;
+    // QFile dest(fileName);
+    // bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
+    //        dest.write((result->toPlainText() + QLatin1Char('\n')).toLatin1()) >= 0;
+    // subjModified = !saved;
+    // if (saved) {
+    //     titleFile = QFileInfo(fileName).fileName();
+    //     updateApplicationTitle();
+    // }
+    // return saved;
+    return false;
 }
 
 void mainWidget::filtersTableMenuRequested(QPoint point)
