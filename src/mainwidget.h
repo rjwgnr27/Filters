@@ -38,80 +38,6 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
-class Ui_mainwidget
-{
-public:
-    QTableWidget *filtersTable;
-    wLogText *result;
-
-    void setupUi(QWidget *mainwidget)
-    {
-        if (mainwidget->objectName().isEmpty())
-            mainwidget->setObjectName(QString::fromUtf8("mainwidget"));
-        mainwidget->resize(906, 646);
-
-        QVBoxLayout *verticalLayout_3 = new QVBoxLayout(mainwidget);
-        verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
-
-        QSplitter *splitter = new QSplitter(mainwidget);
-        splitter->setObjectName(QString::fromUtf8("splitter"));
-        splitter->setOrientation(Qt::Vertical);
-
-        QGroupBox *groupBox_2 = new QGroupBox(splitter);
-        groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
-
-        QVBoxLayout *verticalLayout = new QVBoxLayout(groupBox_2);
-        verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-
-        filtersTable = new QTableWidget(groupBox_2);
-        if (filtersTable->columnCount() < 4)
-            filtersTable->setColumnCount(4);
-        filtersTable->setHorizontalHeaderItem(0, new QTableWidgetItem());
-        filtersTable->setHorizontalHeaderItem(1, new QTableWidgetItem());
-        filtersTable->setHorizontalHeaderItem(2, new QTableWidgetItem());
-        filtersTable->setHorizontalHeaderItem(3, new QTableWidgetItem());
-        filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
-        filtersTable->setMouseTracking(true);
-        filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
-        filtersTable->horizontalHeader()->setStretchLastSection(true);
-
-        verticalLayout->addWidget(filtersTable);
-
-        splitter->addWidget(groupBox_2);
-        QGroupBox *groupBox_3 = new QGroupBox(splitter);
-        groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
-
-        QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
-        verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
-        result = new wLogText(groupBox_3);
-        result->setObjectName(QString::fromUtf8("result"));
-        QFont font;
-        font.setFamily(QString::fromUtf8("Monospace"));
-        result->setFont(font);
-        verticalLayout_2->addWidget(result);
-
-        splitter->addWidget(groupBox_3);
-
-        verticalLayout_3->addWidget(splitter);
-
-        retranslateUi(mainwidget);
-        QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), mainwidget, SLOT(tableItemChanged(QTableWidgetItem*)));
-        QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), mainwidget, SLOT(filtersTableMenuRequested(QPoint)));
-
-        QMetaObject::connectSlotsByName(mainwidget);
-    } // setupUi
-
-    void retranslateUi(QWidget *mainwidget)
-    {
-        mainwidget->setWindowTitle(QCoreApplication::translate("mainwidget", "Form", nullptr));
-        filtersTable->horizontalHeaderItem(0)->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
-        filtersTable->horizontalHeaderItem(1)->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
-        filtersTable->horizontalHeaderItem(2)->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
-        filtersTable->horizontalHeaderItem(3)->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
-    } // retranslateUi
-};
-/********  end import ui_mainwidget.h ****/
-
 class QCheckBox;
 class QLabel;
 class QMenu;
@@ -143,7 +69,7 @@ struct textItem {
 };
 using itemList = QList<textItem>;
 
-class mainWidget : public QWidget, public Ui_mainwidget {
+class mainWidget : public QWidget {
     friend class Filters;
     Q_OBJECT
 
@@ -191,7 +117,10 @@ private Q_SLOTS:
     void resultFindPrev();
 
 private:
-    KXmlGuiWindow *mainWindow;
+    KXmlGuiWindow *mainWindow = nullptr;
+
+    QTableWidget *filtersTable = nullptr;
+    wLogText *result = nullptr;
 
     bool doInitialApply = false;
 
@@ -214,29 +143,30 @@ private:
     std::vector<int> sourceLineMap;
 
     /** label widget placed in the status bar */
-    QLabel *status;
+    QLabel *status = nullptr;
 
     /** lines read from the source file */
     int sourceLineCount = -1;
 
-    KRecentFilesAction *recentFileAction;
+    KRecentFilesAction *recentFileAction = nullptr;
 
     /** subject file name to display in the application title; latest of last loaded or saved */
     QString titleFile;
 
-    QAction *actionLoadFromClipboard;
-    QAction *actionSaveResults;
-    QAction *actionSaveResultsAs;
+    QAction *actionLoadFromClipboard = nullptr;
+    QAction *actionSaveResults = nullptr;
+    QAction *actionSaveResultsAs = nullptr;
     QString resultFileName;
 
-    QAction *actionSaveFilters;
-    QAction *actionSaveFiltersAs;
+    QAction *actionSaveFilters = nullptr;
+    QAction *actionSaveFiltersAs = nullptr;
     QString filtersFileName;
-    KRecentFilesAction *recentFiltersAction;
-    QAction *actionRun;
-    QAction *actionAutorun;
-    KSelectAction *actionDialect;
-    QAction *actionLineNumbers;
+    KRecentFilesAction *recentFiltersAction = nullptr;
+    QAction *actionGotoLine = nullptr;
+    QAction *actionRun = nullptr;
+    QAction *actionAutorun = nullptr;
+    KSelectAction *actionDialect = nullptr;
+    QAction *actionLineNumbers = nullptr;
     QMenu *filtersTableMenu = nullptr;
     QAction *actionMoveFilterUp = nullptr;
     QAction *actionMoveFilterDown = nullptr;
@@ -244,6 +174,8 @@ private:
 
     QString lastFoundText;
     bool findIgnoreCase = false;
+
+    void setupUi();
 
     /**
      * @brief apply an expression entry

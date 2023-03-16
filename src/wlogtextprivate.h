@@ -21,73 +21,6 @@
 /** macro to identify the unlikely (usually false) path of a conditional */
 #define unlikely(x)     __builtin_expect((x),0)
 
-// from #include "etcetera.h"
-/**
- * Object to disable widget updates for the duraction of the object lifetime.
- * Manages update disable/enable in a block scope.
- */
-class updatesDisableScope {
-private:
-    QWidget *widget;                //!< Pointer to the QWidget to manage
-    bool initial;                   //!< State of updatesEnabled at ctor
-
-    #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
-    updatesDisableScope(const updatesDisableScope&) = delete;          //!< Copy ctor
-    updatesDisableScope& operator =(const updatesDisableScope&) = delete;    //!< Assignment operator
-    #endif  // DOXYGEN_EXCLUDE
-
-public:
-    /**
-     * @brief Constructor
-     * Construct object, managing update enable state for widget @p w. The
-     * widget's updatesEnabled() state is noted on construction. The
-     * initial state is restored on destruction, or on call to enableUpdates().
-     * @param w Pointer to QWidget to manage
-     */
-    updatesDisableScope(QWidget *w) : widget(w), initial(w->updatesEnabled())
-        {widget->setUpdatesEnabled(false);}
-
-    /**
-     * @brief Destructor; restore widget's update state to state at ctor.
-     * Destroys the object, reseting the widget's update enable state to
-     * the initial state at construction.
-     */
-    ~updatesDisableScope() {widget->setUpdatesEnabled(initial);}
-
-    /**
-     * @brief retrieve the widgets initial update enabled state.
-     * Retrieve the update enable state of the widget at the time of the
-     * object construction.
-     * @return initial update enabled state of the widget
-     */
-    bool initiallyEnabled() const {return initial;}
-
-    /**
-     * @brief reset widget's update enable state to its initial state
-     * Set the widget's update enable state, to the state it was in at the
-     * time of this objects contruction. Used to temporarilly re-enable
-     * updates, while the scope disable object is still in scope.
-     */
-    void enableUpdates() {widget->setUpdatesEnabled(initial);}
-
-    /**
-     * @brief force widgets update enable state to enabled
-     * Sets the widget's update enable state to enabled, regardless of the
-     * initial state of this objects construction. Used to temporarilly re-enable
-     * updates, while the scope disable object is still in scope.
-     */
-    void enableUpdatesForced() {widget->setUpdatesEnabled(true);}
-
-    /**
-     * @brief disable widget's updates
-     * Sets the widget update enable state to disabled. Used within this
-     * objects scope, to disable updates after a call to enableUpdates() or
-     * enableUpdatesForced().
-     */
-    void disableUpdates() {widget->setUpdatesEnabled(false);}
-};
-
-
 /** State of text drag */
 enum class dragStates {
     dragNone,           //!< No text dragging in progress
@@ -249,7 +182,7 @@ public:
      * @param p Palette, containing the style and modifiers which control the view
      * of the display.
      **/
-    activatedPalette(const QFont& f, logTextPalette& p);
+    activatedPalette(const QFont& f, logTextPalette const& p);
 
     /**
      * @brief number of styles in the palette
@@ -599,5 +532,71 @@ protected:
      **/
     inline lineNumber_t yToLine(int y) const;
 };
+
+/**
+ * Object to disable widget updates for the duraction of the object lifetime.
+ * Manages update disable/enable in a block scope.
+ */
+class [[nodiscard]] updatesDisableScope {
+private:
+    QWidget *widget;                //!< Pointer to the QWidget to manage
+    bool initial;                   //!< State of updatesEnabled at ctor
+
+    #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
+    updatesDisableScope(const updatesDisableScope&) = delete;          //!< Copy ctor
+    updatesDisableScope& operator =(const updatesDisableScope&) = delete;    //!< Assignment operator
+    #endif  // DOXYGEN_EXCLUDE
+
+public:
+    /**
+     * @brief Constructor
+     * Construct object, managing update enable state for widget @p w. The
+     * widget's updatesEnabled() state is noted on construction. The
+     * initial state is restored on destruction, or on call to enableUpdates().
+     * @param w Pointer to QWidget to manage
+     */
+    updatesDisableScope(QWidget *w) : widget(w), initial(w->updatesEnabled())
+    {widget->setUpdatesEnabled(false);}
+
+    /**
+     * @brief Destructor; restore widget's update state to state at ctor.
+     * Destroys the object, reseting the widget's update enable state to
+     * the initial state at construction.
+     */
+    ~updatesDisableScope() {widget->setUpdatesEnabled(initial);}
+
+    /**
+     * @brief retrieve the widgets initial update enabled state.
+     * Retrieve the update enable state of the widget at the time of the
+     * object construction.
+     * @return initial update enabled state of the widget
+     */
+    bool initiallyEnabled() const {return initial;}
+
+    /**
+     * @brief reset widget's update enable state to its initial state
+     * Set the widget's update enable state, to the state it was in at the
+     * time of this objects contruction. Used to temporarilly re-enable
+     * updates, while the scope disable object is still in scope.
+     */
+    void enableUpdates() {widget->setUpdatesEnabled(initial);}
+
+    /**
+     * @brief force widgets update enable state to enabled
+     * Sets the widget's update enable state to enabled, regardless of the
+     * initial state of this objects construction. Used to temporarilly re-enable
+     * updates, while the scope disable object is still in scope.
+     */
+    void enableUpdatesForced() {widget->setUpdatesEnabled(true);}
+
+    /**
+     * @brief disable widget's updates
+     * Sets the widget update enable state to disabled. Used within this
+     * objects scope, to disable updates after a call to enableUpdates() or
+     * enableUpdatesForced().
+     */
+    void disableUpdates() {widget->setUpdatesEnabled(false);}
+};
+
 
 #endif //ifndef LOGTEXTPRIVATE_H

@@ -122,6 +122,12 @@ void mainWidget::setupActions()
 
     /***********************/
     /***   Edit menu     ***/
+     actionGotoLine = ac->addAction(QStringLiteral("goto_line"), this, SLOT(gotoLine()));
+     actionGotoLine->setText(i18n("&Go to line"));
+     actionGotoLine->setToolTip(i18n("Jump to subject line number"));
+     actionGotoLine->setWhatsThis(i18n("Jump to the displayed line for the given subject line number, or the preceding line closest."));
+     actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
+     ac->setDefaultShortcut(actionGotoLine, QKeySequence(QStringLiteral("Ctrl+G")));
 
     /***********************/
     /***   Filters menu  ***/
@@ -271,8 +277,9 @@ void mainWidget::setupActions()
 mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
     QWidget(parent), mainWindow(main), status(new QLabel)
 {
-    setupUi(this);
+    setupUi();
 
+    result->setGutter(32);
     mainWindow->statusBar()->insertWidget(0, status);
 
     filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -291,6 +298,69 @@ mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
     filtersTable->horizontalHeaderItem(ColRegEx)->setToolTip(i18n("Regular expression string"));
     appendEmptyRow();
 }
+
+void mainWidget::setupUi()
+{
+    if (objectName().isEmpty())
+        setObjectName(QString::fromUtf8("mainWidget"));
+    resize(906, 646);
+    setWindowTitle(QCoreApplication::translate("mainWidget", "Form", nullptr));
+
+    QVBoxLayout *verticalLayout_3 = new QVBoxLayout(this);
+    verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
+
+    QSplitter *splitter = new QSplitter(this);
+    splitter->setObjectName(QString::fromUtf8("splitter"));
+    splitter->setOrientation(Qt::Vertical);
+
+    QGroupBox *groupBox_2 = new QGroupBox(splitter);
+    groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
+
+    QVBoxLayout *verticalLayout = new QVBoxLayout(groupBox_2);
+    verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+
+    filtersTable = new QTableWidget(groupBox_2);
+    if (filtersTable->columnCount() < 4)
+        filtersTable->setColumnCount(4);
+    filtersTable->setHorizontalHeaderItem(0, new QTableWidgetItem());
+    filtersTable->setHorizontalHeaderItem(1, new QTableWidgetItem());
+    filtersTable->setHorizontalHeaderItem(2, new QTableWidgetItem());
+    filtersTable->setHorizontalHeaderItem(3, new QTableWidgetItem());
+    filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
+    filtersTable->setMouseTracking(true);
+    filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    filtersTable->horizontalHeader()->setStretchLastSection(true);
+
+    filtersTable->horizontalHeaderItem(0)->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
+    filtersTable->horizontalHeaderItem(1)->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
+    filtersTable->horizontalHeaderItem(2)->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
+    filtersTable->horizontalHeaderItem(3)->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
+
+    verticalLayout->addWidget(filtersTable);
+
+    splitter->addWidget(groupBox_2);
+    QGroupBox *groupBox_3 = new QGroupBox(splitter);
+    groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
+
+    QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
+    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
+    result = new wLogText(groupBox_3);
+    result->setObjectName(QString::fromUtf8("result"));
+    QFont font;
+    font.setFamily(QString::fromUtf8("Monospace"));
+    result->setFont(font);
+    verticalLayout_2->addWidget(result);
+
+    splitter->addWidget(groupBox_3);
+
+    verticalLayout_3->addWidget(splitter);
+
+    QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
+    QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
+
+    QMetaObject::connectSlotsByName(this);
+} // setupUi
+
 
 void mainWidget::updateApplicationTitle()
 {
@@ -427,32 +497,39 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
     if (src.empty())
         return src;
 
-    auto table = filtersTable;
-    size_t rows = table->rowCount();
+    size_t rows = filtersTable->rowCount();
     if (entry >= rows) {
         qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
         return itemList{};
     }
 
-    if (table->item(entry, ColEnable)->checkState() != Qt::Checked)
+    const auto item = filtersTable->item(entry, ColRegEx);
+    if (!item)
         return src;
 
-    const auto item = table->item(entry, ColRegEx);
-    if (!item || item->text().isEmpty())
+    if (filtersTable->item(entry, ColEnable)->checkState() != Qt::Checked) {
+        item->setToolTip(QString{"disabled"});
         return src;
+    }
 
+    if (item->text().isEmpty()) {
+        item->setToolTip(QString{});
+        return src;
+    }
     auto reStr = item->text();
-    bool exclude = table->item(entry, ColExclude)->checkState() == Qt::Checked;
+    bool exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
     QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
-    if (table->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
+    if (filtersTable->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
         pOpts |= QRegularExpression::CaseInsensitiveOption;
     QRegularExpression re(reStr, pOpts);
     if (!re.isValid())
         return src;
 
     re.optimize();
-    return QtConcurrent::blockingFiltered(src,
+    auto result = QtConcurrent::blockingFiltered(src,
         [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
+    item->setToolTip(QString("%1/%2").arg(src.size()).arg(result.size()));
+    return result;
 }
 
 
@@ -506,12 +583,17 @@ bool mainWidget::validateExpressions(int entry)
     return true;
 }
 
-void mainWidget::clearResultsAfter(size_t entry)
+void mainWidget::clearResultsAfter(size_t startIndex)
 {
-    int rowCount = filtersTable->rowCount() + 1;
-    stepResults.resize(rowCount);
-    for (int i = entry + 1; i < rowCount; ++i)
-        stepResults[i].clear();
+    /* startIndex is zero based item rows. The items in the table start
+     * at one, with zero being the header. */
+    int const rowLast = filtersTable->rowCount() + 1;
+    stepResults.resize(rowLast);
+    for (int rowNumber = startIndex + 1; rowNumber < rowLast; ++rowNumber) {
+        stepResults[rowNumber].clear();
+        if (const auto item = filtersTable->item(rowNumber, ColRegEx); item)
+            item->setToolTip(QString{});
+    }
     clearResults();
     status->clear();
 }
@@ -525,55 +607,32 @@ void mainWidget::clearResults()
 
 void mainWidget::displayResult()
 {
-    result->setUpdatesEnabled(false);
+    QSignalBlocker disabler{result};
     result->clear();
     size_t resultLines = 0;
     if (!stepResults.empty()) {
         const itemList& items = stepResults.back();
-        sourceLineMap.resize(items.size());
-        std::vector<int>::iterator mapIt = sourceLineMap.begin();
-#if 0
-        QString line;
+        std::vector<int> lineMap(items.size());
+        auto mapIt = lineMap.begin();
         if (actionLineNumbers->isChecked()) {
-            /* joining all the lines first appears to be faster than using
-             * appendPlainText() in a loop */
             int width = QString("%1").arg(items.back().srcLineNumber).size();
-            for (const auto& item : qAsConst(items)) {
-                QString str = QString("%1| %2\n").arg(item.srcLineNumber, width).arg(item.text);
-                line += str;
-                *(mapIt++) = item.srcLineNumber;
-            }
-        } else {
-            for (auto item : qAsConst(items)) {
-                line += item.text + QChar('\n');
-                *(mapIt++) = item.srcLineNumber;
-            }
-        }
-        result->setPlainText(line);
-#else
-        if (actionLineNumbers->isChecked()) {
-            auto lineNo = items.back().srcLineNumber;
-            int width = QString("%1").arg(lineNo).size();
             for (const auto& item : items) {
                 QString line = QString("%1| ").arg(item.srcLineNumber, width) + item.text;
                 result->append(new logTextItem(line, 0));
-                // result->appendPlainText(line);
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
             for (const auto& item : items) {
                 result->append(new logTextItem(item.text, 0));
-                // result->appendPlainText(item.text);
                 *(mapIt++) = item.srcLineNumber;
             }
         }
-#endif
+        sourceLineMap = std::move(lineMap);
         resultLines = items.size();
-        actionSaveResults->setEnabled(true);
-        actionSaveResultsAs->setEnabled(true);
     }
+    actionSaveResults->setEnabled(resultLines != 0);
+    actionSaveResultsAs->setEnabled(resultLines != 0);
     status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(resultLines));
-    result->setUpdatesEnabled(true);
 }
 
 void mainWidget::clearFilters()
@@ -879,14 +938,29 @@ bool mainWidget::doSaveFilters(const QString& fileName)
 
 void mainWidget::gotoLine()
 {
-    // bool ok;
-    // auto cursor = result->textCursor();
-    // int lineNo = QInputDialog::getInt(this, tr("Go to line"), tr("Source line number:"),
-    //                                   cursor.blockNumber(), 1, result->blockCount(), 1, &ok);
-    // if (ok) {
-    //     cursor.movePosition(..);
-    //     result->setTextCursor(cursor);
-    // }
+    if (sourceLineMap.empty()) {
+        qDebug() << "sourceLineMap is empty";
+        return;
+    }
+
+    auto currentPos = result->cursorPostion();
+    qDebug() << "cursor is at " << currentPos;
+    if (currentPos.y() > result->lineCount())   /* shouldn't happen, but be safe */
+        return;
+    int sourceLine = sourceLineMap[currentPos.y()];
+
+    bool ok;
+    sourceLine = QInputDialog::getInt(this, tr("Go to line"),
+                                      tr("Source line number:"),
+                                      sourceLine, 1,
+                                      sourceLineMap.back(), 1, &ok);
+    if (ok) {
+        auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLine);
+        qDebug() << "nearest line to " << sourceLine << " is " << *it;
+        currentPos.setY(std::distance(sourceLineMap.cbegin(), it));
+        result->setCursorPosition(currentPos);
+        result->ensureCursorVisible();
+    }
 }
 
 void mainWidget::resultFind()
@@ -942,16 +1016,15 @@ void mainWidget::saveResultAs()
 
 bool mainWidget::doSaveResult(const QString& fileName)
 {
-    // QFile dest(fileName);
-    // bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
-    //        dest.write((result->toPlainText() + QLatin1Char('\n')).toLatin1()) >= 0;
-    // subjModified = !saved;
-    // if (saved) {
-    //     titleFile = QFileInfo(fileName).fileName();
-    //     updateApplicationTitle();
-    // }
-    // return saved;
-    return false;
+    QFile dest(fileName);
+    bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
+           dest.write(result->toPlainText().toLatin1()) >= 0;
+    subjModified = !saved;
+    if (saved) {
+        titleFile = QFileInfo(fileName).fileName();
+        updateApplicationTitle();
+    }
+    return saved;
 }
 
 void mainWidget::filtersTableMenuRequested(QPoint point)

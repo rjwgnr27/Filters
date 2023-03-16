@@ -45,7 +45,7 @@ const QEvent::Type updatesNeededEvent=QEvent::User;
 static const QString defaultPaletteNameString = QStringLiteral("default");
 
 /** Size in pixels of the border of a gutter */
-static constexpr int gutterBorder = 0;
+static constexpr int gutterBorder = 2;
 /** Size in pixels of the border between the gutter and the text */
 static constexpr int textBorder   = 2;
 
@@ -84,7 +84,8 @@ wLogText::~wLogText()
 }
 
 
-void wLogText::finalize() {
+void wLogText::finalize()
+{
     items.shrink_to_fit();
     finalized = true;
 }
@@ -95,8 +96,8 @@ wLogTextPrivate::wLogTextPrivate(wLogText *base) :
 {
     palettes[defaultPaletteNameString] =  new logTextPalette(
             defaultPaletteNameString, 1,
-            m_qpalette.color(QPalette::Active, QPalette::Base),
-            m_qpalette.color(QPalette::Active, QPalette::WindowText));
+            m_qpalette.color(QPalette::Active, QPalette::WindowText),
+            m_qpalette.color(QPalette::Active, QPalette::Base));
 }
 
 
@@ -262,7 +263,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     pixmapPainter.eraseRect(bounds);
 
     if (gutterWidth > 0) {
-        pixmapPainter.setBackground(m_qpalette.color(QPalette::Active, QPalette::Button));
+        pixmapPainter.setBackground(m_qpalette.color(QPalette::Active, QPalette::ToolTipBase));
         pixmapPainter.eraseRect(0, 0, gutterWidth, pmSize.height());
         if (gutterBorder > 0) {   // Draw gutter edge?
             QPen save(pixmapPainter.pen());
@@ -372,7 +373,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 // and to the right of the last selection line (first and last
                 // may be the same line):
                 // FIXME: this causes only partial painting of line background, up to length of text:
-                if (0 && defBGColor != style->backgroundColor) {
+                if (defBGColor != style->backgroundColor) {
                     pixmapPainter.setBackground(style->backgroundColor);
                     pixmapPainter.eraseRect(m_gutterOffset, pmYTop,
                             pmSize.width() - m_gutterOffset, m_textLineHeight);
@@ -411,7 +412,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         }
 
         // If the gutter is showing, and this item has a pixmap, draw it now:
-        if (unlikely(gutterWidth && item->pixmapId() >= 0)) {
+        if (unlikely(gutterWidth > 0 && item->pixmapId() >= 0)) {
             int y = pmYTop;       // Start at top of line
             int dy = 0;
             QPixmap const& pm = itemPixMaps[item->pixmapId()];
@@ -1204,6 +1205,13 @@ QString wLogText::selectedText() const
     return selText;
 }
 
+QString wLogText::toPlainText(QLatin1Char sep) const
+{
+    QString ret;
+    for (auto const& item : items)
+        ret += item->m_text + sep;
+    return ret;
+}
 
 void wLogText::copy() const
 {
@@ -1327,7 +1335,7 @@ bool wLogTextPrivate::activatePalette(const QString& name)
     }
 
     delete activePalette;
-    activePalette = new activatedPalette(q->QWidget::font(), *palettes[activatedPaletteName]);
+    activePalette = new activatedPalette(q->font(), *palettes[activatedPaletteName]);
     if (activePalette) {
         q->viewport()->update();
     } else {
@@ -1804,7 +1812,7 @@ void wLogText::setGutter(int width)
         width = 0;
     }
     d->gutterWidth = width;
-    if (width) {
+    if (width != 0) {
         d->m_gutterOffset = width + gutterBorder + textBorder;
     } else {
         d->m_gutterOffset = textBorder;
@@ -1969,15 +1977,7 @@ logTextPalette::logTextPalette(const QString& nm, const logTextPalette *source)
 }
 
 
-logTextPaletteEntry& logTextPalette::style(styleId id)
-{
-    if (id >= styles.count())
-        return styles.last();
-    return styles[id];
-}
-
-
-const logTextPaletteEntry& logTextPalette::style(styleId id) const
+logTextPaletteEntry const& logTextPalette::style(styleId id) const
 {
     if (id >= styles.count())
         return styles.last();
@@ -2008,10 +2008,9 @@ logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, const QColor& bc,
 
 
 logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, textAttributes a) :
-        m_backgroundColor(), m_textColor(tc), m_attributes(a)
+        m_backgroundColor{QPalette().color(QPalette::Active, QPalette::Base)},
+        m_textColor(tc), m_attributes(a)
 {
-    QPalette m_qpalette;
-    m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
 }
 
 
@@ -2059,13 +2058,12 @@ void logTextPaletteEntry::setAttributes( textAttributes a )
  ******************************************************************************
  ******************************************************************************/
 
-activatedPalette::activatedPalette(const QFont& f, logTextPalette& p) :
-    styles()
+activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
 {
     const size_t nStyles = max(1, p.numStyles());
-    styles.reserve(nStyles);
+    std::vector<styleItem> tStyles(nStyles);
     for (size_t i = 0; i < nStyles; ++i) {
-        styleItem style;
+        styleItem& style = tStyles[i];
         const logTextPaletteEntry& pe = p.style(i);
 
         // Initialize style entry with defaults:
@@ -2079,7 +2077,7 @@ activatedPalette::activatedPalette(const QFont& f, logTextPalette& p) :
         style.font.setUnderline(attrs & logTextPaletteEntry::attrUnderline);
         style.font.setOverline(attrs & logTextPaletteEntry::attrOverLine);
         style.font.setStrikeOut(attrs & logTextPaletteEntry::attrStrikeOut);
-        styles.emplace_back(std::move(style));
     }
+    styles = std::move(tStyles);
 }
 

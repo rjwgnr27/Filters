@@ -80,10 +80,8 @@ add_executable(filters ${filters_SRC})
 target_compile_features(filters PUBLIC "cxx_std_20")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_compile_options(-Wall -Werror -Wextra -pedantic)
-    add_compile_options(-Wno-deprecated-declarations)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wall -Werror -Wextra -pedantic)
-    add_compile_options(-Wno-deprecated-declarations)
 endif ()
 
 target_link_libraries(filters PRIVATE

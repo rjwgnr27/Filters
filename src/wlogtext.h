@@ -307,7 +307,7 @@ protected:
     /** Pointer to implementation detail */
     wLogTextPrivate *const d;
 
-    logItemsImplList items;     //!< Vector of text plus attribute items.
+    logItemsImplList items;         //!< Vector of text plus attribute items.
     lineNumber_t m_lineCount = 0;   //!< Count of lines
     int m_maxLineChars = 0;         //!< Width in characters of longest line in list of all lines.
 
@@ -933,6 +933,9 @@ public:
      **/
     void getSelection(lineNumber_t *lineFrom, int *colFrom,
                       lineNumber_t *lineTo, int *colTo) const;
+
+    QString toPlainText(QLatin1Char sep = QLatin1Char('\n')) const;
+
     /**
      * @brief Returns a single string of text selection.
      *
@@ -1248,7 +1251,6 @@ public Q_SLOTS:
      *
      * @param width Width in pixels for the gutter.  Zero disables gutter.
      * @sa wLogText::setLinePixmap() for setting a pixmap into the gutter of a line.
-     * @bug Gutter will scroll horizontally with the text area.  This will be fixed at a later time to anchor the gutter at the left edge.
      */
     void setGutter(int);
 
@@ -1454,13 +1456,7 @@ public:
     /**
      * @brief Constructor with full attributes.
      *
-     * Constructor with full configuration of colors and attributes.  Note that the
-     * mask allows both setting and clearing an attribute.  Thus if a mask bit is
-     * set, and the corresponding attribute bit is clear, then the resulting style
-     * will have the attribute clear; unless a higher priority attributes sets it.
-     *
-     * If a mask bit is clear, then this palette entry will not affect the resultant
-     * style for that attribute, even if the attribute bit is set.
+     * Constructor with background color, and text color and attributes.
      *
      * @param textColor Text color.
      * @param backgroundColor Background color.
@@ -1472,9 +1468,8 @@ public:
     /**
      * @brief Simplified constructor for text color and attributes.
      *
-     * Simplification of the full constructor.  Sets the text color, and attributes.
-     * With this constructor, the attributes are set only; and the mask is set
-     * to the attribute bits, plus text color.
+     * Simplification of the full constructor. Sets the text color, and
+     * attributes. The background is set to the default active background.
      *
      * @param textColor  Text color.
      * @param attributes Text attributes.
@@ -1546,10 +1541,10 @@ private:
     QString name;               //!< Palette name
     QVector<logTextPaletteEntry> styles; //!< array of styles
     
-    #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
+#ifndef DOXYGEN_EXCLUDE         // Exclude from DOXYGEN generation
     logTextPalette(logTextPalette&) = delete;
     logTextPalette& operator=(logTextPalette&) = delete;
-    #endif  // DOXYGEN_EXCLUDE
+#endif  // DOXYGEN_EXCLUDE
     
 public:
     /**
@@ -1583,15 +1578,7 @@ public:
      * @return Reference to a style entry.  If the style number @p s is out of
      *         range, a reference to the last entry is returned.
      **/
-    logTextPaletteEntry& style(styleId id);
-    /**
-     * @overload
-     * Return const reference
-     * @param id Style number in the palette.
-     * @return Reference to a style entry.  If the style number @p s is out of
-     *         range, a reference to the last entry is returned.
-     */
-    const logTextPaletteEntry& style(styleId id) const;
+    logTextPaletteEntry const& style(styleId id) const;
     
     /**
      * Returns the (compile time defined) number of styles in a palette.
