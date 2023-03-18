@@ -607,10 +607,10 @@ void mainWidget::clearResults()
 
 void mainWidget::displayResult()
 {
-    QSignalBlocker disabler{result};
     result->clear();
     size_t resultLines = 0;
-    if (!stepResults.empty()) {
+    if (!stepResults.empty() && !stepResults.back().empty()) {
+        QSignalBlocker disabler{result};
         const itemList& items = stepResults.back();
         std::vector<int> lineMap(items.size());
         auto mapIt = lineMap.begin();
@@ -630,6 +630,8 @@ void mainWidget::displayResult()
         sourceLineMap = std::move(lineMap);
         resultLines = items.size();
     }
+    result->setCursorPosition(10, 10);
+    result->ensureCursorVisible();
     actionSaveResults->setEnabled(resultLines != 0);
     actionSaveResultsAs->setEnabled(resultLines != 0);
     status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(resultLines));
@@ -938,16 +940,13 @@ bool mainWidget::doSaveFilters(const QString& fileName)
 
 void mainWidget::gotoLine()
 {
-    if (sourceLineMap.empty()) {
-        qDebug() << "sourceLineMap is empty";
+    if (sourceLineMap.empty())
         return;
-    }
 
     auto currentPos = result->cursorPostion();
-    qDebug() << "cursor is at " << currentPos;
-    if (currentPos.y() > result->lineCount())   /* shouldn't happen, but be safe */
+    if (currentPos.line() > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    int sourceLine = sourceLineMap[currentPos.y()];
+    int sourceLine = sourceLineMap[currentPos.line()];
 
     bool ok;
     sourceLine = QInputDialog::getInt(this, tr("Go to line"),
@@ -956,8 +955,7 @@ void mainWidget::gotoLine()
                                       sourceLineMap.back(), 1, &ok);
     if (ok) {
         auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLine);
-        qDebug() << "nearest line to " << sourceLine << " is " << *it;
-        currentPos.setY(std::distance(sourceLineMap.cbegin(), it));
+        currentPos.setLine(std::distance(sourceLineMap.cbegin(), it));
         result->setCursorPosition(currentPos);
         result->ensureCursorVisible();
     }

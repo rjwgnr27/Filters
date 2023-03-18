@@ -35,8 +35,7 @@
 #include <QPainter>
 #include <QScrollBar>
 
-
-using namespace std;
+#include <algorithm>
 
 /** Application specific QEvent type to signal a need for screen refresh */
 const QEvent::Type updatesNeededEvent=QEvent::User;
@@ -97,7 +96,8 @@ wLogTextPrivate::wLogTextPrivate(wLogText *base) :
     palettes[defaultPaletteNameString] =  new logTextPalette(
             defaultPaletteNameString, 1,
             m_qpalette.color(QPalette::Active, QPalette::WindowText),
-            m_qpalette.color(QPalette::Active, QPalette::Base));
+            m_qpalette.color(QPalette::Active, QPalette::Base),
+            m_qpalette.color(QPalette::Active, QPalette::AlternateBase));
 }
 
 
@@ -119,7 +119,7 @@ void wLogText::timerEvent(QTimerEvent *event)
         if (m_hoverTime) {
             int const elapsed = mouseHoverOnTime.elapsed();
             if (  !mouseHovering && (elapsed - 5) > m_hoverTime) {
-                int const line = min(d->yToLine(mouseRawPos.y()), m_lineCount);
+                int const line = std::min(d->yToLine(mouseRawPos.y()), m_lineCount);
                 if (validLineNumber(line)) {
                     if (d->inTheGutter(mouseRawPos.x())) {
                         mouseHovering = true;
@@ -220,6 +220,8 @@ void wLogText::paintEvent(QPaintEvent *event)
 
 void wLogTextPrivate::drawContents(const QRect& bounds)
 {
+    Q_UNUSED(bounds);
+
 #ifdef TIME_DRAW_REQUEST
     if (timeDraw) {
         qDebug() << "Draw start dT " << drawTimer.elapsed();
@@ -229,8 +231,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     if (!activePalette)
         activatePalette(defaultPaletteNameString);
 
-    Q_UNUSED(bounds);
-    int const cliph = q->viewport()->size().height();
+    int const verticalClip = q->viewport()->size().height();
 
     // On first paint, or if the viewport has resized, allocate a pixmap on
     // which to paint:
@@ -238,8 +239,10 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         pmSize = q->viewport()->size();
         delete drawPixMap;
         drawPixMap = new QPixmap(pmSize);
-        if (!drawPixMap || drawPixMap->isNull())
+        if (!drawPixMap || drawPixMap->isNull()) {
+            qCritical() << "could not allocate pixmap";
             return;
+        }
     }
 
     // As of Qt4 (4.4.3), a 'fontMetrics().width' is not valid unless attached
@@ -257,7 +260,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         return;
     }
     
-    QColor defBGColor = activePalette->style(0).backgroundColor;
+    QColor const defBGColor = activePalette->style(0).backgroundColor;
 
     pixmapPainter.setBackground(defBGColor);
     pixmapPainter.eraseRect(bounds);
@@ -290,7 +293,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     // We may actually only need a frament of the line (or even the interline
     // white-space).  But we'll draw the whole first line, and let the clipping
     // region sort it out.  Same for the last line.
-    int const visibleLines = (cliph + m_textLineHeight-1) / m_textLineHeight;
+    int const visibleLines = (verticalClip + m_textLineHeight-1) / m_textLineHeight;
     lineNumber_t line, lastDrawLine;
     if (likely(visibleLines < q->m_lineCount)) {
         line = (q->verticalScrollBar()->value() /  m_textLineHeight);
@@ -302,16 +305,16 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     } else {
         line = 0;
         lastDrawLine = q->m_lineCount;
-        //last = max(q->m_lineCount-1, 0);
+        //last = std::max(q->m_lineCount-1, 0);
     }
-    const int lastPaintLine = min(lastDrawLine,
+    const int lastPaintLine = std::min(lastDrawLine,
             (line + (bounds.height() + m_textLineHeight + 1) / m_textLineHeight));
 
     // If drawing at first line, paint it flush to top; else paint the final
     // pixmap so the bottom line is flush to bottom.
-    int pmYTop = (line == 0) ? 0 : (cliph - (visibleLines * m_textLineHeight)); // Top of text line
+    int pmYTop = (line == 0) ? 0 : (verticalClip - (visibleLines * m_textLineHeight)); // Top of text line
     int pmYBase = pmYTop + m_textLineHeight - textLineBaselineOffset;           // Baseline for text
-    int const eraseWidth = min(pmSize.width(), bounds.width()) - m_gutterOffset;
+    int const eraseWidth = std::min(pmSize.width(), bounds.width()) - m_gutterOffset;
     int const pmChars = (eraseWidth + m_characterWidth - 1) / m_characterWidth;   //!< Displayable characters in pixma
     logItemsImplCIt it = q->items.cbegin() + line;
     logItemsImplCIt itemsEnd = q->items.cbegin() + lastPaintLine;
@@ -320,21 +323,21 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     // Initially set out of range, to skip selection drawing.  If we determine
     // that this redraw event is in the selection region, set these values in
     // range, until we're done; then we'll set them out of range again:
-    lineNumber_t firstSelectionLine = numeric_limits<lineNumber_t>::max();
-    lineNumber_t lastSelectionLine  = numeric_limits<lineNumber_t>::max();
+    lineNumber_t firstSelectionLine = std::numeric_limits<lineNumber_t>::max();
+    lineNumber_t lastSelectionLine  = std::numeric_limits<lineNumber_t>::max();
     int selectionLeftCol = firstChar;
     int selectionRightCol = firstChar;
     if (selecting) {
         if (selectTop.line() <= selectBottom.line()) {
-            firstSelectionLine = max(selectTop.line(), line);
-            selectionLeftCol = max(0, selectTop.col() - firstChar);
-            lastSelectionLine = min(selectBottom.line(), lastDrawLine);
-            selectionRightCol = max(0, selectBottom.col() - firstChar);
+            firstSelectionLine = std::max(selectTop.line(), line);
+            selectionLeftCol = std::max(0, selectTop.col() - firstChar);
+            lastSelectionLine = std::min(selectBottom.line(), lastDrawLine);
+            selectionRightCol = std::max(0, selectBottom.col() - firstChar);
         } else {
-            firstSelectionLine = max(selectBottom.line(), line);
-            selectionLeftCol = max(0, selectBottom.col() - firstChar);
-            lastSelectionLine = min(selectTop.line(), lastDrawLine);
-            selectionRightCol = max(0, selectTop.col() - firstChar);
+            firstSelectionLine = std::max(selectBottom.line(), line);
+            selectionLeftCol = std::max(0, selectBottom.col() - firstChar);
+            lastSelectionLine = std::min(selectTop.line(), lastDrawLine);
+            selectionRightCol = std::max(0, selectTop.col() - firstChar);
         }
     }
         
@@ -362,7 +365,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 right = selectionRightCol;
                 // After this one, we're done drawing selection for this event,
                 // so set the values out of range as a flag.
-                firstSelectionLine = lastSelectionLine = numeric_limits<lineNumber_t>::max();
+                firstSelectionLine = lastSelectionLine = std::numeric_limits<lineNumber_t>::max();
             }
             QStringRef const leftChars(text.midRef(0, selectionLeftCol));
             QStringRef const selChars(text.midRef(selectionLeftCol, right - selectionLeftCol));
@@ -373,7 +376,10 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 // and to the right of the last selection line (first and last
                 // may be the same line):
                 // FIXME: this causes only partial painting of line background, up to length of text:
-                if (defBGColor != style->backgroundColor) {
+                auto bgColor = (caretPosition.line() == line)  ?
+                        style->clBackgroundColor : style->backgroundColor;
+
+                if (bgColor != defBGColor) {
                     pixmapPainter.setBackground(style->backgroundColor);
                     pixmapPainter.eraseRect(m_gutterOffset, pmYTop,
                             pmSize.width() - m_gutterOffset, m_textLineHeight);
@@ -402,13 +408,18 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
             selectionLeftCol = 0;
         } else {
             // Outside selection, this is easy:
-            if (defBGColor != style->backgroundColor) {
-                pixmapPainter.setBackground(style->backgroundColor);
+            auto bgColor = (caretPosition.line() == line)  ?
+                    style->clBackgroundColor : style->backgroundColor;
+
+            if (bgColor != defBGColor) {
+                pixmapPainter.setBackground(bgColor);
                 pixmapPainter.eraseRect(m_gutterOffset, pmYTop,
-                            pmSize.width() - m_gutterOffset, m_textLineHeight);
+                                        pmSize.width() - m_gutterOffset, m_textLineHeight);
             }
             pixmapPainter.setPen(style->textColor);
             pixmapPainter.drawText(m_gutterOffset, pmYBase, text);
+            if (bgColor != defBGColor)
+                pixmapPainter.setBackground(defBGColor);
         }
 
         // If the gutter is showing, and this item has a pixmap, draw it now:
@@ -629,7 +640,7 @@ void wLogText::mouseDoubleClickEvent (QMouseEvent *event)
         } else {
             const QString& str = items[line]->m_text;
             const int textLen = str.length();
-            const int col=min(d->xToCharColumn(event->x()), textLen-1);
+            const int col=std::min(d->xToCharColumn(event->x()), textLen-1);
             d->updateCaretPos(line, col);
             if (textLen) {
                 int selLeft=0, selRight=textLen-1;
@@ -694,7 +705,7 @@ void wLogTextPrivate::setSelection(const cell& sel)
     // Cause a repaint covering the old area and new area, so the old gets
     // cleared if needed, and the new gets drawn.
     if ((oldSelTop != selectTop) || (oldSelBot != selectBottom)) {
-        updateCellRange(min(oldSelTop, selectTop), max(oldSelBot, selectBottom));
+        updateCellRange(std::min(oldSelTop, selectTop), std::max(oldSelBot, selectBottom));
     }
 }
 
@@ -722,7 +733,7 @@ void wLogTextPrivate::setSelection(const cell& a, const cell& b)
     // Cause a repaint covering the old area and new area, so the old gets
     // cleared if needed, and the new gets drawn.
     if ((oldSelTop != selectTop) || (oldSelBot != selectBottom)) {
-        updateCellRange(min(oldSelTop, selectTop), max(oldSelBot, selectBottom));
+        updateCellRange(std::min(oldSelTop, selectTop), std::max(oldSelBot, selectBottom));
     }
 }
 
@@ -734,7 +745,11 @@ void wLogText::mouseMoveEvent(QMouseEvent *event)
         // If this is a move following a mouse down in a selection, then start a
         // a drag operation.
         if (d->dragState == dragStates::dragMaybe) {
-            if ((event->pos() - d->dragStart).manhattanLength()
+            /* FIXME: This is mixing mouse QPoint coordinates (pixel) with
+             * cell (line, column) coordinates. The mouse point needs to be
+             * mapped to a cell.
+             */
+            if ((event->pos() - QPoint(d->dragStart)).manhattanLength()
                 < QApplication::startDragDistance())
                 return;
             d->dragState = dragStates::dragDragging;
@@ -792,10 +807,10 @@ void wLogText::mouseMoveEvent(QMouseEvent *event)
         if (delta)
             d->selectScrollTimerId = startTimer(200);
 
-        const int line = min(d->yToLine(event->y()), m_lineCount);
+        const int line = std::min(d->yToLine(event->y()), m_lineCount);
         int col=0;
         if (validLineNumber(line))
-            col = min(d->xToCharColumn(event->x()), items[line]->m_text.length());
+            col = std::min(d->xToCharColumn(event->x()), items[line]->m_text.length());
         cell at(line, col);
         d->updateCaretPos(at);
         d->setSelection(at);
@@ -824,7 +839,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
         mouseHovering = false;
         Q_EMIT hover(-1, -1);
     }
-    cell at(min(d->yToLine(event->y()), m_lineCount),
+    cell at(std::min(d->yToLine(event->y()), m_lineCount),
              d->xToCharColumn(event->x()));
     if (d->inTheGutter(event->x())) {
         int line = d->yToLine(event->y());
@@ -859,6 +874,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
                     d->setSelection(at);
                 }
                 d->updateCaretPos(at);
+                d->updateCellRange({at.line(), 0}, {at.line(), at.col()});
             }
             Q_EMIT clicked(event);
         }
@@ -897,7 +913,7 @@ void wLogText::mouseReleaseEvent(QMouseEvent *event)
 
 void wLogText::contextMenuEvent(QContextMenuEvent *event)
 {
-    cell at(min(d->yToLine(event->y()), m_lineCount),
+    cell at(std::min(d->yToLine(event->y()), m_lineCount),
              d->xToCharColumn(event->x()));
     if (validLineNumber(at.line())) {
         QPoint pos = viewport()->mapToGlobal(event->pos());
@@ -1064,7 +1080,7 @@ inline void wLogTextPrivate::updateCaretPos(const cell& pos)
 }
 
 
-QPoint wLogText::cursorPostion() const
+cell wLogText::cursorPostion() const
 {
     return d->caretPosition;
 }
@@ -1073,12 +1089,12 @@ QPoint wLogText::cursorPostion() const
 void wLogText::setCursorPosition(lineNumber_t line, int col)
 {
     // If line (p.y()) is > number of lines, use number of lines.
-    int l = min(line, m_lineCount);
+    int l = std::min(line, m_lineCount);
 
     // if new pos is < 0, count back from the end:
     if (l < 0) {
         // Don't go any further back than the first line (0):
-        l = max(0, m_lineCount + l);
+        l = std::max(0, m_lineCount + l);
     }
 
     // If l is a valid line number (i.e. not lastLine + 1), get its text length.
@@ -1086,12 +1102,12 @@ void wLogText::setCursorPosition(lineNumber_t line, int col)
     const int textlen = validLineNumber(l) ? items[l]->m_text.length() : 0;
 
     // If new column (p.x()) is beyond the end of the line, use line length.
-    int c = min(col, textlen);
+    int c = std::min(col, textlen);
 
     // If the new position is negative, count back from the end.
     if (c < 0) {
         // But don't go back before the first column.
-        c = max(0, textlen + c);
+        c = std::max(0, textlen + c);
     }
 
     // Update the cursor.
@@ -1100,9 +1116,9 @@ void wLogText::setCursorPosition(lineNumber_t line, int col)
 }
 
 
-void wLogText::setCursorPosition(const QPoint &p)
+void wLogText::setCursorPosition(const cell &p)
 {
-    setCursorPosition(p.y(), p.x());
+    setCursorPosition(p.line(), p.col());
 }
 
 
@@ -1174,7 +1190,7 @@ QString wLogText::selectedText() const
 
     QString selText;
     int line = d->selectTop.line();
-    int last = min(d->selectBottom.line(), m_lineCount);
+    int last = std::min(d->selectBottom.line(), m_lineCount);
     if (last < line)
         qSwap(last, line);
     if (line == last) {
@@ -1242,7 +1258,8 @@ logTextPalette *wLogTextPrivate::createPalette(int size, const QString& name)
     q->deletePalette(name);
     logTextPalette *np = new logTextPalette(name, size,
 		    m_qpalette.color(QPalette::Active, QPalette::WindowText),
-                    m_qpalette.color(QPalette::Active, QPalette::Base));
+                    m_qpalette.color(QPalette::Active, QPalette::Base),
+                    m_qpalette.color(QPalette::Active, QPalette::AlternateBase));
     palettes[name] = np;            // Add it to the list of palettes.
     return np;
 }
@@ -1259,13 +1276,15 @@ logTextPalette *wLogText::createPalette(const QString& name,
         qWarning() << "Cannot create unnamed palette.";
         return nullptr;
     }
-    if (d->palettes.value(name, nullptr) == source) {
-        qWarning() << "Attempt to clone palette over itself: '" << name << "'";
-        return nullptr;
+
+    if (auto it = d->palettes.find(name); it != d->palettes.end()) {
+        if (*it == source) {
+            qWarning() << "Attempt to clone palette over itself: '" << name << "'";
+            return *it;
+        }
+        deletePalette(name);
     }
-    deletePalette(name);
-    logTextPalette *np;
-    np = new logTextPalette(name, source);
+    logTextPalette *np = new logTextPalette(name, *source);
     d->palettes[name] = np;            // Add it to the list of palettes.
     return np;
 }
@@ -1287,9 +1306,7 @@ void wLogText::deletePalette(const QString& name)
         activatePalette(QString(defaultPaletteNameString));
     }
     
-    // Look for the palette entry:
-    paletteMap::iterator pit = d->palettes.find(name);
-    if (pit != d->palettes.end()) {
+    if (paletteMap::iterator pit = d->palettes.find(name); pit != d->palettes.end()) {
         delete *pit;
         d->palettes.erase(pit);
     }
@@ -1423,14 +1440,14 @@ void wLogText::setMaxLogLines(lineNumber_t mll)
     maximumLogLines = mll;
 
     if (mll <= 0) {
-        maximumLogLinesSlacked = numeric_limits<lineNumber_t>::max();
+        maximumLogLinesSlacked = std::numeric_limits<lineNumber_t>::max();
     } else {
         // Calculate a slack value:
         maximumLogLinesSlacked = mll + qBound(10, mll/10, 1000);
 
         // Check for overflow maxint:
         if (maximumLogLinesSlacked <= mll)
-            maximumLogLinesSlacked = numeric_limits<lineNumber_t>::max();
+            maximumLogLinesSlacked = std::numeric_limits<lineNumber_t>::max();
         // Now would be a good time to trim:
         trimLines();
     }
@@ -1440,17 +1457,16 @@ void wLogText::setMaxLogLines(lineNumber_t mll)
 void wLogText::trimLines()
 {
     if (maximumLogLines && static_cast<int>(items.size()) > maximumLogLines) {
-        int toRemove = items.size() - maximumLogLines;
-        auto begin = items.begin();
-        auto end = begin + toRemove;
-        qDeleteAll(begin, end);
+        int const toRemove = items.size() - maximumLogLines;
+        auto const begin = items.begin();
+        auto const end = begin + toRemove;
+        std::for_each(begin, end, [](auto item) {delete item;});
         items.erase(begin, end);
-
         m_lineCount = items.size();
-        m_maxLineChars = 0;
-        for(const auto item : items) {
-            m_maxLineChars = max(m_maxLineChars, item->text().length());
-        }
+
+        auto it = std::max_element(items.cbegin(), items.cend(),
+                                   [](auto x, auto y) {return x->text().length() < y->text().length();});
+        m_maxLineChars = (it == items.cend()) ? 0 : (*it)->text().length();
 
         // Adjust selection:
         if (d->selecting) {
@@ -1489,7 +1505,7 @@ void wLogText::vScrollChange(int value)
         // Handle shrinking line count, ie, a trim() operation:
         d->m_maxVScroll = currentMaxScroll;
     } else {
-        // If the new vertical position is less than the max position seen, it
+        // If the new vertical position is less than the std::max position seen, it
         // is a scroll up.  Lock the postion to prevent new lines from scrolling
         // the view.  Else, if we have scrolled back to the bottom, unlock the
         // scroll.
@@ -1528,7 +1544,7 @@ inline bool wLogTextPrivate::inTheGutter(int x) const
 inline int wLogTextPrivate::xToCharColumn(int x) const
 {
     int col=0;
-    if (m_characterWidth)
+    if (m_characterWidth != 0)
         col = inTheGutter(x) ? 0 :
             ((x - m_gutterOffset) / m_characterWidth + q->horizontalScrollBar()->value());
     return col;
@@ -1537,7 +1553,7 @@ inline int wLogTextPrivate::xToCharColumn(int x) const
 
 inline int wLogTextPrivate::yToLine(int y) const
 {
-    return (q->verticalScrollBar()->value() + max(y, 0)) / m_textLineHeight;
+    return (q->verticalScrollBar()->value() + std::max(y, 0)) / m_textLineHeight;
 }
 
 
@@ -1606,18 +1622,18 @@ void wLogText::clear(int top, int count)
     if (finalized)
         items.shrink_to_fit();
 
+    d->m_maxVScroll = 0;
     m_lineCount = items.size();
     m_maxLineChars = 0;
-    d->m_maxVScroll = 0;
-    for(const auto item : items) {
-        m_maxLineChars = max(m_maxLineChars, item->text().length());
-    }
+    for(const auto item : items)
+        m_maxLineChars = std::max(m_maxLineChars, item->text().length());
+
     d->caretPosition = cell(0, 0);
     d->setContentSize();
 }
 
 
-bool wLogText::find(const QString& str, QPoint *at,
+bool wLogText::find(const QString& str, cell *at,
                     Qt::CaseSensitivity caseSensitive, bool forward)
 {
     //Anything to search?
@@ -1685,7 +1701,7 @@ bool wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
 }
 
 
-bool wLogText::find(const QRegExp& re, QPoint *at, bool forward)
+bool wLogText::find(const QRegExp& re, cell *at, bool forward)
 {
     // Anything to search?
     if (m_lineCount == 0)
@@ -1736,23 +1752,18 @@ bool wLogText::find(const QRegExp& re, QPoint *at, bool forward)
 }
 
 
-bool wLogTextPrivate::prepareFind(bool forward, cell& pos, const QPoint *at) const
+bool wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const
 {
-    if (at) {
-        pos = cell(*at);
-    } else {
-        pos = caretPosition;
-    }
-
+    pos = at ? cell(*at) : caretPosition;
     if (!q->validLineNumber(pos.line())) {
-        if (forward) return false;
+        if (forward)
+            return false;
         pos.setLine(q->m_lineCount - 1);
         pos.setCol(-1);
     }
     int lineLen = q->items[pos.line()]->text().length();
-    if (pos.col() >= lineLen) {
+    if (pos.col() >= lineLen)
         pos.setCol(lineLen - 1);
-    }
     return true;
 }
 
@@ -1887,12 +1898,9 @@ void wLogText::visitItems(logTextItemVisitor& v, lineNumber_t firstLine)
     if (firstLine >= m_lineCount)
         return;
 
-    logItemsImplIt it=items.begin() + firstLine, end=items.end();
-    logTextItemVisitor::visitedItem item(this, firstLine);
-    updatesDisableScope disabler(this);
-    for (; it != end; ++it, ++item.lineNumber) {
-        item.lineItem = *it;
-        if (!v.visit(item))
+    QSignalBlocker disabler(this);
+    for (lineNumber_t lineNumber = firstLine; auto& item : items) {
+        if (!v.visit({this, item, lineNumber++}))
             break;
     }
 }
@@ -1900,12 +1908,9 @@ void wLogText::visitItems(logTextItemVisitor& v, lineNumber_t firstLine)
 
 void wLogText::visitItems(bool (*v)(const logTextItemVisitor::visitedItem& item))
 {
-    auto it=items.cbegin(), end=items.cend();
-    logTextItemVisitor::visitedItem item(this, 0);
-    updatesDisableScope disabler(this);
-    for (; it != end; ++it, ++item.lineNumber) {
-        item.lineItem = *it;
-        if (!v(item))
+    QSignalBlocker disabler(this);
+    for (lineNumber_t lineNumber = 1; auto& item : items) {
+        if (!v({this, item, lineNumber++}))
             break;
     }
 }
@@ -1915,30 +1920,26 @@ void wLogText::visitSelection(logTextItemVisitor &v)
 {
     if (d->selecting) {
         auto it  = items.cbegin() + d->selectTop.line();
-        auto end = items.cbegin() + min(d->selectBottom.line(), m_lineCount);
+        auto end = items.cbegin() + std::min(d->selectBottom.line(), m_lineCount);
 
-        logTextItemVisitor::visitedItem item(this, d->selectTop.line());
-        updatesDisableScope disabler(this);
-        for (; it != end; ++it, ++item.lineNumber) {
-            item.lineItem = *it;
-            if (!v.visit(item))
+        QSignalBlocker disabler(this);
+        for (lineNumber_t lineNumber = d->selectTop.line(); it != end; ++it) {
+            if (!v.visit({this, *it, lineNumber++}))
                 break;
         }
     }
 }
 
 
-void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem& item))
+void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem&))
 {
     if (d->selecting) {
         auto it  = items.cbegin() + d->selectTop.line();
-        auto end = items.cbegin() + min(d->selectBottom.line(), m_lineCount);
+        auto end = items.cbegin() + std::min(d->selectBottom.line(), m_lineCount);
 
-        logTextItemVisitor::visitedItem item(this, d->selectTop.line());
-        updatesDisableScope disabler(this);
-        for (; it != end; ++it, ++item.lineNumber) {
-            item.lineItem = *it;
-            if (!v(item))
+        QSignalBlocker disabler(this);
+        for (lineNumber_t lineNumber = d->selectTop.line(); it != end; ++it) {
+            if (!v({this, *it, lineNumber++}))
                 break;
         }
     }
@@ -1957,22 +1958,23 @@ logTextItemVisitor::~logTextItemVisitor()
  ******************************************************************************/
 
 logTextPalette::logTextPalette(const QString& nm, int ns,
-                               QColor defText, QColor defBack) : name(nm)
+                               QColor const& defText, QColor const& defBack,
+                               QColor const& defClBack) : name(nm)
 {
-    styles.fill(logTextPaletteEntry(defText, defBack), max(ns, 1));
+    styles.fill(logTextPaletteEntry(defText, defBack, defClBack), std::max(ns, 1));
 }
 
 
-logTextPalette::logTextPalette(const QString& nm, const logTextPalette *source)
+logTextPalette::logTextPalette(const QString& nm, logTextPalette const& source)
 {
-    if (source == this)
+    if (&source == this)
         return;       // Don't clone self.
 
     name = nm;
-    size_t styleCount = source->numStyles();
+    size_t styleCount = source.numStyles();
     styles.reserve(styleCount);
     for (size_t i = 0; i < styleCount; ++i) {
-        styles.push_back(source->style(i));
+        styles.push_back(source.style(i));
     }
 }
 
@@ -1992,25 +1994,28 @@ logTextPaletteEntry const& logTextPalette::style(styleId id) const
  ******************************************************************************/
 
 logTextPaletteEntry::logTextPaletteEntry() :
-        m_backgroundColor(), m_textColor(), m_attributes(logTextPaletteEntry::attrNone)
+        m_attributes(logTextPaletteEntry::attrNone)
 {
-    QPalette m_qpalette;
+    QPalette const m_qpalette;
     m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
+    m_clBackgroundColor = m_qpalette.color(QPalette::Active, QPalette::AlternateBase);
     m_textColor = m_qpalette.color(QPalette::Active, QPalette::WindowText);
 }
 
 
 logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, const QColor& bc,
-                                         textAttributes a) :
-        m_backgroundColor(bc), m_textColor(tc), m_attributes(a)
+                    const QColor& clbc, textAttributes a) :
+            m_backgroundColor(bc), m_clBackgroundColor(clbc), m_textColor(tc), m_attributes(a)
 {
 }
 
-
 logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, textAttributes a) :
-        m_backgroundColor{QPalette().color(QPalette::Active, QPalette::Base)},
         m_textColor(tc), m_attributes(a)
 {
+    QPalette const m_qpalette;
+    m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
+    m_clBackgroundColor = m_qpalette.color(QPalette::Active, QPalette::AlternateBase);
+    m_textColor = m_qpalette.color(QPalette::Active, QPalette::WindowText);
 }
 
 
@@ -2019,10 +2024,20 @@ QColor logTextPaletteEntry::backgroundColor() const
     return m_backgroundColor;
 }
 
-
 void logTextPaletteEntry::setBackgroundColor(const QColor& c)
 {
     m_backgroundColor = c;
+}
+
+
+QColor logTextPaletteEntry::caretLineBackgroundColor() const
+{
+    return m_clBackgroundColor;
+}
+
+void logTextPaletteEntry::setCaretLineBackgroundColor(const QColor& c)
+{
+    m_clBackgroundColor = c;
 }
 
 
@@ -2060,7 +2075,7 @@ void logTextPaletteEntry::setAttributes( textAttributes a )
 
 activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
 {
-    const size_t nStyles = max(1, p.numStyles());
+    const size_t nStyles = std::max(1, p.numStyles());
     std::vector<styleItem> tStyles(nStyles);
     for (size_t i = 0; i < nStyles; ++i) {
         styleItem& style = tStyles[i];
@@ -2068,6 +2083,7 @@ activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
 
         // Initialize style entry with defaults:
         style.backgroundColor = pe.backgroundColor();
+        style.clBackgroundColor = pe.caretLineBackgroundColor();
         style.textColor = pe.textColor();
 
         style.font = f;

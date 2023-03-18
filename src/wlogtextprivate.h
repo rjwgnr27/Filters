@@ -32,109 +32,6 @@ typedef QHash<QString,logTextPalette*> paletteMap;  //!< Map type for styles by 
 
 
 /**
- * @brief A class similar to a QPoint, providing character cell (line, column) semantics.
- * 
- * An internal class derived from QPoint to represent a character cell
- * position: line/column.  It adds the notion screen positional comparison, i.e.
- * if ( cell_a > cell_b ).  Cell_a \< cell_b if:
- *     ((cell_a.line() \< cell_b.line) ||
- *      ((cell_a.line() == cell_b.line()) && cell_a.col() \< cell_b.col()) );
- **/
-class cell : public QPoint {
-    public:
-        cell() {};                                  //!< Default constructor
-        cell(int l, int c) : QPoint(c, l) {};   //!< Constructor from line, column
-        explicit cell(const QPoint& p) : QPoint(p) {};   //!< Copy contructor
-
-        /**
-         * Return the line number represented by this cell.
-         * @return Line number of this cell
-         **/
-        int line() const {return y();}            //!< Return line number represented by a cell.
-
-        /**
-         * Set the line position represented by this cell.
-         * @param l New line number for this cell.
-         **/
-        void setLine(int l) {setY(l);}          //!< Set the line number this cell represents
-
-        /**
-         * Return the column number represented by this cell.
-         * @return column number of this cell
-         **/
-        int col() const {return x();}               //!< Return the character column this cell represents
-
-        /**
-         * Set the column position represented by this cell.
-         * @param c New column number for this cell.
-         */
-        void setCol(int c) {setX(c);}         //!< Set the character column this cell represents
-
-        /**
-         * Set the line and column position represented by this cell.
-         * @param l New line number for this cell.
-         * @param c New column number for this cell.
-         **/
-        void setPos(int l, int c) {setLine(l); setCol(c);}  //!< Set the cell location
-
-        /**
-         * Returns a cell one line after this.  Note, the position strictly mathmatical, there is no
-         * validation against any document structure.
-         * @return A \c cell postition one line down from this.
-         **/
-        cell nextLine() const {cell c(*this); c.setLine(c.line() + 1); return c;}  //!< Return a cell one line after this
-
-        /**
-         * Returns a cell one column after this.  Note, the position strictly mathmatical, there is no
-         * validation against any document structure.
-         * @return cell location of next column.
-         **/
-        cell nextCol() const {cell c(*this); c.setCol(c.col() + 1); return c;}     //!< Return a cell one column after this
-
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position < this.
-         **/
-        bool operator < (const cell& c) const {return (x() < c.x()) || ((x() == c.x()) && (y() < c.y()));}    //!< Compare a cell less than (earlier on the screen) this
-
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position <= this.
-         **/
-        bool operator <= (const cell& c) const {return (x() < c.x()) || ((x() == c.x()) && (y() <= c.y()));}    //!< Compare a cell less than (earlier on the screen) this
-
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position == this.
-         **/
-        bool operator == (const cell& c) const {return (y() == c.y()) && (x() == c.x());}   //!< Compare a cell to be the same location as this
-
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position != this.
-         **/
-        bool operator != (const cell& c) const {return !(operator ==(c));}   //!< Compare a cell location not the same as this.
-
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position > this.
-         **/
-        bool operator > (const cell& c) const {return (x() > c.x()) || ((x() == c.x()) && (y() > c.y()));}    //!< Compare a cell less than (earlier on the screen) this
-        
-        /**
-         * Cell relative position comparison.
-         * @param c Cell to compare this location to.
-         * @return @c true if cell @p c has a position >= this.
-         **/
-        bool operator >= (const cell& c) const {return (x() > c.x()) || ((x() == c.x()) && (y() >= c.y()));}    //!< Compare a cell less than (earlier on the screen) this
-};
-
-/**
  * @brief A style item of a style palette
  *
  * Defines the text attributes for a style: font, foreground and background colors.
@@ -144,6 +41,7 @@ public:
     QFont font;                 //!< Font derived from the base font for this style
     QColor textColor;           //!< Text color for this style
     QColor backgroundColor;     //!< Background color for this style
+    QColor clBackgroundColor;   //!< Caret line background color for this style
     styleItem() = default;
     styleItem(const styleItem&) = default;
     styleItem(styleItem&&) = default;
@@ -321,7 +219,7 @@ protected:
      * @return true if the initial cell location is valid, and the find may proceed.
      * Otherwise false, in which case the find will fail.
      **/
-    bool prepareFind(bool forward, cell& pos, const QPoint *at) const;
+    bool prepareFind(bool forward, cell& pos, const cell *at) const;
 
     /**
      * @brief Activate a palette.
@@ -397,7 +295,7 @@ protected:
     /**
      * @brief Move caret with update.
      *
-     * Set new caret postion, erasing old and drawing new.
+     * Set new caret position, erasing old and drawing new.
      *
      * @param line New caret line.
      * @param col New caret column.
@@ -532,71 +430,5 @@ protected:
      **/
     inline lineNumber_t yToLine(int y) const;
 };
-
-/**
- * Object to disable widget updates for the duraction of the object lifetime.
- * Manages update disable/enable in a block scope.
- */
-class [[nodiscard]] updatesDisableScope {
-private:
-    QWidget *widget;                //!< Pointer to the QWidget to manage
-    bool initial;                   //!< State of updatesEnabled at ctor
-
-    #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
-    updatesDisableScope(const updatesDisableScope&) = delete;          //!< Copy ctor
-    updatesDisableScope& operator =(const updatesDisableScope&) = delete;    //!< Assignment operator
-    #endif  // DOXYGEN_EXCLUDE
-
-public:
-    /**
-     * @brief Constructor
-     * Construct object, managing update enable state for widget @p w. The
-     * widget's updatesEnabled() state is noted on construction. The
-     * initial state is restored on destruction, or on call to enableUpdates().
-     * @param w Pointer to QWidget to manage
-     */
-    updatesDisableScope(QWidget *w) : widget(w), initial(w->updatesEnabled())
-    {widget->setUpdatesEnabled(false);}
-
-    /**
-     * @brief Destructor; restore widget's update state to state at ctor.
-     * Destroys the object, reseting the widget's update enable state to
-     * the initial state at construction.
-     */
-    ~updatesDisableScope() {widget->setUpdatesEnabled(initial);}
-
-    /**
-     * @brief retrieve the widgets initial update enabled state.
-     * Retrieve the update enable state of the widget at the time of the
-     * object construction.
-     * @return initial update enabled state of the widget
-     */
-    bool initiallyEnabled() const {return initial;}
-
-    /**
-     * @brief reset widget's update enable state to its initial state
-     * Set the widget's update enable state, to the state it was in at the
-     * time of this objects contruction. Used to temporarilly re-enable
-     * updates, while the scope disable object is still in scope.
-     */
-    void enableUpdates() {widget->setUpdatesEnabled(initial);}
-
-    /**
-     * @brief force widgets update enable state to enabled
-     * Sets the widget's update enable state to enabled, regardless of the
-     * initial state of this objects construction. Used to temporarilly re-enable
-     * updates, while the scope disable object is still in scope.
-     */
-    void enableUpdatesForced() {widget->setUpdatesEnabled(true);}
-
-    /**
-     * @brief disable widget's updates
-     * Sets the widget update enable state to disabled. Used within this
-     * objects scope, to disable updates after a call to enableUpdates() or
-     * enableUpdatesForced().
-     */
-    void disableUpdates() {widget->setUpdatesEnabled(false);}
-};
-
 
 #endif //ifndef LOGTEXTPRIVATE_H

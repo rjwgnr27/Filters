@@ -45,6 +45,86 @@ class wLogTextPrivate;
 
 
 /**
+ * @brief A class providing character cell (line, column) semantics.
+ *
+ * An class to represent a character cell position of line and column. It adds the notion
+ * screen positional comparison, i.e.
+ * if ( cell_a \< cell_b ).  Cell_a \< cell_b if:
+ *     ((cell_a.line() \< cell_b.line) ||
+ *      ((cell_a.line() == cell_b.line()) && cell_a.col() \< cell_b.col()) );
+ **/
+class cell {
+private:
+    int m_line = 0;
+    int m_col = 0;
+
+public:
+    cell() {};                                  //!< Default constructor
+    cell(int l, int c) : m_line{l}, m_col(c) {};   //!< Constructor from line, column
+    cell(const cell& p) = default;   //!< Copy constructor
+
+    cell& operator = (cell const& other) = default;
+
+    [[deprecated("Use cell(cell&)")]] explicit cell(const QPoint& p) : cell(p.y(), p.x()) {};   //!< Copy contructor
+    [[deprecated("Use cell(cell&)")]] explicit operator QPoint() {return QPoint(col(), line());}
+
+    /**
+     * Return the line number represented by this cell.
+     * @return Line number of this cell
+     **/
+    int line() const {return m_line;}            //!< Return line number represented by a cell.
+
+    /**
+     * Set the line position represented by this cell.
+     * @param l New line number for this cell.
+     **/
+    void setLine(int l) {m_line = l;}          //!< Set the line number this cell represents
+
+    /**
+     * Return the column number represented by this cell.
+     * @return column number of this cell
+     **/
+    int col() const {return m_col;}               //!< Return the character column this cell represents
+
+    /**
+     * Set the column position represented by this cell.
+     * @param c New column number for this cell.
+     */
+    void setCol(int c) {m_col = c;}         //!< Set the character column this cell represents
+
+    /**
+     * Set the line and column position represented by this cell.
+     * @param l New line number for this cell.
+     * @param c New column number for this cell.
+     **/
+    void setPos(int l, int c) {setLine(l); setCol(c);}  //!< Set the cell location
+
+    /**
+     * Returns a cell one line after this.  Note, the position strictly mathematical, there is no
+     * validation against any document structure.
+     * @return A \c cell positition one line down from this.
+     **/
+    cell nextLine() const {return {line() + 1, col()};}  //!< Return a cell one line after this
+
+    /**
+     * Returns a cell one column after this.  Note, the position strictly mathematical, there is no
+     * validation against any document structure.
+     * @return cell location of next column.
+     **/
+    cell nextCol() const {return {line(), col() + 1};}     //!< Return a cell one column after this
+
+    /**
+     * Cell relative position comparison.
+     * @param c Cell to compare this location to.
+     * @return returns <, ==, or > based on line, then cell
+     **/
+    auto operator <=> (cell const& other) const {
+        return line() == other.line() ? col() <=> other.col() : line() <=> other.line();}
+        auto operator == (cell const& other) const {
+            return line() == other.line() && col() == other.col();}
+};
+
+/**
  * Class to define a line item for to be displayed in a logText widget.
  * It allows access to the text, attributes, and positional information of a
  * text line.
@@ -192,8 +272,8 @@ public:
         wLogText *logText;
         logTextItem *lineItem;
         lineNumber_t lineNumber;
-        visitedItem(wLogText *log, lineNumber_t firstLine) :
-                logText(log), lineItem(nullptr), lineNumber(firstLine) {}
+        visitedItem(wLogText *log, logTextItem *item, lineNumber_t firstLine) :
+                    logText(log), lineItem(item), lineNumber(firstLine) {}
     };
     virtual ~logTextItemVisitor();
         /**
@@ -336,7 +416,7 @@ protected:
      * the gutter area, emit a gutterContextClick() signal, else emit a
      * contextClick() signal.
      */
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
     /**
      * @brief Handle QWidget custom events from the Qt event loop. [virtual, inherited]
@@ -347,7 +427,7 @@ protected:
      *
      * @param event The Qt custom event object.
      */
-    virtual void customEvent(QEvent *) override;
+    void customEvent(QEvent *) override;
 
     /**
      * @brief Handle QWidget focusInEvent. [virtual, inherited]
@@ -356,7 +436,7 @@ protected:
      *
      * @param event QFocusEvent object passed from QWidget.
      */
-    virtual void focusInEvent(QFocusEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
 
     /**
      * @brief Handle QWidget focusOutEvent. [virtual, inherited]
@@ -365,7 +445,7 @@ protected:
      *
      * @param  event QFocusEvent object passed from QWidget.
      */
-    virtual void focusOutEvent(QFocusEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
 
     /**
      * @brief Handle key press event.
@@ -374,7 +454,7 @@ protected:
      *
      * @param event QKeyEvent describing the event.
      */
-    virtual void keyPressEvent (QKeyEvent *event) override;
+    void keyPressEvent (QKeyEvent *event) override;
 
     /**
      * @brief Mouse double-click event handler. [virtual, overloaded: QAbstractScrollArea]
@@ -385,7 +465,7 @@ protected:
      * @param event event describing the mouse position and state.
      *
      */
-    virtual void mouseDoubleClickEvent (QMouseEvent* event) override;
+    void mouseDoubleClickEvent (QMouseEvent* event) override;
 
     /**
      * @brief Mouse movement event handler. [virtual, overloaded: QAbstractScrollArea]
@@ -397,7 +477,7 @@ protected:
      *
      * @param event event describing the mouse position and state.
      */
-    virtual void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
 
     /**
      * @brief Handle mouse button press event.
@@ -411,7 +491,7 @@ protected:
      *
      * @param event QMouseEvent
      */
-    virtual void mousePressEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
     /**
      * @brief Handle mouse button release event.
@@ -420,7 +500,7 @@ protected:
      *
      * @param event QMouseEvent for the mouse release.
      */
-    virtual void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
     /**
      * @brief Paint a region of the visible text area. [virtual, overload]
@@ -433,7 +513,7 @@ protected:
      *
      * @param event Event describing the region to be updated.
      */
-    virtual void paintEvent(QPaintEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
     /**
      * @brief Visible region size changed event. [virtual, overloaded:
@@ -444,7 +524,7 @@ protected:
      *
      * @param event Resize event data.
      */
-    virtual void resizeEvent(QResizeEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
     /**
      * @brief Reimplementation of QObject::timerEvent [virtual]
@@ -454,7 +534,7 @@ protected:
      *
      * @param event A QTimerEvent for the fired timer.
      */
-    virtual void timerEvent(QTimerEvent *event) override;
+    void timerEvent(QTimerEvent *event) override;
 
     /**
      * @brief Handle mouse wheel event.
@@ -472,7 +552,7 @@ protected:
      *
      * @param event Event for the wheel event.
      */
-    virtual void wheelEvent(QWheelEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
 
     /**
      * @brief recalculate the horizontal scrollbar limits
@@ -759,9 +839,9 @@ public:
      *
      * Returns the current cursor postion, in the form of line, column.
      *
-     * @return QPoint caret position. QPoint.y() is line, QPoint.x() is column.
+     * @return @c cell caret position
      */
-    QPoint cursorPostion() const;
+    cell cursorPostion() const;
 
     /**
      * Set the current cursor postion, in the form of line, column.  If line is
@@ -771,10 +851,10 @@ public:
      * the new position is the beginning of the line, not wrapped back on the
      * previous line.
      *
-     * @param line New line number for cursor position.
-     * @param col New column position.
+     * @param lineNumber New line number for cursor position.
+     * @param columnNumber New column position.
      **/
-    void setCursorPosition(lineNumber_t line, int col);
+    void setCursorPosition(lineNumber_t lineNumber, int columnNumber);
 
     /**
      * @brief Set the caret to a specified line, column coordinate.
@@ -788,7 +868,7 @@ public:
      *
      * @param p New cursor position.
      **/
-    void setCursorPosition(const QPoint&);
+    void setCursorPosition(const cell&);
 
     /**
      * @brief Get state of showCaret flag.
@@ -828,7 +908,7 @@ public:
      * @return If the parameter @p p is not null, *p will be set to the resultant
      * location of the text.
      */
-    bool find(const QString& str, QPoint *pt,
+    bool find(const QString& str, cell *pt,
               Qt::CaseSensitivity=Qt::CaseInsensitive, bool forward=true);
 
     /**
@@ -880,7 +960,7 @@ public:
      *
      * @param re @a QRegularExpression to match in the search.
      *
-     * @param p Pointer to @a QPoint giving cell location (y() = line,
+     * @param p Pointer to @c cell giving cell location (y() = line,
      * x() = column) to begin the search.
      *
      * @param forward If true, the search is from the start position to the end of
@@ -894,7 +974,7 @@ public:
      * @retval p If the parameter @p p is not null, *p will be set to the resultant
      * location of the text.
      */
-    bool find(const QRegExp& re, QPoint *at, bool forward = true);
+    bool find(const QRegExp& re, cell *at, bool forward = true);
 
     /**
      * @brief Ensure the caret is visible, scrolling if needed.
@@ -1102,7 +1182,7 @@ public:
      *
      * @param op Visitor function to be applied to each item.
      */
-    void visitItems(bool (*op)(const logTextItemVisitor::visitedItem& item));
+    void visitItems(bool (*op)(const logTextItemVisitor::visitedItem&));
 
     
     /**
@@ -1317,7 +1397,7 @@ Q_SIGNALS:
      * @param cell The line (\p cell.y()) and column (\p cell.x()) the event
      *          ocurred on.
      */
-    void doubleClicked(QPoint cell);
+    void doubleClicked(cell cell);
 
     /**
      * @fn void wLogText::gutterClick(int lineNo, ButtonState btn, QPoint point)
@@ -1430,7 +1510,7 @@ Q_SIGNALS:
  */
 class logTextPaletteEntry {
 public: //types
-    /** Bitmapped attributes which get applied to the base font to form a style entry */
+    /** Bitmap attributes which get applied to the base font to form a style entry */
     enum textAttribute {
         attrNone=0,                     //!< no style modifier; default
         attrItalic=0x01,                //!< add italic formatting to font
@@ -1442,6 +1522,7 @@ public: //types
 
 protected:
     QColor m_backgroundColor;           //!< text line background color
+    QColor m_clBackgroundColor;         //!< caret line background color
     QColor m_textColor;                 //!< text font color
     textAttributes m_attributes;        //!< font modifier attribute flags
 
@@ -1453,16 +1534,20 @@ public:
      */
     logTextPaletteEntry();
 
+    logTextPaletteEntry(logTextPaletteEntry const&) = default;
+
     /**
      * @brief Constructor with full attributes.
      *
      * Constructor with background color, and text color and attributes.
      *
      * @param textColor Text color.
-     * @param backgroundColor Background color.
+     * @param backgroundColor Background color for normal lines.
+     * @param caretBackgroundColor Background color caret line.
      * @param attributes Text attributes.
      **/
     logTextPaletteEntry(const QColor& textColor, const QColor& backgroundColor,
+                        const QColor& caretBackgroundColor,
                         textAttributes attributes=attrNone);
 
     /**
@@ -1487,6 +1572,12 @@ public:
     QColor backgroundColor() const;
 
     /**
+     * @brief Get background color for caret line
+     * @return Color for the background of the caret line
+     */
+    QColor caretLineBackgroundColor() const;
+
+    /**
      * @brief Set background color.
      *
      * Setter function to set the background color.
@@ -1494,6 +1585,8 @@ public:
      * @param c New color for the background.
      **/
     void setBackgroundColor(const QColor& c);
+
+    void setCaretLineBackgroundColor(const QColor& c);
 
     /**
      * @brief Get text color.
@@ -1558,8 +1651,8 @@ public:
      * @param textColor Default foreground color for all style entries.
      * @param bgColor Default background color for all style entries.
      **/
-    logTextPalette(const QString& name, int numEntries, QColor textColor,
-                   QColor bgColor);
+    logTextPalette(const QString& name, int numEntries, QColor const& textColor,
+                   QColor const& bgColor, QColor const& clBgColor);
     
     /**
      * @brief Copy constructor.
@@ -1569,7 +1662,7 @@ public:
      * @param name Name to assign to the clone.
      * @param source Pointer to the palette to clone.
      */
-    logTextPalette(const QString& name, const logTextPalette *const source);
+    logTextPalette(const QString& name, logTextPalette const& source);
 
     /**
      * Get a reference to a specified palette style entry.
