@@ -133,7 +133,7 @@ protected:
     int gutterWidth = 0;            //!< Space on left edge left of pixmaps.
     int m_gutterOffset;             //!< gutterWidth + gutterBorder, or zero.
 
-    int m_textLineHeight = 0;       //!< Calculated text line height, based on current (zommed) fint size.
+    int m_textLineHeight = 10;       //!< Calculated text line height, based on current (zommed) fint size.
     int textLineBaselineOffset = 0; //!< Physical offset of line bottom from baseline, font.descent().
     int m_characterWidth = 0;       //!< calculated character width,  based on current (zommed) fint size.
     int fontBaseSize = 10;          //!< Selected base font size in pixels
