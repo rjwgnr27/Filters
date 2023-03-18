@@ -944,9 +944,9 @@ void mainWidget::gotoLine()
         return;
 
     auto currentPos = result->cursorPostion();
-    if (currentPos.line() > result->lineCount())   /* shouldn't happen, but be safe */
+    if (currentPos.lineNumber() > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    int sourceLine = sourceLineMap[currentPos.line()];
+    int sourceLine = sourceLineMap[currentPos.lineNumber()];
 
     bool ok;
     sourceLine = QInputDialog::getInt(this, tr("Go to line"),
@@ -955,7 +955,7 @@ void mainWidget::gotoLine()
                                       sourceLineMap.back(), 1, &ok);
     if (ok) {
         auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLine);
-        currentPos.setLine(std::distance(sourceLineMap.cbegin(), it));
+        currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
         result->setCursorPosition(currentPos);
         result->ensureCursorVisible();
     }

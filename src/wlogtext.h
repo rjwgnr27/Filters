@@ -66,52 +66,52 @@ public:
     cell& operator = (cell const& other) = default;
 
     [[deprecated("Use cell(cell&)")]] explicit cell(const QPoint& p) : cell(p.y(), p.x()) {};   //!< Copy contructor
-    [[deprecated("Use cell(cell&)")]] explicit operator QPoint() {return QPoint(col(), line());}
+    [[deprecated("Use cell(cell&)")]] explicit operator QPoint() {return QPoint(columnNumber(), lineNumber());}
 
     /**
      * Return the line number represented by this cell.
      * @return Line number of this cell
      **/
-    int line() const {return m_line;}            //!< Return line number represented by a cell.
+    int lineNumber() const {return m_line;}            //!< Return line number represented by a cell.
 
     /**
      * Set the line position represented by this cell.
      * @param l New line number for this cell.
      **/
-    void setLine(int l) {m_line = l;}          //!< Set the line number this cell represents
+    void setLineNumber(int l) {m_line = l;}          //!< Set the line number this cell represents
 
     /**
      * Return the column number represented by this cell.
      * @return column number of this cell
      **/
-    int col() const {return m_col;}               //!< Return the character column this cell represents
+    int columnNumber() const {return m_col;}               //!< Return the character column this cell represents
 
     /**
      * Set the column position represented by this cell.
      * @param c New column number for this cell.
      */
-    void setCol(int c) {m_col = c;}         //!< Set the character column this cell represents
+    void setColumnNumber(int c) {m_col = c;}         //!< Set the character column this cell represents
 
     /**
      * Set the line and column position represented by this cell.
      * @param l New line number for this cell.
      * @param c New column number for this cell.
      **/
-    void setPos(int l, int c) {setLine(l); setCol(c);}  //!< Set the cell location
+    void setPos(int l, int c) {setLineNumber(l); setColumnNumber(c);}  //!< Set the cell location
 
     /**
      * Returns a cell one line after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
      * @return A \c cell positition one line down from this.
      **/
-    cell nextLine() const {return {line() + 1, col()};}  //!< Return a cell one line after this
+    cell nextLine() const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
 
     /**
      * Returns a cell one column after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
      * @return cell location of next column.
      **/
-    cell nextCol() const {return {line(), col() + 1};}     //!< Return a cell one column after this
+    cell nextCol() const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
 
     /**
      * Cell relative position comparison.
@@ -119,9 +119,9 @@ public:
      * @return returns <, ==, or > based on line, then cell
      **/
     auto operator <=> (cell const& other) const {
-        return line() == other.line() ? col() <=> other.col() : line() <=> other.line();}
+        return lineNumber() == other.lineNumber() ? columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
         auto operator == (cell const& other) const {
-            return line() == other.line() && col() == other.col();}
+            return lineNumber() == other.lineNumber() && columnNumber() == other.columnNumber();}
 };
 
 /**
@@ -385,7 +385,7 @@ protected:
     wLogText& operator =(const wLogText&) = delete;
 
     /** Pointer to implementation detail */
-    wLogTextPrivate *const d;
+    std::unique_ptr<wLogTextPrivate> const d;
 
     logItemsImplList items;         //!< Vector of text plus attribute items.
     lineNumber_t m_lineCount = 0;   //!< Count of lines

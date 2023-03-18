@@ -112,12 +112,16 @@ public:
  * private details of the object.
  **/
 class wLogTextPrivate {
+public:
+        /** @brief destructor **/
+    ~wLogTextPrivate();
+
 protected:
     friend class wLogText;
     
     wLogText *const q = nullptr;    //!< Public wLogText which this implements
 
-    QPixmap *drawPixMap = nullptr;  //!< Rendering pixmap for the draw event
+    std::unique_ptr<QPixmap> drawPixMap;  //!< Rendering pixmap for the draw event
     QSize pmSize{0,0};              //!< Allocation size of the drawPixMap
 
     bool timeDraw = false;          //!< Diagnostic to enable draw timing
@@ -159,7 +163,7 @@ protected:
     bool softLocked = false;        //!< Are new lines are prevented from scrolling view due to soft things.
     bool escJump = false;           //!< Flag whether the ESC key will unlock and jump to end
 
-    activatedPalette *activePalette = nullptr;    //!< Pointer to current activated palette
+    std::unique_ptr<activatedPalette> activePalette;    //!< Pointer to current activated palette
     paletteMap palettes;            //!< Map by name of available palettes.
     QString activatedPaletteName;   //!< name of active palette.
 
@@ -168,9 +172,6 @@ protected:
      * @param base public interface widget
      **/
     explicit wLogTextPrivate(wLogText *base);
-
-    /** @brief destructor **/
-    ~wLogTextPrivate();
 
     /**
      * @brief Request a screen update on a bounded region.
