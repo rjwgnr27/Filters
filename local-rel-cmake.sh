@@ -41,6 +41,7 @@ while getopts 'hvbcisxC:B:' OPT; do
             # echo "        - add 'IOPT' to cmake install options"
             # echo "  -A AARG"
             # echo "        - add 'AARG' to execute arguments"
+            exit 0
             ;;
         v)
             VERBOSE=1
@@ -85,7 +86,7 @@ fi
    
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr/local \
-      "$CONF_OPTS" .. || exit
+      $CONF_OPTS .. || exit
 
 if [ $BUILD -ne 0 ] ; then
     cmake --build . "$BUILD_OPTS" || exit

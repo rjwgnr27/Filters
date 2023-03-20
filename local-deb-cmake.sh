@@ -97,7 +97,7 @@ fi
 
    
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local \
-      "$CONF_OPTS" .. || exit
+      $CONF_OPTS .. || exit
 
 if [ $BUILD -ne 0 ] ; then
     cmake --build . "$BUILD_OPTS" || exit
