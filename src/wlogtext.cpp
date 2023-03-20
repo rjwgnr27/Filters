@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014, Harmonic Inc. All rights reserved.
+ * Copyright (c) 2008-2023, Rick Wagner. All rights reserved.
  */
 
 /**
@@ -19,7 +19,6 @@
 //#define TIME_DRAW_REQUEST
 
 #include "wlogtextprivate.h"
-//#include "etcetera.h"
 
 // Qt includes
 #include <QActionEvent>
@@ -296,7 +295,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     // region sort it out.  Same for the last line.
     int const visibleLines = (verticalClip + m_textLineHeight-1) / m_textLineHeight;
     lineNumber_t line, lastDrawLine;
-    if (likely(visibleLines < q->m_lineCount)) {
+    if (visibleLines < q->m_lineCount) [[likely]] {
         line = (q->verticalScrollBar()->value() /  m_textLineHeight);
         lastDrawLine = line + visibleLines;
         if (lastDrawLine > q->m_lineCount) {
@@ -352,14 +351,14 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         int lineCharacters = text.length();
 
         // Can we avoid a font change?
-        if (unlikely(lastStyleId != item->style())) {
+        if (lastStyleId != item->style()) [[unlikely]] {
             lastStyleId = item->style();
             style = &activePalette->style(item->style());
             pixmapPainter.setFont(style->font);
         }
 
         // See if the current line is in the selection range:
-        if (unlikely(line >= firstSelectionLine)) {
+        if (line >= firstSelectionLine) [[unlikely]] {
             // Draw selection background:
             int right = lineCharacters;
             if (line == lastSelectionLine) {
@@ -381,7 +380,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                         style->clBackgroundColor : style->backgroundColor;
 
                 if (bgColor != defBGColor) {
-                    pixmapPainter.setBackground(style->backgroundColor);
+                    pixmapPainter.setBackground(bgColor);
                     pixmapPainter.eraseRect(m_gutterOffset, pmYTop,
                             pmSize.width() - m_gutterOffset, m_textLineHeight);
                 }
@@ -424,23 +423,24 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         }
 
         // If the gutter is showing, and this item has a pixmap, draw it now:
-        if (unlikely(gutterWidth > 0 && item->pixmapId() >= 0)) {
-            int y = pmYTop;       // Start at top of line
-            int dy = 0;
-            QPixmap const& pm = itemPixMaps[item->pixmapId()];
-            if (pm.height() < m_textLineHeight) {
-                // Center pixmap on line, if pixmap is shorter than line.
-                y += (m_textLineHeight - pm.height()) / 2;
-            } else {
-                dy = (pm.height() - m_textLineHeight) / 2;
+        if (gutterWidth > 0 && item->hasPixmap()) [[unlikely]] {
+            if (auto it = itemPixMaps.constFind(item->pixmapId()); it != itemPixMaps.cend()) {
+                int y = pmYTop;       // Start at top of line
+                int dy = 0;
+                QPixmap const& pm = *it;
+                if (pm.height() < m_textLineHeight) {
+                    // Center pixmap on line, if pixmap is shorter than line.
+                    y += (m_textLineHeight - pm.height()) / 2;
+                } else {
+                    dy = (pm.height() - m_textLineHeight) / 2;
+                }
+                pixmapPainter.drawPixmap(0, y, pm, 0, dy, gutterWidth,
+                                        m_textLineHeight);
             }
-            pixmapPainter.drawPixmap(0, y, pm, 0, dy, gutterWidth,
-                                     m_textLineHeight);
         }
 
-        // If this is the caret line, and the caret is in the blinkOn state,
-        // draw it here:
-        if (unlikely((caretPosition.lineNumber() == line) && caretBlinkOn)) {
+        // If this is the caret line and the caret is blinkOn state, draw it here:
+        if ((caretPosition.lineNumber() == line) && caretBlinkOn) [[unlikely]] {
             drawCaret(pixmapPainter, caretPosition.columnNumber() * m_characterWidth + m_gutterOffset,
                     pmYTop + textLineBaselineOffset,
                     pmYBase + textLineBaselineOffset);
@@ -457,7 +457,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     // Close off pixmap for blt onto screen:
     pixmapPainter.end();
 
-    // Draw the offscreen pixmap onto the screen:
+    // Draw the off-screen pixmap onto the screen:
     QPainter(q->viewport()).drawPixmap(0, 0, *drawPixMap);
 
 #ifdef TIME_DRAW_REQUEST
@@ -916,9 +916,8 @@ void wLogText::contextMenuEvent(QContextMenuEvent *event)
         if (d->inTheGutter(event->x())) {
             Q_EMIT gutterContextClick(at.lineNumber(), gPos, event);
         } else {
-            if (!d->selecting) {
+            if (!d->selecting)
                 d->caretPosition = at;
-            }
             Q_EMIT contextClick(at.lineNumber(), gPos, event);
         }
         event->accept();
@@ -1783,7 +1782,7 @@ void wLogText::clearLinePixmap(lineNumber_t lineNo)
         setUpdatesNeeded(updateFull);
         update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
                  (lineNo+1) * d->m_textLineHeight);
-        update(); // FIXME
+        update(); // FIXME bug in single line update, invalid entire view area
     }
 }
 
@@ -1799,7 +1798,7 @@ void wLogText::setLinePixmap(lineNumber_t lineNo, int pixmapId)
         setUpdatesNeeded(updateFull);
         update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
                         (lineNo+1) * d->m_textLineHeight);
-        update(); // FIXME
+        update(); // FIXME bug in single line update, invalid entire view area
     }
 }
 
@@ -1930,7 +1929,7 @@ void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem&))
         auto it  = items.cbegin() + d->selectTop.lineNumber();
         auto end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
 
-        QSignalBlocker disabler(this);
+        QSignalBlocker signalBlocker(this);
         for (lineNumber_t lineNumber = d->selectTop.lineNumber(); it != end; ++it) {
             if (!v({this, *it, lineNumber++}))
                 break;
@@ -1960,23 +1959,14 @@ logTextPalette::logTextPalette(const QString& nm, int ns,
 
 logTextPalette::logTextPalette(const QString& nm, logTextPalette const& source)
 {
-    if (&source == this)
-        return;       // Don't clone self.
-
     name = nm;
-    size_t const styleCount = source.numStyles();
-    styles.reserve(styleCount);
-    for (size_t i = 0; i < styleCount; ++i) {
-        styles.push_back(source.style(i));
-    }
+    styles = source.styles;
 }
 
 
 logTextPaletteEntry const& logTextPalette::style(styleId id) const
 {
-    if (id >= styles.count())
-        return styles.last();
-    return styles[id];
+    return (id >= styles.count()) ? styles.last() :  styles[id];
 }
 
 
@@ -1987,7 +1977,7 @@ logTextPaletteEntry const& logTextPalette::style(styleId id) const
  ******************************************************************************/
 
 logTextPaletteEntry::logTextPaletteEntry() :
-        m_attributes(logTextPaletteEntry::attrNone)
+        logTextPaletteEntry(logTextPaletteEntry::attrNone)
 {
     QPalette const m_qpalette;
     m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
@@ -2008,11 +1998,10 @@ logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, textAttributes a) :
     QPalette const m_qpalette;
     m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
     m_clBackgroundColor = m_qpalette.color(QPalette::Active, QPalette::AlternateBase);
-    m_textColor = m_qpalette.color(QPalette::Active, QPalette::WindowText);
 }
 
 
-QColor logTextPaletteEntry::backgroundColor() const
+QColor const& logTextPaletteEntry::backgroundColor() const
 {
     return m_backgroundColor;
 }
@@ -2023,7 +2012,7 @@ void logTextPaletteEntry::setBackgroundColor(const QColor& c)
 }
 
 
-QColor logTextPaletteEntry::caretLineBackgroundColor() const
+QColor const& logTextPaletteEntry::caretLineBackgroundColor() const
 {
     return m_clBackgroundColor;
 }
@@ -2034,7 +2023,7 @@ void logTextPaletteEntry::setCaretLineBackgroundColor(const QColor& c)
 }
 
 
-QColor logTextPaletteEntry::textColor() const
+QColor const& logTextPaletteEntry::textColor() const
 {
     return m_textColor;
 }
@@ -2074,18 +2063,20 @@ activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
         styleItem& style = tStyles[i];
         const logTextPaletteEntry& pe = p.style(i);
 
+        QFont font{f};
+        logTextPaletteEntry::textAttributes attrs = pe.attributes();
+        font.setItalic(attrs & logTextPaletteEntry::attrItalic);
+        font.setBold(attrs & logTextPaletteEntry::attrBold);
+        font.setUnderline(attrs & logTextPaletteEntry::attrUnderline);
+        font.setOverline(attrs & logTextPaletteEntry::attrOverLine);
+        font.setStrikeOut(attrs & logTextPaletteEntry::attrStrikeOut);
+        style.font = std::move(font);
+
         // Initialize style entry with defaults:
         style.backgroundColor = pe.backgroundColor();
         style.clBackgroundColor = pe.caretLineBackgroundColor();
         style.textColor = pe.textColor();
 
-        style.font = f;
-        logTextPaletteEntry::textAttributes attrs = pe.attributes();
-        style.font.setItalic(attrs & logTextPaletteEntry::attrItalic);
-        style.font.setBold(attrs & logTextPaletteEntry::attrBold);
-        style.font.setUnderline(attrs & logTextPaletteEntry::attrUnderline);
-        style.font.setOverline(attrs & logTextPaletteEntry::attrOverLine);
-        style.font.setStrikeOut(attrs & logTextPaletteEntry::attrStrikeOut);
     }
     styles = std::move(tStyles);
 }

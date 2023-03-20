@@ -607,10 +607,10 @@ void mainWidget::clearResults()
 
 void mainWidget::displayResult()
 {
-    result->clear();
     size_t resultLines = 0;
     if (!stepResults.empty() && !stepResults.back().empty()) {
         QSignalBlocker disabler{result};
+        result->clear();
         const itemList& items = stepResults.back();
         std::vector<int> lineMap(items.size());
         auto mapIt = lineMap.begin();
@@ -618,17 +618,20 @@ void mainWidget::displayResult()
             int width = QString("%1").arg(items.back().srcLineNumber).size();
             for (const auto& item : items) {
                 QString line = QString("%1| ").arg(item.srcLineNumber, width) + item.text;
-                result->append(new logTextItem(line, 0));
+                result->append(std::move(line), 0);
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
             for (const auto& item : items) {
-                result->append(new logTextItem(item.text, 0));
+                result->append(item.text, 0);
                 *(mapIt++) = item.srcLineNumber;
             }
         }
         sourceLineMap = std::move(lineMap);
         resultLines = items.size();
+    } else {
+        result->clear();
+        sourceLineMap.clear();
     }
     result->setCursorPosition(10, 10);
     result->ensureCursorVisible();

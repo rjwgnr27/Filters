@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014, Harmonic Inc. All rights reserved.
+ * Copyright (c) 2008-2023, Rick Wagner. All rights reserved.
  */
 
 /** @file wlogtext.h Definition of the wLogText widget class and API. **/
@@ -9,6 +9,7 @@
 
 #include <climits>
 #include <cstdint>
+#include <vector>
 
 #include <QAbstractScrollArea>
 #include <QColor>
@@ -18,11 +19,6 @@
 #include <QPixmap>
 #include <QDate>
 
-// STL includes:
-#include <vector>
-using std::vector;
-
-//#include "ommontypes.h"
 using styleId = uint16_t;        //!< Style id within a palette
 using lineNumber_t = int32_t;
 
@@ -122,7 +118,12 @@ public:
         return lineNumber() == other.lineNumber() ? columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
         auto operator == (cell const& other) const {
             return lineNumber() == other.lineNumber() && columnNumber() == other.columnNumber();}
+
+    void swap(cell &other) noexcept {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
 };
+
+template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
+
 
 /**
  * Class to define a line item for to be displayed in a logText widget.
@@ -143,9 +144,8 @@ class logTextItem {
 private:
     QString m_text;                     //!< actual line text
     qint16 m_pixmapId = -1;             //!< ID within the pixmap palette for the gutter pixmap
-    styleId m_styleId;                  //!< style ID within the active palette to paint this line
+    styleId m_styleId = 0;              //!< style ID within the active palette to paint this line
 
-public:
     /**
      * Constructor with attributes.
      *
@@ -158,12 +158,16 @@ public:
     logTextItem(QString&& text, styleId styleNo) :
             m_text(std::move(text)), m_styleId(styleNo) {}
 
+public:
+    static logTextItem *newItem(const QString& text, styleId styleNo) {return new logTextItem{text, styleNo};}
+    static logTextItem *newItem(QString&& text, styleId styleNo) {return new logTextItem{std::move(text), styleNo};}
+
     /**
      * Copy constructor.
      * @param source Object to copy from.
      */
-    logTextItem(const logTextItem&) = default;
-    logTextItem(logTextItem&&) = default;
+    logTextItem(const logTextItem&) noexcept = default;
+    logTextItem(logTextItem&&) noexcept = default;
 
     virtual ~logTextItem() {}
 
@@ -199,18 +203,18 @@ public:
      *
      * The pixmap is displayed in the text gutter, if enabled.  It is the
      * applications responsibility to ensure the gutter width, line height and
-     * pixmap size are compatible.
+     * pixmap sizes are compatible.
      *
      * @param pm Pixmap ID in logtext to attach to the logTextItem.
      **/
     void setPixmap(int pm) {m_pixmapId = pm;}
 
     /**
-     * Remove the pixmap from this textLineItem.  If there is a pixmap on this line,
-     * it is deleted.
+     * Remove the pixmap selector from this text item
      **/
     void clearPixmap() {m_pixmapId = -1;}
 
+    bool hasPixmap() const {return m_pixmapId != -1;}
     int pixmapId() const {return m_pixmapId;}
 };
 using logTextItemPtr = logTextItem *;
@@ -698,6 +702,12 @@ public:
             trimLines();
         return m_lineCount++;
     }
+
+    lineNumber_t append(QString const& text, styleId styleNo) {
+        return append(logTextItem::newItem(text, styleNo));}
+
+    lineNumber_t append(QString&& text, styleId styleNo) {
+        return append(logTextItem::newItem(std::move(text), styleNo));}
 
     /**
      * @brief Erase a range of lines
@@ -1370,13 +1380,13 @@ Q_SIGNALS:
      * Signal the request for a context menu (i.e. right mouse click) in the text
      * area.
      *
-     * @param lineNo The text line number the event ocurred on.  This is the line
+     * @param lineNo The text line number the event occurred on.  This is the line
      *          number relative to the start of the text, not the start of the
      *          display area.
-     * @param point The QPoint location of the mouse pointer when the click ocurred.
+     * @param globalPos The @c QPoint global location of the mouse pointer when the click occurred.
      * @param event Mouse event context.
      */
-    void contextClick(lineNumber_t lineNo, QPoint& point, QContextMenuEvent *event);
+    void contextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent *event);
 
     /**
      * @brief When selection state changes.
@@ -1397,7 +1407,7 @@ Q_SIGNALS:
      * is a QPoint, internally it is a cell, which represents a line and column pair.
      *
      * @param cell The line (\p cell.y()) and column (\p cell.x()) the event
-     *          ocurred on.
+     *          occurred on.
      */
     void doubleClicked(cell cell);
 
@@ -1405,7 +1415,7 @@ Q_SIGNALS:
      * @fn void wLogText::gutterClick(int lineNo, ButtonState btn, QPoint point)
      * @brief Click in gutter of for a line.
      *
-     * @param lineNo The text line number the event ocurred on.  This is the line
+     * @param lineNo The text line number the event occurred on.  This is the line
      *          number relative to the start of the text, not the start of the
      *          display area.
      * @param event Mouse event context.
@@ -1416,18 +1426,18 @@ Q_SIGNALS:
      * @fn void wLogText::gutterContextClick(int lineNo, ButtonState btn, QPoint point)
      * @brief Context menu request in the gutter of line.
      *
-     * @param lineNo The text line number the event ocurred on.  This is the line
+     * @param lineNo The text line number the event occurred on.  This is the line
      *          number relative to the start of the text, not the start of the
      *          display area.
-     * @param point The QPoint location of the mouse pointer when the click ocurred.
+     * @param globalPos The @c QPoint global location of the mouse pointer when the click occurred.
      * @param event Event context
      */
-    void gutterContextClick(lineNumber_t lineNo, QPoint& point, QContextMenuEvent* event);
+    void gutterContextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent* event);
 
     /**
      * @brief Double-click in gutter of line.
      *
-     * @param lineNo The text line number the event ocurred on.  This is the line
+     * @param lineNo The text line number the event occurred on.  This is the line
      *          number relative to the start of the text, not the start of the
      *          display area.
      */
@@ -1467,10 +1477,10 @@ Q_SIGNALS:
     void scrollLockChange(bool lock);
 
     /**
-     * @brief Line trimming has ocurred through line 'lines'
+     * @brief Line trimming has occurred through line @p 'lines'
      *
-     * This signal is emitted when line trimming has ocurred.  Line triming
-     * is the removal of line from the beginning of the buffer to reduce the
+     * This signal is emitted when line trimming has occurred.  Line trimming
+     * is the removal of lines from the beginning of the buffer to reduce the
      * total number of lines to the 'maxLogLines' setting.
      *
      * The parameter is the number of lines (from line 0) deleted from the
@@ -1478,7 +1488,7 @@ Q_SIGNALS:
      * references to the line range, and adjust references to later line
      * numbers by the given amount.  Since the line numbers are contiguous from
      * zero for \p lines , the value of \p lines can be subtracted from any list of
-     * line numbers.  Note the any line number less than \p lines has become invalid.
+     * line numbers. Any line number less than \p lines has become invalid.
      *
      * For example, if an application keeps a list of bookmarks by line
      * number, on this signal, bookmarks for the designated lines can be
@@ -1571,13 +1581,13 @@ public:
      *
      * @return Current background color.
      **/
-    QColor backgroundColor() const;
+    QColor const& backgroundColor() const;
 
     /**
      * @brief Get background color for caret line
      * @return Color for the background of the caret line
      */
-    QColor caretLineBackgroundColor() const;
+    QColor const& caretLineBackgroundColor() const;
 
     /**
      * @brief Set background color.
@@ -1597,7 +1607,7 @@ public:
      *
      * @return The defined text color.
      **/
-    QColor textColor() const;
+    QColor const& textColor() const;
 
     /**
      * @brief Set text color.

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2008-2012, Harmonic Inc. All rights reserved.
+ * Copyright (c) 2008-2023, Rick Wagner. All rights reserved.
  */
 
 #ifndef LOGTEXTPRIVATE_H
@@ -12,14 +12,8 @@
 #include <QHash>
 #include <QMap>
 #include <QClipboard>
-//KDE4 #include <QColorGroup>
 #include <QPixmap>
 #include <QReadLocker>
-
-/** macro to identify the likely (usually true) path of a conditional */
-#define likely(x)       __builtin_expect((x),1)
-/** macro to identify the unlikely (usually false) path of a conditional */
-#define unlikely(x)     __builtin_expect((x),0)
 
 /** State of text drag */
 enum class dragStates {
