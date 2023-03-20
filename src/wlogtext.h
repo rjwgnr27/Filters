@@ -580,6 +580,8 @@ protected:
      **/
     void trimLines();
 
+    cell pointToCell(int x, int y) const;
+
 public:
     /**
      * @brief Constructor

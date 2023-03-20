@@ -83,6 +83,11 @@ wLogText::~wLogText()
 }
 
 
+cell wLogText::pointToCell(int x, int y) const
+{
+    return {std::min(d->yToLine(y), m_lineCount), d->xToCharColumn(x)};
+}
+
 void wLogText::finalize()
 {
     trimLines();
@@ -834,8 +839,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
         mouseHovering = false;
         Q_EMIT hover(-1, -1);
     }
-    cell at(std::min(d->yToLine(event->y()), m_lineCount),
-             d->xToCharColumn(event->x()));
+    cell at = pointToCell(event->x(), event->y());
     if (d->inTheGutter(event->x())) {
         int line = d->yToLine(event->y());
         if (validLineNumber(line)) {
@@ -844,14 +848,13 @@ void wLogText::mousePressEvent(QMouseEvent *event)
     } else {
         if (m_lineCount > 0) {
             d->updateCaretPos(at);
+            if (validLineNumber(at.lineNumber())) {
+                if (at.columnNumber() > items[at.lineNumber()]->m_text.length())
+                    at.setColumnNumber(items[at.lineNumber()]->m_text.length());
+            } else
+                at.setColumnNumber(0);
+
             if (event->button() == Qt::LeftButton) {
-                if (validLineNumber(at.lineNumber())) {
-                    if (at.columnNumber() > items[at.lineNumber()]->m_text.length()) {
-                        at.setColumnNumber(items[at.lineNumber()]->m_text.length());
-                    }
-                } else {
-                    at.setColumnNumber(0);
-                }
                 if ((event->modifiers() & Qt::ShiftModifier) == 0) {
                     if (d->selecting &&
                          (at >= d->selectTop) && (at <= d->selectBottom)) {
@@ -865,12 +868,12 @@ void wLogText::mousePressEvent(QMouseEvent *event)
                         }
                         d->selectionOrigin = d->selectTop = d->selectBottom = at;
                     }
-                } else {
+                } else
                     d->setSelection(at);
-                }
-                d->updateCaretPos(at);
-                d->updateCellRange({at.lineNumber(), 0}, {at.lineNumber(), at.columnNumber()});
             }
+            d->updateCaretPos(at);
+            d->updateCellRange({at.lineNumber(), 0}, {at.lineNumber(), at.columnNumber()});
+
             Q_EMIT clicked(event);
         }
     }
