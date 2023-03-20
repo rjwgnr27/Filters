@@ -580,7 +580,7 @@ protected:
      **/
     void trimLines();
 
-    cell pointToCell(int x, int y) const;
+    cell pointToCell(QPoint const& point) const;
 
 public:
     /**
@@ -604,7 +604,7 @@ public:
      * activated, the styles are redered from this base.
      * @return Font base for the style
      **/
-    QFont font() const;
+    QFont const& font() const;
 
     /**
      * @brief Interline spacing, in pixels.

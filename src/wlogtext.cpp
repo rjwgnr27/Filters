@@ -83,9 +83,9 @@ wLogText::~wLogText()
 }
 
 
-cell wLogText::pointToCell(int x, int y) const
+cell wLogText::pointToCell(QPoint const& point) const
 {
-    return {std::min(d->yToLine(y), m_lineCount), d->xToCharColumn(x)};
+    return {std::min(d->yToLine(point.y()), m_lineCount), d->xToCharColumn(point.x())};
 }
 
 void wLogText::finalize()
@@ -239,7 +239,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     // which to paint:
     if (!drawPixMap || pmSize != q->viewport()->size()) {
         pmSize = q->viewport()->size();
-        drawPixMap = std::make_unique<QPixmap>(pmSize);
+        drawPixMap.reset(new QPixmap(pmSize));
         if (!drawPixMap || drawPixMap->isNull()) {
             qCritical() << "could not allocate pixmap";
             return;
@@ -606,14 +606,13 @@ void wLogText::setFont(QFont font)
 
     d->fontBaseSize = font.pointSize();
     d->adjustTextMetrics();
-    d->magnify = 0;
     activatePalette();      // Reactivate the current palette with altered font.
     ensureCursorVisible();
     setUpdatesNeeded(updateFull);
 }
 
 
-QFont wLogText::font() const
+QFont const& wLogText::font() const
 {
     return QWidget::font();
 }
@@ -630,7 +629,7 @@ void wLogText::resizeEvent(QResizeEvent *event)
 // Defining our word break characters: not (alpha, numa, '_', '-'):
 static const QRegularExpression wordBreakRe(QLatin1String("[^\\w-]"));
 
-void wLogText::mouseDoubleClickEvent (QMouseEvent *event)
+void wLogText::mouseDoubleClickEvent(QMouseEvent *event)
 {
     int const line = d->yToLine(event->y());
 
@@ -755,9 +754,9 @@ void wLogText::mouseMoveEvent(QMouseEvent *event)
             d->dragState = dragStates::dragDragging;
 
             // Do not delete the mimeData or drag objects; that is handled by Qt.
-            QDrag *drag = new QDrag(this);
             QMimeData *mimeData = new QMimeData;
             mimeData->setText(selectedText());
+            QDrag *drag = new QDrag(this);
             drag->setMimeData(mimeData);
             drag->exec(Qt::CopyAction);
         }
@@ -839,9 +838,9 @@ void wLogText::mousePressEvent(QMouseEvent *event)
         mouseHovering = false;
         Q_EMIT hover(-1, -1);
     }
-    cell at = pointToCell(event->x(), event->y());
+    cell at = pointToCell(event->pos());
     if (d->inTheGutter(event->x())) {
-        int line = d->yToLine(event->y());
+        int line = at.lineNumber();
         if (validLineNumber(line)) {
             Q_EMIT gutterClick(line, event);
         }
@@ -911,17 +910,16 @@ void wLogText::mouseReleaseEvent(QMouseEvent *event)
 
 void wLogText::contextMenuEvent(QContextMenuEvent *event)
 {
-    cell const at(std::min(d->yToLine(event->y()), m_lineCount),
-             d->xToCharColumn(event->x()));
+    cell const at = pointToCell(event->pos());
     if (validLineNumber(at.lineNumber())) {
-        QPoint pos = viewport()->mapToGlobal(event->pos());
+        QPoint gPos = viewport()->mapToGlobal(event->pos());
         if (d->inTheGutter(event->x())) {
-            Q_EMIT gutterContextClick(at.lineNumber(), pos, event);
+            Q_EMIT gutterContextClick(at.lineNumber(), gPos, event);
         } else {
             if (!d->selecting) {
                 d->caretPosition = at;
             }
-            Q_EMIT contextClick(at.lineNumber(), pos, event);
+            Q_EMIT contextClick(at.lineNumber(), gPos, event);
         }
         event->accept();
     } else {
