@@ -120,6 +120,9 @@ For example, to enable LTO and ASAN: `cmake .. -DWITH_ASAN=TRUE -DWITH_LTO=TRUE`
 Note: Using ASAN may require preloading the libasan.so library:
   ex: LD_PRELOAD=/usr/lib64/libasan.so.8 ./filters
 
+Note: with ASAN: At runtime set environment variable
+  "ASAN_OPTIONS=detect_stack_use_after_return=1"
+
 You can override the default make file generator with the ```-G``` GENERATOR, where
 GENERATOR is i.e. 'Unix Makefiles' | 'Ninja' | ...
 

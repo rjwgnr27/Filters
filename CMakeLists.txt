@@ -84,6 +84,15 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wall -Werror -Wextra -pedantic)
 endif ()
 
+add_compile_options(-Wunreachable-code)
+add_compile_options(-Wshadow-compatible-local)
+add_compile_options(-Wformat-signedness)
+add_compile_options(-Wshadow)
+add_compile_options(-Wconversion)
+add_compile_options(-Wzero-as-null-pointer-constant)
+#add_compile_options(-Wsign-conversion)
+add_compile_options(-Wold-style-cast)
+
 target_link_libraries(filters PRIVATE
     Qt5::Core
     Qt5::Widgets

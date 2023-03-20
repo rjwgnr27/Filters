@@ -92,7 +92,7 @@ fi
 
 if [ $WITH_ASAN -ne 0 ]; then
     CONF_OPTS="$CONF_OPTS -DWITH_ASAN=ON"
-    PRELD='LD_PRELOAD=libasan.so.8'
+    PRELD='LD_PRELOAD=libasan.so.8 ASAN_OPTIONS=detect_stack_use_after_return=1'
 fi
 
    

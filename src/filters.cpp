@@ -275,27 +275,9 @@ void mainWidget::setupActions()
 }
 
 mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
-    QWidget(parent), mainWindow(main), status(new QLabel)
+    QWidget(parent), mainWindow(main)
 {
     setupUi();
-
-    result->setGutter(32);
-    mainWindow->statusBar()->insertWidget(0, status);
-
-    filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    filtersTable->horizontalHeaderItem(ColEnable)->setTextAlignment(Qt::AlignLeft);
-    filtersTable->horizontalHeaderItem(ColEnable)->setToolTip(
-        i18n("Expression entry is enabled when checked"));
-
-    filtersTable->horizontalHeaderItem(ColExclude)->setTextAlignment(Qt::AlignLeft);
-    filtersTable->horizontalHeaderItem(ColExclude)->setToolTip(
-        i18n("Exclude matching lines when checked"));
-
-    filtersTable->horizontalHeaderItem(ColCaseIgnore)->setTextAlignment(Qt::AlignLeft);
-    filtersTable->horizontalHeaderItem(ColCaseIgnore)->setToolTip(
-        i18n("Use case insensitive matching when checked"));
-
-    filtersTable->horizontalHeaderItem(ColRegEx)->setToolTip(i18n("Regular expression string"));
     appendEmptyRow();
 }
 
@@ -320,40 +302,63 @@ void mainWidget::setupUi()
     verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
 
     filtersTable = new QTableWidget(groupBox_2);
-    if (filtersTable->columnCount() < 4)
-        filtersTable->setColumnCount(4);
-    filtersTable->setHorizontalHeaderItem(0, new QTableWidgetItem());
-    filtersTable->setHorizontalHeaderItem(1, new QTableWidgetItem());
-    filtersTable->setHorizontalHeaderItem(2, new QTableWidgetItem());
-    filtersTable->setHorizontalHeaderItem(3, new QTableWidgetItem());
     filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
     filtersTable->setMouseTracking(true);
+    filtersTable->setColumnCount(4);
     filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
     filtersTable->horizontalHeader()->setStretchLastSection(true);
+    filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-    filtersTable->horizontalHeaderItem(0)->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
-    filtersTable->horizontalHeaderItem(1)->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
-    filtersTable->horizontalHeaderItem(2)->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
-    filtersTable->horizontalHeaderItem(3)->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
+    auto item = new QTableWidgetItem;
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
+    item->setToolTip(i18n("Expression entry is enabled when checked"));
+    item->setWhatsThis(i18n("When checked, this filter is enabled, and will be applied "
+                            "to the result. When unchecked, this entry is not used."));
+    filtersTable->setHorizontalHeaderItem(0, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setToolTip(i18n("Exclude matching lines"));
+    item->setWhatsThis(i18n("When not checked, lines matching the regular expression "
+                            "will be included in the result. When checked, those which "
+                            "do not match will be included."));
+    filtersTable->setHorizontalHeaderItem(1, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setToolTip(i18n("Use case insensitive matching"));
+    item->setWhatsThis(i18n("When checked, the regular expression match will ignore text case."));
+    filtersTable->setHorizontalHeaderItem(2, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
+    item->setToolTip(i18n("Regular expression string"));
+    filtersTable->setHorizontalHeaderItem(3, item);
 
     verticalLayout->addWidget(filtersTable);
 
     splitter->addWidget(groupBox_2);
+
     QGroupBox *groupBox_3 = new QGroupBox(splitter);
     groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
 
-    QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
-    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
     result = new wLogText(groupBox_3);
     result->setObjectName(QString::fromUtf8("result"));
-    QFont font;
-    font.setFamily(QString::fromUtf8("Monospace"));
-    result->setFont(font);
+    result->setGutter(32);
+    result->setFont(QFont{QString::fromUtf8("Monospace")});
+    QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
+    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
     verticalLayout_2->addWidget(result);
 
     splitter->addWidget(groupBox_3);
 
     verticalLayout_3->addWidget(splitter);
+
+    status = new QLabel;
+    mainWindow->statusBar()->insertWidget(0, status);
 
     QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
     QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
@@ -528,7 +533,7 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
     re.optimize();
     auto result = QtConcurrent::blockingFiltered(src,
         [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
-    item->setToolTip(QString("%1/%2").arg(src.size()).arg(result.size()));
+    item->setToolTip(QString("%L1 of %L2").arg(result.size()).arg(src.size()));
     return result;
 }
 
@@ -637,7 +642,7 @@ void mainWidget::displayResult()
     result->ensureCursorVisible();
     actionSaveResults->setEnabled(resultLines != 0);
     actionSaveResultsAs->setEnabled(resultLines != 0);
-    status->setText(QStringLiteral("Source: %1, final %2 lines").arg(sourceLineCount).arg(resultLines));
+    status->setText(QStringLiteral("Source: %L1, final %L2 lines").arg(sourceLineCount).arg(resultLines));
 }
 
 void mainWidget::clearFilters()
@@ -659,14 +664,17 @@ void mainWidget::insertEmptyRowAt(int row)
     filtersTable->insertRow(row);
     QTableWidgetItem *item = new QTableWidgetItem();
     item->setCheckState(Qt::Checked);
+    item->setFlags(item->flags() & ~(Qt::ItemIsEditable));
     filtersTable->setItem(row, ColEnable, item);
 
     item = new QTableWidgetItem();
     item->setCheckState(Qt::Unchecked);
+    item->setFlags(item->flags() & ~(Qt::ItemIsEditable));
     filtersTable->setItem(row, ColExclude, item);
 
     item = new QTableWidgetItem();
     item->setCheckState(Qt::Unchecked);
+    item->setFlags(item->flags() & ~(Qt::ItemIsEditable));
     filtersTable->setItem(row, ColCaseIgnore, item);
 
     item = new QTableWidgetItem();
