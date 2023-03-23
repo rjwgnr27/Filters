@@ -42,7 +42,6 @@
 #include <KAboutData>
 #include <KActionCollection>
 #include <KConfigGroup>
-#include <KIconLoader>
 #include <KLocalizedString>
 #include <KSharedConfig>
 #include <KSelectAction>
@@ -294,6 +293,7 @@ void mainWidget::setupActions()
                                          SLOT(toggleBookmark()));
     actionToggleBookmark->setText(QStringLiteral("Toggle Bookmark"));
     actionToggleBookmark->setWhatsThis(QStringLiteral("Set/clear a bookmark on the current line."));
+    actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
     ctxtMenu->addAction(actionToggleBookmark);
 
     actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("go-JUMP")),
@@ -395,10 +395,10 @@ void mainWidget::setupUi()
     mainWindow->statusBar()->insertWidget(0, status);
 
     //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
-    pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("status-note"), KIconLoader::Small);
+    pixBmUser = QIcon::fromTheme("status-note").pixmap(16,16);
     pixBmUser.scaledToHeight(16);
     result->setPixmap(pixmapIdUser, pixBmUser);
-    pixBmAnnotation = KIconLoader::global()->loadIcon(QStringLiteral("status-note"), KIconLoader::Small);
+    pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
     result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
     result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
 
@@ -1002,15 +1002,16 @@ void mainWidget::toggleBookmark()
         return;
 
     auto currentPos = result->caretPosition();
-    if (currentPos.lineNumber() > result->lineCount())   /* shouldn't happen, but be safe */
+    auto lineNumber = currentPos.lineNumber();
+    if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    auto logItem = result->item(currentPos.lineNumber());
+    auto logItem = result->item(lineNumber);
     auto textItem = resultTextItem::asResultTextItem(logItem);
-    if (textItem->sourceItem()->bookmarked)
-        logItem->setPixmap(pixmapIdUser);
-    else
-        logItem->clearPixmap();
     textItem->sourceItem()->bookmarked ^= true;
+    if (textItem->sourceItem()->bookmarked)
+        result->setLinePixmap(lineNumber, pixmapIdUser);
+    else
+        result->clearLinePixmap(lineNumber);
 }
 
 void mainWidget::gotoLine()
