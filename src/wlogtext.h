@@ -595,7 +595,7 @@ public:
 
     /**
      * @brief Destructor
-     * 
+     *
      * Default destructor.
      */
     virtual ~wLogText();
@@ -623,7 +623,7 @@ public:
      * @brief Text zoom factor
      *
      * Integer increment (+/-) in points from the base font (@see font()) when
-     * the text is zoomed in or out. 
+     * the text is zoomed in or out.
      * @return Zoom factor in +/- points from base. Returns 0 when zoom is set to normal.
      **/
     int fontZoom() const;
@@ -662,7 +662,7 @@ public:
      * reached, the lines will be trimmed down to the maxLogLine() value. Thus
      * it is possible for lineCount() to return a value (and the widget to
      * display ) greater then maxLogLines() lines of text.
-     * 
+     *
      * @return Configured maximum number of lines kept by the widget.
      * @sa wLogText::setMaxLogLines().
      **/
@@ -717,7 +717,7 @@ public:
      * @param count Number of lines from @p top to clear
      **/
     void clear(int top, int count);
-    
+
     /**
      * @brief Check validity of a line number
      *
@@ -853,7 +853,6 @@ public:
      * @return @c cell caret position
      */
     cell caretPosition() const;
-    [[deprecated("use caretPosition")]] cell cursorPostion() const {return caretPosition();}
 
     /**
      * Set the current cursor postion, in the form of line, column.  If line is
@@ -866,7 +865,7 @@ public:
      * @param lineNumber New line number for cursor position.
      * @param columnNumber New column position.
      **/
-    void setCursorPosition(lineNumber_t lineNumber, int columnNumber);
+    void setCaretPosition(lineNumber_t lineNumber, int columnNumber);
 
     /**
      * @brief Set the caret to a specified line, column coordinate.
@@ -880,7 +879,7 @@ public:
      *
      * @param p New cursor position.
      **/
-    void setCursorPosition(const cell&);
+    void setCaretPosition(const cell&);
 
     /**
      * @brief Get state of showCaret flag.
@@ -994,7 +993,7 @@ public:
      * Ensure that the caret position is visible, scrolling the visible region if
      * needed.
      **/
-    void ensureCursorVisible();
+    void ensureCaretVisible();
 
     /**
      * @brief Check for text selection.
@@ -1085,7 +1084,7 @@ public:
      *
      * Set the mode indicating whether pressing the escape key will release a
      * scroll lock, and scroll the view to the bottom line.
-     * 
+     *
      * @param jump new state for the escJumpsToEnd property
      **/
     void setEscJumpsToEnd(bool jump);
@@ -1119,11 +1118,11 @@ public:
      * @brief unmap a pixmap ID
      *
      * Removes the mapping assigned in wLogText::setPixmap for the ID.
-     * 
+     *
      * @param pixmapId pixmap ID to unmap
      **/
     void clearPixmap(int pixmapId);
-    
+
     /**
      * @brief Assign a gutter pixmap to a line.
      *
@@ -1197,7 +1196,7 @@ public:
      */
     void visitItems(bool (*op)(const logTextItemVisitor::visitedItem&));
 
-    
+
     /**
      * @brief Apply a function to all selected lines in the item list.
      *
@@ -1264,7 +1263,7 @@ public Q_SLOTS:
      * and line deletions are still possible.
      */
     void finalize();
-    
+
     /**
      * @brief Assign a new fixed-pitch base font.
      *
@@ -1646,12 +1645,12 @@ class logTextPalette {
 private:
     QString name;               //!< Palette name
     QVector<logTextPaletteEntry> styles; //!< array of styles
-    
+
 #ifndef DOXYGEN_EXCLUDE         // Exclude from DOXYGEN generation
     logTextPalette(logTextPalette&) = delete;
     logTextPalette& operator=(logTextPalette&) = delete;
 #endif  // DOXYGEN_EXCLUDE
-    
+
 public:
     /**
      * @brief Constructor with default colors.
@@ -1667,7 +1666,7 @@ public:
      **/
     logTextPalette(const QString& name, int numEntries, QColor const& textColor,
                    QColor const& bgColor, QColor const& clBgColor);
-    
+
     /**
      * @brief Copy constructor.
      *
@@ -1703,8 +1702,8 @@ public:
      * @return Reference to a style entry.  If the style number @p s is out of
      *         range, a reference to the last entry is returned.
      **/
-    logTextPaletteEntry const& style(styleId_t id) const;
-    
+    logTextPaletteEntry& style(styleId_t id);
+
     /**
      * Returns the (compile time defined) number of styles in a palette.
      *

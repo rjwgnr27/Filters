@@ -63,7 +63,7 @@ wLogText::wLogText(QWidget *parent) :
     horizontalScrollBar()->setCursor(Qt::ArrowCursor);
 
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-    
+
     // Don't let QAbstractScrollArea mess with scroll bars.  We will
     // deal with them.
     disconnect(verticalScrollBar(), SIGNAL(valueChanged(int)));
@@ -181,7 +181,7 @@ void wLogText::customEvent(QEvent *event)
                 int showable = viewport()->size().height() / d->m_textLineHeight;
                 if (m_lineCount <= showable) {
                     vsb->setValue(0);
-                } else 
+                } else
                     vsb->setValue(vsb->maximum());
             }
 
@@ -259,7 +259,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         q->setUpdatesNeeded(wLogText::updateFull); // Force repaint because scroll bars may show
         return;
     }
-    
+
     QColor const defBGColor = activePalette->style(0).backgroundColor;
 
     pixmapPainter.setBackground(defBGColor);
@@ -340,7 +340,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
             selectionRightCol = std::max(0, selectTop.columnNumber() - firstChar);
         }
     }
-        
+
     // Remember last style, so we don't do so many font changes:
     styleId_t lastStyleId = activePalette->numStyles() + 1;
     const styleItem *style= &activePalette->style(0);
@@ -387,7 +387,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 pixmapPainter.setPen(style->textColor);
                 if (leftChars.size() != 0)
                     pixmapPainter.drawText(m_gutterOffset, pmYBase, leftChars.toString());
-                    
+
                 if (rightChars.size() != 0) {
                     int x = (leftChars.size() + selChars.size()) * m_characterWidth + m_gutterOffset;
                     pixmapPainter.drawText(x, pmYBase, rightChars.toString());
@@ -607,7 +607,7 @@ void wLogText::setFont(QFont font)
     d->fontBaseSize = font.pointSize();
     d->adjustTextMetrics();
     activatePalette();      // Reactivate the current palette with altered font.
-    ensureCursorVisible();
+    ensureCaretVisible();
     setUpdatesNeeded(updateFull);
 }
 
@@ -1081,7 +1081,7 @@ cell wLogText::caretPosition() const
 }
 
 
-void wLogText::setCursorPosition(lineNumber_t line, int col)
+void wLogText::setCaretPosition(lineNumber_t line, int col)
 {
     // If line (p.y()) is > number of lines, use number of lines.
     int l = std::min(line, m_lineCount);
@@ -1107,13 +1107,13 @@ void wLogText::setCursorPosition(lineNumber_t line, int col)
 
     // Update the cursor.
     d->updateCaretPos(cell(l, c));
-    ensureCursorVisible();
+    ensureCaretVisible();
 }
 
 
-void wLogText::setCursorPosition(const cell &p)
+void wLogText::setCaretPosition(const cell &p)
 {
-    setCursorPosition(p.lineNumber(), p.columnNumber());
+    setCaretPosition(p.lineNumber(), p.columnNumber());
 }
 
 
@@ -1299,7 +1299,7 @@ void wLogText::deletePalette(const QString& name)
     if (name == d->activatedPaletteName) {
         activatePalette(defaultPaletteNameString);
     }
-    
+
     if (paletteMap::iterator pit = d->palettes.find(name); pit != d->palettes.end()) {
         delete *pit;
         d->palettes.erase(pit);
@@ -1389,7 +1389,7 @@ void wLogText::setFontZoom(int zoom)
 
         d->adjustTextMetrics();
         activatePalette();      // Reactivate the current palette with altered font.
-        ensureCursorVisible();
+        ensureCaretVisible();
         setUpdatesNeeded(updateFull);
     }
 }
@@ -1549,13 +1549,13 @@ inline int wLogTextPrivate::yToLine(int y) const
 }
 
 
-void wLogText::ensureCursorVisible()
+void wLogText::ensureCaretVisible()
 {
     int const line = d->caretPosition.lineNumber();
     if ((line < d->firstVisibleLine()) || (line > d->lastVisibleLine())) {
         // The ' - (d->linesPerPage()/2)' seems counter intuitive at first
         // (it is intended to scroll the cursor to the center of the page),
-        // however the scroll bar maximum is based on total lines - lines per 
+        // however the scroll bar maximum is based on total lines - lines per
         // page.  So while intuitively you want '+ linesPerPage/2', when
         // you subtract linesPerPage from the total, you get '- linesPerPage/2'.
         verticalScrollBar()->setValue(
@@ -1668,7 +1668,7 @@ bool wLogText::find(const QString& str, cell *at,
     if (match) {
         pos = cell(lineNumber, col);
         if (at) *at = pos;
-        ensureCursorVisible();
+        ensureCaretVisible();
     }
     return match;
 }
@@ -1738,7 +1738,7 @@ bool wLogText::find(const QRegExp& re, cell *at, bool forward)
     if (match) {
         pos=cell(line, col);
         if (at) *at = pos;
-        ensureCursorVisible();
+        ensureCaretVisible();
     }
     return match;
 }
@@ -1980,9 +1980,9 @@ styleId_t logTextPalette::addStyle(QColor const& textColor, QColor const& bgColo
 }
 
 
-logTextPaletteEntry const& logTextPalette::style(styleId_t id) const
+logTextPaletteEntry& logTextPalette::style(styleId_t id)
 {
-    return (id >= styles.count()) ? styles.last() :  styles[id];
+    return (id >= styles.count()) ? styles.last() : styles[id];
 }
 
 
@@ -2071,13 +2071,13 @@ void logTextPaletteEntry::setAttributes( textAttributes a )
  ******************************************************************************
  ******************************************************************************/
 
-activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
+activatedPalette::activatedPalette(const QFont& f, logTextPalette& p)
 {
     const int nStyles = std::max(1, p.numStyles());
     std::vector<styleItem> tStyles(nStyles);
     for (int i = 0; i < nStyles; ++i) {
         styleItem& style = tStyles[i];
-        const logTextPaletteEntry& pe = p.style(i);
+        logTextPaletteEntry& pe = p.style(i);
 
         QFont font{f};
         logTextPaletteEntry::textAttributes attrs = pe.attributes();

@@ -74,7 +74,7 @@ public:
      * @param p Palette, containing the style and modifiers which control the view
      * of the display.
      **/
-    activatedPalette(const QFont& f, logTextPalette const& p);
+    activatedPalette(const QFont& f, logTextPalette& p);
 
     /**
      * @brief number of styles in the palette

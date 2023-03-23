@@ -688,8 +688,8 @@ void mainWidget::displayResult()
         result->clear();
         sourceLineMap.clear();
     }
-    result->setCursorPosition(10, 10);
-    result->ensureCursorVisible();
+    result->setCaretPosition(10, 10);
+    result->ensureCaretVisible();
     actionSaveResults->setEnabled(resultLines != 0);
     actionSaveResultsAs->setEnabled(resultLines != 0);
     status->setText(QStringLiteral("Source: %L1, final %L2 lines").arg(sourceLineCount).arg(resultLines));
@@ -1047,8 +1047,8 @@ void mainWidget::jumpToSourceLine(int lineNumber)
     auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), lineNumber);
     auto currentPos = result->caretPosition();
     currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
-    result->setCursorPosition(currentPos);
-    result->ensureCursorVisible();
+    result->setCaretPosition(currentPos);
+    result->ensureCaretVisible();
 }
 
 
