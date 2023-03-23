@@ -407,6 +407,7 @@ void mainWidget::setupUi()
             SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
     connect(result, SIGNAL(gutterContextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
             SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
+    connect(result, SIGNAL(lineSpacingChange(int,int)), SLOT(lineSpacingChange(int,int)));
 
     QMetaObject::connectSlotsByName(this);
 } // setupUi
@@ -492,6 +493,7 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         updateApplicationTitle();
         sourceLineCount = -1;
         clearResultsAfter(0);
+        bookmarkedLines.clear();
         QTextStream stream(&source);
         itemList lines;
         sourceLineCount = 0;
@@ -535,8 +537,9 @@ void mainWidget::loadSubjectFromCB()
     updateApplicationTitle();
     sourceLineCount = -1;
     clearResultsAfter(0);
-    stepResults[0] = lines;
+    bookmarkedLines.clear();
     sourceLineCount = lines.size();
+    stepResults[0] = std::move(lines);
     status->setText(QStringLiteral("%1: %2 lines").arg(titleFile, sourceLineCount ));
     maybeAutoApply(0);
 }
@@ -1002,16 +1005,23 @@ void mainWidget::toggleBookmark()
         return;
 
     auto currentPos = result->caretPosition();
-    auto lineNumber = currentPos.lineNumber();
+    auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto logItem = result->item(lineNumber);
-    auto textItem = resultTextItem::asResultTextItem(logItem);
-    textItem->sourceItem()->bookmarked ^= true;
-    if (textItem->sourceItem()->bookmarked)
+    auto sourceLineNo = resultTextItem::asResultTextItem(logItem)->sourceItem()->srcLineNumber;
+    auto srcIdx = std::max(0, sourceLineNo - 1);
+    auto& sourceItem = stepResults[0][srcIdx];
+    if (!sourceItem.bookmarked) {
+        sourceItem.bookmarked = true;
+        sourceItem.bmText = sourceItem.text.leftRef(40);
+        bookmarkedLines.insert(sourceItem.srcLineNumber);
         result->setLinePixmap(lineNumber, pixmapIdUser);
-    else
+    } else {
+        sourceItem.bookmarked = false;
+        bookmarkedLines.remove(sourceItem.srcLineNumber);
         result->clearLinePixmap(lineNumber);
+    }
 }
 
 void mainWidget::gotoLine()
@@ -1028,13 +1038,19 @@ void mainWidget::gotoLine()
                                         tr("Source line number:"),
                                         sourceLineNo, 1,
                                         sourceLineMap.back(), 1, &ok);
-    if (ok) {
-        auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLineNo);
-        currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
-        result->setCursorPosition(currentPos);
-        result->ensureCursorVisible();
-    }
+    if (ok)
+        jumpToSourceLine(sourceLineNo);
 }
+
+void mainWidget::jumpToSourceLine(int lineNumber)
+{
+    auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), lineNumber);
+    auto currentPos = result->caretPosition();
+    currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
+    result->setCursorPosition(currentPos);
+    result->ensureCursorVisible();
+}
+
 
 void mainWidget::resultFind()
 {
@@ -1118,11 +1134,49 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     bool hasSelectedText = result->hasSelectedText();
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
-    auto const sourceLine = sourceLineMap[lineNo];
-    auto textItem = resultTextItem::asResultTextItem(result->item(lineNo));
-    auto sourceItem = textItem->sourceItem();
+
+    auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNo))->sourceItem();
     actionToggleBookmark->setText(sourceItem->bookmarked ? i18n("Clear Bookmark") : i18n("Set bookmark") );
+
+    auto lineNums = bookmarkedLines.values();
+    std::sort(lineNums.begin(), lineNums.end());
+    QStringList bms;
+    bmLineNums.clear();
+    bmLineNums.reserve(bmLineNums.size());
+    bms.reserve(bmLineNums.size());
+
+    auto const& items = stepResults[0];
+    for(lineNumber_t lineNo : lineNums) {
+        if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
+            auto srcIdx = std::max(0, lineNo - 1);
+            QString t = QString("%1: %2").arg(lineNo).arg(items[srcIdx].bmText);
+            bms.push_back(t);
+            bmLineNums.push_back(lineNo);
+        } else
+            bookmarkedLines.remove(lineNo);
+    }
+    actionBookmarkMenu->setItems(bms);
+
     ctxtMenu->exec(pos);
+}
+
+void mainWidget::gotoBookmark(int entry)
+{
+    if (entry < bmLineNums.size())
+        jumpToSourceLine(bmLineNums[entry]);
+}
+
+void mainWidget::lineSpacingChange([[maybe_unused]] int oldHeight, int newHeight)
+{
+    QPixmap pmU = pixBmUser.scaledToHeight(newHeight);
+    auto pmUWidth = pmU.width();
+    result->setPixmap(pixmapIdUser, std::move(pmU));
+
+    QPixmap pmA = pixBmAnnotation.scaledToHeight(newHeight);
+    auto pmAWidth = pmA.width();
+    result->setPixmap(pixmapIdAnnotation, std::move(pmA));
+
+    result->setGutter(std::max(pmUWidth, pmAWidth));
 }
 
 void mainWidget::selectFilterFont()

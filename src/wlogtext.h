@@ -1112,7 +1112,8 @@ public:
      * @param pixmapId ID of the pixmap to map
      * @param pixmap visual pixmap assigned to the @p pixmapId
      **/
-    void setPixmap(int pixmapId, QPixmap& pixmap);
+    void setPixmap(int pixmapId, QPixmap const& pixmap);
+    void setPixmap(int pixmapId, QPixmap&& pixmap);
 
     /**
      * @brief unmap a pixmap ID

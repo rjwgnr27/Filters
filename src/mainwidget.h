@@ -64,9 +64,17 @@ struct filterData {
 };
 
 struct textItem {
-    int srcLineNumber;
-    QString text;
+    int srcLineNumber = 0;
     bool bookmarked = false;
+    QString text;
+    QStringRef bmText;
+
+    textItem(int lineNo, QString const& txt) : srcLineNumber(lineNo), text(txt) {}
+    textItem(int lineNo, QString&& txt) : srcLineNumber(lineNo), text(std::move(txt)) {}
+    textItem(textItem const&) = default;
+    textItem(textItem&&) = default;
+    textItem& operator=(textItem const&) = default;
+    textItem& operator=(textItem&&) = default;
 };
 using itemList = QList<textItem>;
 
@@ -79,7 +87,6 @@ private:
     enum {pixmapIdUser = 0, pixmapIdAnnotation = 1};
 
     class resultTextItem : public logTextItem {
-
     private:
         textItem* srcItem;
 
@@ -114,19 +121,24 @@ private Q_SLOTS:
     void deleteFilterRow();
     void dialectChanged(QString text);
     void filtersTableMenuRequested(QPoint point);
-    void resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*);
+    void gotoBookmark(int entry);
+    void gotoLine();
     void insertEmptyFilterAbove();
     void insertEmptyRowAt(int row);
     void insertFiltersAbove();
     void loadFilters();
     void loadFiltersTable(const QUrl&);
-    void moveFilterDown();
-    void moveFilterUp();
+    void lineSpacingChange(int oldHeight, int newHeight);
+    void loadRecentSubject(const QUrl& url);
     void loadSubjectFile();
     bool loadSubjectFile(const QString& localFile);
-    void loadRecentSubject(const QUrl& url);
     void loadSubjectFromCB();
-
+    void moveFilterDown();
+    void moveFilterUp();
+    void resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*);
+    void resultFind();
+    void resultFindNext();
+    void resultFindPrev();
     void runButtonClicked();
     void saveFilters();
     void saveFiltersAs();
@@ -135,14 +147,7 @@ private Q_SLOTS:
     void selectFilterFont();
     void selectResultFont();
     void tableItemChanged(QTableWidgetItem *item);
-
-    void gotoLine();
-
     void toggleBookmark();
-
-    void resultFind();
-    void resultFindNext();
-    void resultFindPrev();
 
 private:
     KXmlGuiWindow *mainWindow = nullptr;
@@ -169,6 +174,12 @@ private:
      * is the index+1 of the matched source line number.
      */
     std::vector<int> sourceLineMap;
+
+    /**
+     * set containing the source line numbers of source lines with bookmarks
+     */
+    QSet<int> bookmarkedLines;
+    QList<int> bmLineNums;
 
     /** label widget placed in the status bar */
     QLabel *status = nullptr;
@@ -271,6 +282,12 @@ private:
     bool doSaveResult(const QString& fileName);
 
     void insertFiltersAt(int at, const filterData& fData);
+
+    /**
+     * go to displayed line for, or nearest previous line displayed for, a source line
+     * @param lineNumber source line number to display
+     */
+    void jumpToSourceLine(int lineNumber);
 
     QString getFilterFile();
     bool loadFiltersTable(const QString& localFile);

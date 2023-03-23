@@ -1760,9 +1760,16 @@ bool wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const
 }
 
 
-void wLogText::setPixmap(int pixmapId, QPixmap& pixmap)
+void wLogText::setPixmap(int pixmapId, QPixmap const& pixmap)
 {
-    if (pixmapId >= 0) d->itemPixMaps[pixmapId] = pixmap;
+    if (pixmapId >= 0)
+        d->itemPixMaps[pixmapId] = pixmap;
+}
+
+void wLogText::setPixmap(int pixmapId, QPixmap&& pixmap)
+{
+    if (pixmapId >= 0)
+        d->itemPixMaps[pixmapId] = std::move(pixmap);
 }
 
 
@@ -1773,32 +1780,28 @@ void wLogText::clearPixmap(int pixmapId)
 
 void wLogText::clearLinePixmap(lineNumber_t lineNo)
 {
-    if (!validLineNumber(lineNo)) {
-        qWarning() << "invalid line number" << lineNo;
-        return;
-    }
-    items[lineNo]->clearPixmap();
-    if (updatesEnabled()) {
-        setUpdatesNeeded(updateFull);
-        update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
-                 (lineNo+1) * d->m_textLineHeight);
-        update(); // FIXME bug in single line update, invalid entire view area
+    if (validLineNumber(lineNo)) [[likely]] {
+        items[lineNo]->clearPixmap();
+        if (updatesEnabled() && d->gutterWidth > 0) {
+            setUpdatesNeeded(updateFull);
+            update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
+                    (lineNo+1) * d->m_textLineHeight);
+            update(); // FIXME bug in single line update, invalid entire view area
+        }
     }
 }
 
 
 void wLogText::setLinePixmap(lineNumber_t lineNo, int pixmapId)
 {
-    if (!validLineNumber(lineNo)) {
-        qWarning() << "invalid line number" << lineNo;
-        return;
-    }
-    items[lineNo]->m_pixmapId = pixmapId;
-    if (updatesEnabled() && (d->gutterWidth > 0)) {
-        setUpdatesNeeded(updateFull);
-        update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
-                        (lineNo+1) * d->m_textLineHeight);
-        update(); // FIXME bug in single line update, invalid entire view area
+    if (validLineNumber(lineNo)) [[likely]] {
+        items[lineNo]->m_pixmapId = pixmapId;
+        if (updatesEnabled() && d->gutterWidth > 0) {
+            setUpdatesNeeded(updateFull);
+            update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
+                            (lineNo+1) * d->m_textLineHeight);
+            update(); // FIXME bug in single line update, invalid entire view area
+        }
     }
 }
 
