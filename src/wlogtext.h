@@ -19,7 +19,7 @@
 #include <QPixmap>
 #include <QDate>
 
-using styleId = uint16_t;        //!< Style id within a palette
+using styleId_t = uint16_t;        //!< Style id within a palette
 using lineNumber_t = int32_t;
 
 class QClipboard;
@@ -144,23 +144,23 @@ class logTextItem {
 private:
     QString m_text;                     //!< actual line text
     qint16 m_pixmapId = -1;             //!< ID within the pixmap palette for the gutter pixmap
-    styleId m_styleId = 0;              //!< style ID within the active palette to paint this line
+    styleId_t m_styleId = 0;              //!< style ID within the active palette to paint this line
 
+public:
     /**
      * Constructor with attributes.
      *
      * @param text Text of string to be displayed.
      * @param styleNo Style number of the base.
      **/
-    logTextItem(const QString& text, styleId styleNo) :
+    logTextItem(const QString& text, styleId_t styleNo) :
             m_text(text), m_styleId(styleNo) {}
 
-    logTextItem(QString&& text, styleId styleNo) :
+    logTextItem(QString&& text, styleId_t styleNo) :
             m_text(std::move(text)), m_styleId(styleNo) {}
 
-public:
-    static logTextItem *newItem(const QString& text, styleId styleNo) {return new logTextItem{text, styleNo};}
-    static logTextItem *newItem(QString&& text, styleId styleNo) {return new logTextItem{std::move(text), styleNo};}
+    static logTextItem *newItem(const QString& text, styleId_t styleNo) {return new logTextItem{text, styleNo};}
+    static logTextItem *newItem(QString&& text, styleId_t styleNo) {return new logTextItem{std::move(text), styleNo};}
 
     /**
      * Copy constructor.
@@ -176,7 +176,7 @@ public:
      *
      * @return Style number applied to this text.
      **/
-    styleId style() const {return m_styleId;}
+    styleId_t styleId() const {return m_styleId;}
 
     /**
      * @brief set line style
@@ -189,7 +189,7 @@ public:
      * so that it can synchronize the on screen view with changes.
      * @param styleNo New style number to be applied to this text.
      */
-    void setStyle(styleId styleNo) {m_styleId = styleNo;}
+    void setStyleId(styleId_t styleNo) {m_styleId = styleNo;}
 
     /**
      * Get the text of the log item.
@@ -340,7 +340,6 @@ public:
  * with blue.  If then modifier0 is applied to both lines, they will maintain
  * their base colors, but will both have underlining also appied.
  *
- * @author Rick Wagner <Rick.Wagner@Harmonicinc.com>
  */
 class wLogText : public QAbstractScrollArea {
     Q_OBJECT
@@ -703,10 +702,10 @@ public:
         return m_lineCount++;
     }
 
-    lineNumber_t append(QString const& text, styleId styleNo) {
+    lineNumber_t append(QString const& text, styleId_t styleNo) {
         return append(logTextItem::newItem(text, styleNo));}
 
-    lineNumber_t append(QString&& text, styleId styleNo) {
+    lineNumber_t append(QString&& text, styleId_t styleNo) {
         return append(logTextItem::newItem(std::move(text), styleNo));}
 
     /**
@@ -853,7 +852,8 @@ public:
      *
      * @return @c cell caret position
      */
-    cell cursorPostion() const;
+    cell caretPosition() const;
+    [[deprecated("use caretPosition")]] cell cursorPostion() const {return caretPosition();}
 
     /**
      * Set the current cursor postion, in the form of line, column.  If line is
@@ -1516,9 +1516,9 @@ Q_SIGNALS:
 /**
  * @brief Text attributes for a palette entry.
  *
- * Define a logTextPalette entry.  This is an application accessable class to
+ * Define a logTextPalette entry.  This is an application accessible class to
  * define a logTextPalette entry base style or modifier.  A logTextPaletteEntry is stored
- * in a palette, which can later be actived.
+ * in a palette, which can later be activated.
  */
 class logTextPaletteEntry {
 public: //types
@@ -1662,6 +1662,7 @@ public:
      * @param numEntries Number of styles to allocate.
      * @param textColor Default foreground color for all style entries.
      * @param bgColor Default background color for all style entries.
+     * @param clBgColor Default background color of caret line
      **/
     logTextPalette(const QString& name, int numEntries, QColor const& textColor,
                    QColor const& bgColor, QColor const& clBgColor);
@@ -1677,13 +1678,31 @@ public:
     logTextPalette(const QString& name, logTextPalette const& source);
 
     /**
+     * @brief add a new style to the palette
+     *
+     * @param textColor foreground color for all style entries.
+     * @param bgColor background color for all style entries.
+     * @param clBgColor background color of caret line
+     * @return @c styleId_t of the added style
+     */
+     styleId_t addStyle(QColor const& textColor, QColor const& bgColor, QColor const& clBgColor);
+
+     /**
+      * @brief add a new style to the palette
+      *
+      * @param style style to add
+      * @return @c styleId_t of the added style
+      */
+     styleId_t addStyle(logTextPaletteEntry style);
+
+    /**
      * Get a reference to a specified palette style entry.
      *
      * @param id Style number in the palette.
      * @return Reference to a style entry.  If the style number @p s is out of
      *         range, a reference to the last entry is returned.
      **/
-    logTextPaletteEntry const& style(styleId id) const;
+    logTextPaletteEntry const& style(styleId_t id) const;
     
     /**
      * Returns the (compile time defined) number of styles in a palette.

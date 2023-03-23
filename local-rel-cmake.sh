@@ -12,7 +12,7 @@ VERBOSE=0
 CONF_OPTS="-DWITH_LTO=ON -DCMAKE_UNITY_BUILD=ON"
 
 BUILD=0
-BUILD_OPTS="--parallel=$CORES"
+BUILD_OPTS=--parallel=$CORES
 
 INSTALL=0
 #INSTALL_OPTS=""
@@ -50,7 +50,7 @@ while getopts 'hvbcisxC:B:' OPT; do
             BUILD=1
             ;;
         c)
-            BUILD_OPTS="$BUILD_OPTS --clean-before"
+            BUILD_OPTS=$BUILD_OPTS --clean-before
             ;;
         i)
             INSTALL=1

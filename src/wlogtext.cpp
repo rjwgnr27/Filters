@@ -342,7 +342,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
     }
         
     // Remember last style, so we don't do so many font changes:
-    styleId lastStyleId = activePalette->numStyles() + 1;
+    styleId_t lastStyleId = activePalette->numStyles() + 1;
     const styleItem *style= &activePalette->style(0);
     for (; it != itemsEnd;  ++it, ++line,
                 pmYTop += m_textLineHeight, pmYBase += m_textLineHeight) {
@@ -351,9 +351,9 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         int lineCharacters = text.length();
 
         // Can we avoid a font change?
-        if (lastStyleId != item->style()) [[unlikely]] {
-            lastStyleId = item->style();
-            style = &activePalette->style(item->style());
+        if (lastStyleId != item->styleId()) [[unlikely]] {
+            lastStyleId = item->styleId();
+            style = &activePalette->style(item->styleId());
             pixmapPainter.setFont(style->font);
         }
 
@@ -428,12 +428,12 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 int y = pmYTop;       // Start at top of line
                 int dy = 0;
                 QPixmap const& pm = *it;
-                if (pm.height() < m_textLineHeight) {
-                    // Center pixmap on line, if pixmap is shorter than line.
+                // Center the pixmap on the line, if pixmap is shorter than the line.
+                // If longer, clip the bottom:
+                if (pm.height() < m_textLineHeight)
                     y += (m_textLineHeight - pm.height()) / 2;
-                } else {
+                else
                     dy = (pm.height() - m_textLineHeight) / 2;
-                }
                 pixmapPainter.drawPixmap(0, y, pm, 0, dy, gutterWidth,
                                         m_textLineHeight);
             }
@@ -445,7 +445,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                     pmYTop + textLineBaselineOffset,
                     pmYBase + textLineBaselineOffset);
         }
-    }
+    }       // for items...
 
     // Handle the caret follows last line case:
     if ((caretPosition.lineNumber() == line) && caretBlinkOn) {
@@ -1075,7 +1075,7 @@ inline void wLogTextPrivate::updateCaretPos(const cell& pos)
 }
 
 
-cell wLogText::cursorPostion() const
+cell wLogText::caretPosition() const
 {
     return d->caretPosition;
 }
@@ -1877,8 +1877,8 @@ void wLogText::setEscJumpsToEnd(bool state)
 void wLogText::setLineStyle(lineNumber_t line, int style)
 {
     logTextItemPtr const item = items[line];
-    if (item && item->style() != style) {
-        item->setStyle(style);
+    if (item && item->styleId() != style) {
+        item->setStyleId(style);
         // TODO Only refresh if item is in view
         setUpdatesNeeded(updateFull);
     }
@@ -1963,8 +1963,21 @@ logTextPalette::logTextPalette(const QString& nm, logTextPalette const& source)
     styles = source.styles;
 }
 
+styleId_t logTextPalette::addStyle(logTextPaletteEntry style)
+{
+    styleId_t id = styles.size();
+    styles.push_back(std::move(style));
+    return id;
+}
 
-logTextPaletteEntry const& logTextPalette::style(styleId id) const
+styleId_t logTextPalette::addStyle(QColor const& textColor, QColor const& bgColor,
+                                   QColor const& clBgColor)
+{
+    return addStyle({textColor, bgColor, clBgColor});
+}
+
+
+logTextPaletteEntry const& logTextPalette::style(styleId_t id) const
 {
     return (id >= styles.count()) ? styles.last() :  styles[id];
 }
@@ -2057,9 +2070,9 @@ void logTextPaletteEntry::setAttributes( textAttributes a )
 
 activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
 {
-    const size_t nStyles = std::max(1, p.numStyles());
+    const int nStyles = std::max(1, p.numStyles());
     std::vector<styleItem> tStyles(nStyles);
-    for (size_t i = 0; i < nStyles; ++i) {
+    for (int i = 0; i < nStyles; ++i) {
         styleItem& style = tStyles[i];
         const logTextPaletteEntry& pe = p.style(i);
 
@@ -2072,7 +2085,6 @@ activatedPalette::activatedPalette(const QFont& f, logTextPalette const& p)
         font.setStrikeOut(attrs & logTextPaletteEntry::attrStrikeOut);
         style.font = std::move(font);
 
-        // Initialize style entry with defaults:
         style.backgroundColor = pe.backgroundColor();
         style.clBackgroundColor = pe.caretLineBackgroundColor();
         style.textColor = pe.textColor();

@@ -42,6 +42,7 @@
 #include <KAboutData>
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KIconLoader>
 #include <KLocalizedString>
 #include <KSharedConfig>
 #include <KSelectAction>
@@ -54,7 +55,7 @@
 Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
         KXmlGuiWindow(parent), m_ui(new mainWidget(this))
 {
-        setCentralWidget(m_ui);
+    setCentralWidget(m_ui);
     setupActions();
     setStandardToolBarMenuEnabled(true);
     StandardWindowOptions options = Default;
@@ -122,12 +123,12 @@ void mainWidget::setupActions()
 
     /***********************/
     /***   Edit menu     ***/
-     actionGotoLine = ac->addAction(QStringLiteral("goto_line"), this, SLOT(gotoLine()));
-     actionGotoLine->setText(i18n("&Go to line"));
-     actionGotoLine->setToolTip(i18n("Jump to subject line number"));
-     actionGotoLine->setWhatsThis(i18n("Jump to the displayed line for the given subject line number, or the preceding line closest."));
-     actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
-     ac->setDefaultShortcut(actionGotoLine, QKeySequence(QStringLiteral("Ctrl+G")));
+    actionGotoLine = KStandardAction::gotoLine(this, SLOT(gotoLine()), ac);
+    //actionGotoLine->setText(i18n("&Go to line"));
+    actionGotoLine->setToolTip(i18n("Jump to subject line number"));
+    actionGotoLine->setWhatsThis(i18n("Jump to the displayed line for the given subject line number, or the preceding line closest."));
+    //actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
+    //ac->setDefaultShortcut(actionGotoLine, QKeySequence(QStringLiteral("Ctrl+G")));
 
     /***********************/
     /***   Filters menu  ***/
@@ -216,7 +217,7 @@ void mainWidget::setupActions()
     /**********************/
     /*** Settings Menu  ***/
     actionLineNumbers = ac->addAction(QStringLiteral("show_line_numbers"));
-    actionLineNumbers->setIcon(QIcon::fromTheme(QStringLiteral("list-ol")));
+    actionLineNumbers->setIcon(QIcon::fromTheme(QStringLiteral("line-number")));
     actionLineNumbers->setText(i18n("Show &Line Numbers"));
     actionLineNumbers->setToolTip(i18n("Toggle showing of source line numbers"));
     actionLineNumbers->setCheckable(true);
@@ -272,6 +273,39 @@ void mainWidget::setupActions()
     actionInsertFilters->setToolTip(i18n("Insert filter file above the current row"));
     actionInsertFilters->setIcon(QIcon::fromTheme(QStringLiteral("edit-table-insert-row-above")));
     //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral(""));
+
+    ctxtMenu->addAction(KStandardAction::selectAll(result, SLOT(selectAll()), ac));
+    actionClearSelection = KStandardAction::deselect(result, SLOT(clearSelection()), ac);
+    ctxtMenu->addAction(actionClearSelection);
+
+    actionCopySelection = KStandardAction::copy(result, SLOT(copy()), ac);
+    ctxtMenu->addAction(actionCopySelection);
+
+    // Annotation menu items:
+    // ctxtMenu->addSeparator();
+    // action = ac->addAction(QStringLiteral("annotation"), this, SLOT(addAnnotationAction()));
+    // action->setIcon(QIcon::fromTheme(QStringLiteral("bkmkinfo")));
+    // action->setText(QStringLiteral("Annotate Line"));
+    // action->setWhatsThis(QStringLiteral("Add, change or remove line annotation."));
+    // ctxtMenu->addAction(action);
+
+    // Bookmarks menu items:
+    actionToggleBookmark = ac->addAction(QStringLiteral("toggle_bookmark"), this,
+                                         SLOT(toggleBookmark()));
+    actionToggleBookmark->setText(QStringLiteral("Toggle Bookmark"));
+    actionToggleBookmark->setWhatsThis(QStringLiteral("Set/clear a bookmark on the current line."));
+    ctxtMenu->addAction(actionToggleBookmark);
+
+    actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("go-JUMP")),
+                                           QStringLiteral("Jump to bookmark"), ac);
+    connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
+    actionBookmarkMenu->setShortcut(QKeySequence(Qt::CTRL, Qt::Key_J));
+    ctxtMenu->addAction(actionBookmarkMenu);
+
+    ctxtMenu->addAction(KStandardAction::gotoLine(this, SLOT(gotoLine()), ac));
+
+    QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
+    QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
 }
 
 mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
@@ -360,8 +394,19 @@ void mainWidget::setupUi()
     status = new QLabel;
     mainWindow->statusBar()->insertWidget(0, status);
 
-    QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
-    QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
+    //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
+    pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("status-note"), KIconLoader::Small);
+    pixBmUser.scaledToHeight(16);
+    result->setPixmap(pixmapIdUser, pixBmUser);
+    pixBmAnnotation = KIconLoader::global()->loadIcon(QStringLiteral("status-note"), KIconLoader::Small);
+    result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
+    result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
+
+    ctxtMenu = new QMenu(this);
+    connect(result, SIGNAL(contextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
+            SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
+    connect(result, SIGNAL(gutterContextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
+            SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
 
     QMetaObject::connectSlotsByName(this);
 } // setupUi
@@ -616,19 +661,21 @@ void mainWidget::displayResult()
     if (!stepResults.empty() && !stepResults.back().empty()) {
         QSignalBlocker disabler{result};
         result->clear();
-        const itemList& items = stepResults.back();
+        itemList& items = stepResults.back();
         std::vector<int> lineMap(items.size());
         auto mapIt = lineMap.begin();
         if (actionLineNumbers->isChecked()) {
             int width = QString("%1").arg(items.back().srcLineNumber).size();
-            for (const auto& item : items) {
+            for (auto& item : items) {
                 QString line = QString("%1| ").arg(item.srcLineNumber, width) + item.text;
-                result->append(std::move(line), 0);
+                auto ri = new resultTextItem(&item, std::move(line), 0);
+                result->append(ri);
                 *(mapIt++) = item.srcLineNumber;
             }
         } else {
-            for (const auto& item : items) {
-                result->append(item.text, 0);
+            for (auto& item : items) {
+                auto ri = new resultTextItem(&item, item.text, 0);
+                result->append(ri);
                 *(mapIt++) = item.srcLineNumber;
             }
         }
@@ -949,23 +996,39 @@ bool mainWidget::doSaveFilters(const QString& fileName)
     return false;
 }
 
+void mainWidget::toggleBookmark()
+{
+    if (sourceLineMap.empty())
+        return;
+
+    auto currentPos = result->caretPosition();
+    if (currentPos.lineNumber() > result->lineCount())   /* shouldn't happen, but be safe */
+        return;
+    auto logItem = result->item(currentPos.lineNumber());
+    auto textItem = resultTextItem::asResultTextItem(logItem);
+    if (textItem->sourceItem()->bookmarked)
+        logItem->setPixmap(pixmapIdUser);
+    else
+        logItem->clearPixmap();
+    textItem->sourceItem()->bookmarked ^= true;
+}
+
 void mainWidget::gotoLine()
 {
     if (sourceLineMap.empty())
         return;
 
-    auto currentPos = result->cursorPostion();
+    auto currentPos = result->caretPosition();
     if (currentPos.lineNumber() > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    int sourceLine = sourceLineMap[currentPos.lineNumber()];
-
+    auto sourceLineNo = sourceLineMap[currentPos.lineNumber()];
     bool ok;
-    sourceLine = QInputDialog::getInt(this, tr("Go to line"),
-                                      tr("Source line number:"),
-                                      sourceLine, 1,
-                                      sourceLineMap.back(), 1, &ok);
+    sourceLineNo = QInputDialog::getInt(this, tr("Go to line"),
+                                        tr("Source line number:"),
+                                        sourceLineNo, 1,
+                                        sourceLineMap.back(), 1, &ok);
     if (ok) {
-        auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLine);
+        auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), sourceLineNo);
         currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
         result->setCursorPosition(currentPos);
         result->ensureCursorVisible();
@@ -1044,6 +1107,21 @@ void mainWidget::filtersTableMenuRequested(QPoint point)
     actionMoveFilterUp->setEnabled(row > 0);
     actionMoveFilterDown->setEnabled(row < filtersTable->rowCount()-1);
     filtersTableMenu->exec(filtersTable->mapToGlobal(point));
+}
+
+void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unused]] QContextMenuEvent *e)
+{
+    if (std::cmp_greater_equal(lineNo, sourceLineMap.size()))
+        return;
+
+    bool hasSelectedText = result->hasSelectedText();
+    actionCopySelection->setEnabled(hasSelectedText);
+    actionClearSelection->setEnabled(hasSelectedText);
+    auto const sourceLine = sourceLineMap[lineNo];
+    auto textItem = resultTextItem::asResultTextItem(result->item(lineNo));
+    auto sourceItem = textItem->sourceItem();
+    actionToggleBookmark->setText(sourceItem->bookmarked ? i18n("Clear Bookmark") : i18n("Set bookmark") );
+    ctxtMenu->exec(pos);
 }
 
 void mainWidget::selectFilterFont()
@@ -1240,7 +1318,7 @@ int doBatch(const commandLineOptions& opts)
     itemList items;
     try {
         filters = batchLoadFilters(opts);
-        if (opts.stdin) 
+        if (opts.stdin)
             items = readStdIn();
         else
             items = batchLoadSubjectFile(opts);

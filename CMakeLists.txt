@@ -62,6 +62,7 @@ find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
     CoreAddons
     DBusAddons
     I18n
+    IconThemes
     KIO
     XmlGui
 )
@@ -99,6 +100,7 @@ target_link_libraries(filters PRIVATE
     KF5::CoreAddons
     KF5::DBusAddons
     KF5::I18n
+    KF5::IconThemes
     KF5::KIOCore
     KF5::KIOFileWidgets
     KF5::KIOWidgets

@@ -64,7 +64,7 @@ public:
      * Create a drawing style array from a palette.  The drawing array is a
      * permutation of the styles and attributes, formed into a linear array.  The
      * array is indexed by style+attribute in the draw function.  Each style entry
-     * is a sum of the palette base style and every combination of modifier.  This
+     * is a sum of the palette base style and every combination of modifiers.  This
      * speeds drawing, by referencing a style number for the line, rather than
      * applying (multiple) attributes at draw time.
      *
@@ -92,9 +92,9 @@ public:
      * returned.
      *
      * @param styleId ID of the style to return
-     * @return const reference to the style identified
+     * @return const reference to the style requested
      **/
-    inline const styleItem& style(styleId styleId) const {
+    inline const styleItem& style(styleId_t styleId) const {
             return styles[(styleId < numStyles()) ? styleId : 0]; };
 };
 

@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         i18n("(c) 2020"));
     aboutData.addAuthor(i18n("Rick Wagner"), i18n("Author"));
     aboutData.addAuthor(i18n("Rick Wagner"), i18n("Author"),
-                        QStringLiteral("Rick.Wagner@HarmonicInc.com"));
+                        QStringLiteral("rjwgnr27@gmail.com"));
     KAboutData::setApplicationData(aboutData);
 
     QCommandLineParser parser;

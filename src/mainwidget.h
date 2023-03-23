@@ -66,6 +66,7 @@ struct filterData {
 struct textItem {
     int srcLineNumber;
     QString text;
+    bool bookmarked = false;
 };
 using itemList = QList<textItem>;
 
@@ -75,6 +76,30 @@ class mainWidget : public QWidget {
 
 private:
     enum {ColEnable = 0, ColExclude=1, ColCaseIgnore=2, ColRegEx=3};
+    enum {pixmapIdUser = 0, pixmapIdAnnotation = 1};
+
+    class resultTextItem : public logTextItem {
+
+    private:
+        textItem* srcItem;
+
+    public:
+        resultTextItem(textItem* item, const QString& text, styleId_t styleNo) :
+                logTextItem(text, styleNo), srcItem(item) {}
+
+        resultTextItem(textItem* item, QString&& text, styleId_t styleNo) :
+                logTextItem(text, styleNo), srcItem(item) {}
+
+        resultTextItem(resultTextItem const&) = default;
+        resultTextItem(resultTextItem&&) = default;
+
+        static resultTextItem* asResultTextItem(logTextItem* item) {
+            return static_cast<resultTextItem *>(item);}
+        static resultTextItem const* asResultTextItem(logTextItem const* item) {
+            return static_cast<resultTextItem const*>(item);}
+
+        textItem* sourceItem() const {return srcItem;}
+    };
 
 public:
     mainWidget(KXmlGuiWindow *main, QWidget *parent = nullptr);
@@ -89,6 +114,7 @@ private Q_SLOTS:
     void deleteFilterRow();
     void dialectChanged(QString text);
     void filtersTableMenuRequested(QPoint point);
+    void resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*);
     void insertEmptyFilterAbove();
     void insertEmptyRowAt(int row);
     void insertFiltersAbove();
@@ -111,6 +137,8 @@ private Q_SLOTS:
     void tableItemChanged(QTableWidgetItem *item);
 
     void gotoLine();
+
+    void toggleBookmark();
 
     void resultFind();
     void resultFindNext();
@@ -171,6 +199,15 @@ private:
     QAction *actionMoveFilterUp = nullptr;
     QAction *actionMoveFilterDown = nullptr;
     QAction *actionInsertFilters = nullptr;
+
+    QPixmap pixBmUser;         //!< Pixmap to display in the gutter for user bookmarks
+    QPixmap pixBmAnnotation;
+
+    QMenu *ctxtMenu = nullptr;
+    QAction *actionToggleBookmark;
+    KSelectAction *actionBookmarkMenu;
+    QAction *actionClearSelection;
+    QAction *actionCopySelection;
 
     QString lastFoundText;
     bool findIgnoreCase = false;
