@@ -1149,6 +1149,13 @@ bool wLogText::hasSelectedText() const
     return d->selecting;
 }
 
+region wLogText::getSelection() const
+{
+    region t;
+    if (d->selecting)
+        t = region(d->selectTop, d->selectBottom);
+    return t;
+}
 
 void wLogText::getSelection(lineNumber_t *lineFrom, int *colFrom,
                             lineNumber_t *lineTo, int *colTo) const

@@ -127,9 +127,9 @@ protected:
     int gutterWidth = 0;            //!< Space on left edge left of pixmaps.
     int m_gutterOffset;             //!< gutterWidth + gutterBorder, or zero.
 
-    int m_textLineHeight = 10;       //!< Calculated text line height, based on current (zommed) fint size.
+    int m_textLineHeight = 10;       //!< Calculated text line height, based on current (zoomed) font size.
     int textLineBaselineOffset = 0; //!< Physical offset of line bottom from baseline, font.descent().
-    int m_characterWidth = 0;       //!< calculated character width,  based on current (zommed) fint size.
+    int m_characterWidth = 0;       //!< calculated character width,  based on current (zoomed) font size.
     int fontBaseSize = 10;          //!< Selected base font size in pixels
     int magnify = 0;                //!< Increment from base font size for font zooming
 
@@ -151,7 +151,7 @@ protected:
 
     cell caretPosition = {0,0};     //!< QPoint caret position. QPoint.y() is line, QPoint.x() is column.
     int caretBlinkTimer = -1;       //!< QWidget timer number for caret blink
-    bool caretBlinkOn = false;      //!< If the current blnk state of the caret is on
+    bool caretBlinkOn = false;      //!< If the current blink state of the caret is on
 
     bool hardLocked = false;        //!< Are new lines are prevented from scrolling view due to ScrlLk key.
     bool softLocked = false;        //!< Are new lines are prevented from scrolling view due to soft things.
@@ -181,7 +181,7 @@ protected:
     /**
      * @brief return line number of first visible line
      *
-     * Returns the top most visable line of the client region.
+     * Returns the top most visible line of the client region.
      * 
      * @return linenumber of the top most line visible in the client area
      **/
@@ -197,7 +197,7 @@ protected:
     /**
      * @brief return line number of last visible line
      *
-     * Returns the bottom most visable line of the client region.
+     * Returns the bottom most visible line of the client region.
      *
      * @return linenumber of the bottom most line visible in the client area
      **/
@@ -208,7 +208,7 @@ protected:
      * Internal function used to prepare a find.
      *
      * @param forward Direction of search.
-     * @param pos @c cell to be set with the initial serch location.
+     * @param pos @c cell to be set with the initial search location.
      * @param at @c QPoint from caller of find, which may be non-zero, in which case
      * it is the cell position from which to start the find.
      * @return true if the initial cell location is valid, and the find may proceed.
@@ -221,7 +221,7 @@ protected:
      *
      * Activate the named palette.  Converts a palette to a styles array to be used
      * for drawing the text.  If the passed name is null (QString::null), then the
-     * current palette is reactived.  Reactivating the current palette is useful
+     * current palette is reactivated.  Reactivating the current palette is useful
      * when the palette styles have changed since the last activation.
      *
      * @param name Name of palette, allocated by @a newPalette(), to make active.
@@ -300,7 +300,7 @@ protected:
     /**
      * @brief Move caret with update.
      *
-     * Set new caret postion, erasing old and drawing new.
+     * Set new caret position, erasing old and drawing new.
      *
      * @param pos New caret position.
      */
@@ -341,7 +341,7 @@ protected:
     /**
      * @brief Make internal adjustment to calculated metrics.
      *
-     * Caclculate the element metrics when the visible area is resized, or the font
+     * Calculate the element metrics when the visible area is resized, or the font
      * is changed.  These metrics are used for the conversion to/from character to
      * pixel position.
      */
@@ -385,7 +385,7 @@ protected:
     inline bool inTheGutter(int x) const;
 
     /**
-     * @brief Convert line/column cell to pixel postion.
+     * @brief Convert line/column cell to pixel position.
      *
      * Internal utility function to convert a cell (line, column) to a pixel point
      * x,y.  This only converts a point on the cell grid.  It does not validate that
@@ -397,7 +397,7 @@ protected:
     inline QPoint cellToPoint(const cell&) const;
 
     /**
-     * @brief Convert view pixel postion to character column.
+     * @brief Convert view pixel position to character column.
      *
      * Calculate character column based on scroll view x coordinate.  The returned
      * value is just the calculated column.  It is not verified to be a valid
@@ -416,7 +416,7 @@ protected:
      * @brief scrollView y pixel coordinate to line number
      *
      * Calculate line number from scroll view y location.  The line number is just a
-     * caclulation based on point y and the various metrics.  It is not guaranteed
+     * calculation based on point y and the various metrics.  It is not guaranteed
      * to be a valid line number; i.e., it can extend beyond the valid lines.  See
      * @a validLineNumber() to verify the validity of the line number.
      *
