@@ -98,7 +98,7 @@ public:
     /**
      * Returns a cell one line after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
-     * @return A \c cell positition one line down from this.
+     * @return A \c cell position one line down from this.
      **/
     cell nextLine() const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
 
@@ -121,9 +121,64 @@ public:
 
     void swap(cell &other) noexcept {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
 };
-
 template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
 
+/**
+ * @brief a class representing a region of cells
+ * A class representing a start and end-point of a region. The raw first and
+ * second may be a reverse range if the source selection is from bottom/right to
+ * top/left. The @c normalize() and @c normalized() functions will assure that
+ * @c first() precedes @c second().
+ */
+class region {
+    cell m_first;
+    cell m_second;
+
+public:
+    region() = default;
+    region(cell first, cell second) : m_first{first}, m_second{second} {}
+    region(region const&) = default;
+    region& operator =(region const&) = default;
+
+    cell first() const {return m_first;}
+    cell second() const {return m_second;}
+
+    void swap(region &other) {std::swap(m_first, other.m_first); std::swap(m_second, other.m_second);}
+
+    /**
+     * @brief assure first() precedes second()
+     * Assures that first() precedes second(), tat is that the line/column of first
+     * < the line/column of second.
+     */
+    void normalize() {if (m_second < m_first) std::swap(m_first, m_second);}
+
+    /**
+     * returns a copy of this region, assuring it is normalized
+     * @return ac opy of this, assuring first() precedes second()
+     */
+    region normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
+
+    /**
+     * @brief test if first() and second() have the same line number
+     * @return @c true if line number of first is the same as second
+     */
+    bool singleLine() const {return m_first.lineNumber() == m_second.lineNumber();}
+
+    /**
+     * @brief simple approximation of the distance from first() to second()
+     * @return sum of the difference of line numbers and column numbers
+     */
+    int manhattanLength() const {
+        return abs(m_second.lineNumber() - m_first.lineNumber()) +
+               abs(m_second.columnNumber() - m_first.columnNumber());}
+    /**
+     * test for an empty region
+     * @return @c true if start == end
+     */
+    bool empty() const {return m_first == m_second;}
+};
+template<> inline void std::swap<region>(region &x, region &y) noexcept {x.swap(y);}
+static inline bool operator ==(region r1, region r2) {return r1.first() == r2.first() && r1.second() == r2.second();}
 
 /**
  * Class to define a line item for to be displayed in a logText widget.
@@ -133,7 +188,7 @@ template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
  * This class should not be instantiated by an application.  Creation and
  * access should be done through a logText object.
  *
- * Many attributes are accessable from the object, and some are settable.
+ * Many attributes are accessible from the object, and some are settable.
  * However, in most cases an object should be modified through the logText
  * object, so that the display will reflect changes in the item.
  */
@@ -144,7 +199,7 @@ class logTextItem {
 private:
     QString m_text;                     //!< actual line text
     qint16 m_pixmapId = -1;             //!< ID within the pixmap palette for the gutter pixmap
-    styleId_t m_styleId = 0;              //!< style ID within the active palette to paint this line
+    styleId_t m_styleId = 0;            //!< style ID within the active palette to paint this line
 
 public:
     /**
@@ -172,7 +227,7 @@ public:
     virtual ~logTextItem() {}
 
     /**
-     * Get the style for a textLog line.
+     * Get the style for a logText line.
      *
      * @return Style number applied to this text.
      **/
@@ -232,7 +287,7 @@ using logItemsImplCIt = logItemsImplList::const_iterator;      //!< iterartor fo
 /**
  * @brief Visitor action class for iterating over all text items.
  *
- * A class derived and implimented by an application to action performed an
+ * A class derived and implemented by an application to action performed an
  * action via iteration over all text items.  It is pure virtual, to be
  * implemented in a derived class.  An instance of the derived class is passed
  * to the wLogText visit methods. The implemented visit() function is called
@@ -306,7 +361,7 @@ public:
  * all lines are displayed with the same (monospace) font.  Styles can modify
  * the text attributes other than size.
  *
- * The textual elements are accessable, eliminating the need to maintain
+ * The textual elements are accessible, eliminating the need to maintain
  * separate copies in the application and the widget.  Formatting can be altered
  * on a per-line basis, and will be reflected in the view.
  *
@@ -330,7 +385,7 @@ public:
  * a uniform face and size makes layout simpler and faster.
  *
  * The style-modifiers are a bit-wise modifier to the selected style of the element.
- * Each modifer bit position represents a single style modification.  The same
+ * Each modifier bit position represents a single style modification.  The same
  * modifier bit position will apply the same effect to any base style (within
  * limits of physical representations and conflicts).
  *
@@ -338,7 +393,7 @@ public:
  * modifier 0 defines underlining.  If line one has selected syle 0, and line
  * two selects style 1 then line one is displayed with black text, and line two
  * with blue.  If then modifier0 is applied to both lines, they will maintain
- * their base colors, but will both have underlining also appied.
+ * their base colors, but will both have underlining also applied.
  *
  */
 class wLogText : public QAbstractScrollArea {
@@ -408,7 +463,7 @@ protected:
     bool finalized = false;             //!< If finalize() has been called.
 
     // Widget events; these are overrides of functions in ancestor classes
-    // (QScrollView, QWidget, QObject).  Thus thay cannot move to wLogTextPrivate.
+    // (QScrollView, QWidget, QObject).  Thus they cannot move to wLogTextPrivate.
     /**
      * @brief Context menu request.
      *
@@ -543,7 +598,7 @@ protected:
      * @brief Handle mouse wheel event.
      *
      * Handle a mouse wheel event.  This will scroll the display, in various
-     * incrementes, or zoom the font size in or out, depending on the state of the
+     * increments, or zoom the font size in or out, depending on the state of the
      * keyboard shift, alt, and control keys.
      *
      *  Just wheel: Scroll global line steps.
@@ -604,7 +659,7 @@ public:
      * @brief Get base font
      *
      * Gets the font used to derive a activated palette. When a palette is
-     * activated, the styles are redered from this base.
+     * activated, the styles are rendered from this base.
      * @return Font base for the style
      **/
     QFont const& font() const;
@@ -657,7 +712,7 @@ public:
      * can be set via setMaxLogLines.
      *
      * To prevent excessive trimming, the widget maintains a "slack", which is
-     * an additional number of lines which can be in the widget. So appendign a
+     * an additional number of lines which can be in the widget. So appending a
      * line checks against the slacked value, and once the slack limit is
      * reached, the lines will be trimmed down to the maxLogLine() value. Thus
      * it is possible for lineCount() to return a value (and the widget to
@@ -763,7 +818,7 @@ public:
      *
      * Activate the named palette.  Converts a palette to a styles array to be used
      * for drawing the text.  If the passed name is null (QString::null), then the
-     * current palette is reactived.  Reactivating the current palette is useful
+     * current palette is reactivated.  Reactivating the current palette is useful
      * when the palette styles have changed since the last activation.
      *
      * @param name Name of palette, allocated by @a newPalette(), to make active.
@@ -800,7 +855,7 @@ public:
     /**
      * @brief Return a pointer to a named palette.
      *
-     * If the palette named exits, return a pointer to it, else retun 0.
+     * If the palette named exits, return a pointer to it, else return 0.
      *
      * @param name  Name of the palette to get.
      * @return Pointer to the named palette.  Zero if it does not exist.
@@ -848,14 +903,14 @@ public:
     /**
      * @brief Return the cell (line/column) of the caret.
      *
-     * Returns the current cursor postion, in the form of line, column.
+     * Returns the current cursor position, in the form of line, column.
      *
      * @return @c cell caret position
      */
     cell caretPosition() const;
 
     /**
-     * Set the current cursor postion, in the form of line, column.  If line is
+     * Set the current cursor position, in the form of line, column.  If line is
      * negative, the position is counted back from the last line.  If column is
      * negative the position counted back from the end of line.  The position does
      * not wrap, so if a column number is more negative than the length of the line,
@@ -870,7 +925,7 @@ public:
     /**
      * @brief Set the caret to a specified line, column coordinate.
      *
-     * Set the current cursor postion from a QPoint (or cell). p.y is line, p.x=col.
+     * Set the current cursor position from a cell. p.y is line, p.x=col.
      * If line is negative, the new position is "line" lines from the end.  If col
      * is negative, the new column position is "col" characters from the end.
      *
@@ -906,7 +961,7 @@ public:
      * @param pt Pointer to @a QPoint giving cell location (y() = line, x() = column)
      * to begin the search.
      *
-     * @param caseSensitive True if the seach is case sensitive.
+     * @param caseSensitive True if the search is case sensitive.
      *
      * @param forward If true, the search is from the start position to the end of
      * text; else to beginning of text.
@@ -936,7 +991,7 @@ public:
      *
      * @param str Text string to search for.
      *
-     * @param caseSensitive True if the seach is case sensitive.
+     * @param caseSensitive True if the search is case sensitive.
      *
      * @param forward If true, the search is from the start position to the end of
      * text; else to beginning of text.
@@ -945,7 +1000,7 @@ public:
      * line number of a successful search is put.
      *
      * @param col Pointer to the column number in the line to start the
-     * search, and where the coulumn number of a successful search is put.
+     * search, and where the column number of a successful search is put.
      *
      * @return True if the text is found within the text.  If the search matches,
      * and either or both line and column pointers are non-zero, the locations
@@ -1024,7 +1079,21 @@ public:
      **/
     void getSelection(lineNumber_t *lineFrom, int *colFrom,
                       lineNumber_t *lineTo, int *colTo) const;
+    /**
+     * @brief get the region of the selected text
+     * Returns a region describing the currently selected text. If there is
+     * no selection, the returned @c region::empty() returns @c true.
+     *
+     * @Note: If the underlying selection is a reverse selection, that is from
+     * bottom right to top left, the returned region may not be 'normalized'. See
+     * @c regions::normalize().
+     */
+    region getSelection() const;
 
+    /**
+     * @brief return all lines as a single string, with new-line separations.
+     * @return A new-line separated string of all lines.
+     */
     QString toPlainText(QLatin1Char sep = QLatin1Char('\n')) const;
 
     /**
@@ -1052,7 +1121,7 @@ public:
      *
      * Set the time in milliseconds for a mouse move to trigger a hover signal.
      * A value of <= 0 shuts off the hover notifications. The value is rounded up
-     * to a multiple of 50mS, with a maximum of 2500 mS.
+     * to a multiple of 50mS, with a maximum of 2500mS.
      *
      * @param t Mouse hover time in milliseconds.
      **/
@@ -1165,7 +1234,7 @@ public:
      * Walks the list of all the @c logTextItem items in the widget, and applies
      * the @c logTextItemVisitor::visit method to each item.
      *
-     * The logTextItemVisitor::visit() function is appied to each line from line
+     * The logTextItemVisitor::visit() function is applied to each line from line
      * @p firstLine (default 0), until visit() returns false or the last list
      * has visited reached.
      *
@@ -1184,7 +1253,7 @@ public:
      * Walks the list of all the @c logTextItem items in the widget, and applies
      * the @p op method to each item.
      *
-     * The logTextItemVisitor::visit() function is appied to each line from the
+     * The logTextItemVisitor::visit() function is applied to each line from the
      * first line of the view, until visit() returns false or the last list
      * has visited reached.
      *
@@ -1203,7 +1272,7 @@ public:
      * Walks the list of all the \a logTextItem items in the selection range, and applies
      * the \a logTextItemVisitor::visit method to each item.
      *
-     * The visit() function is appied from the first line of the selection range,
+     * The visit() function is applied from the first line of the selection range,
      * even if the selection starts after the start of the line.  It visits each in
      * the selection until visit() returns false, or the end of the selection range
      * is reached.  Last line of the selection is visited, even if the selection
