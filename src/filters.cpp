@@ -477,7 +477,8 @@ void mainWidget::showEvent(QShowEvent *ev)
 
 void mainWidget::loadSubjectFile()
 {
-    loadSubjectFile(QFileDialog::getOpenFileName(this, i18n("Open Subject File")));
+    loadSubjectFile(QFileDialog::getOpenFileName(this,
+                            i18nc("@title:window load subject file dialog title", "Open Subject File")));
 }
 
 bool mainWidget::loadSubjectFile(const QString& localFile)
@@ -521,8 +522,9 @@ void mainWidget::loadSubjectFromCB()
     const QClipboard *clipboard = QApplication::clipboard();
     QString text = clipboard->text();
     if (text.isEmpty()) {
-        QMessageBox::information(this, i18n("No Data"),
-                              i18n("Clipboard does not contain text data"));
+        QMessageBox::information(this,
+                        i18nc("@title:window title of no data in clipboard information dialog", "No Data"),
+                        i18nc("@info:status informational message of no data in clipboard information dialog", "Clipboard does not contain text data"));
         return;
     }
 
@@ -532,7 +534,7 @@ void mainWidget::loadSubjectFromCB()
     while (!stream.atEnd())
         lines << textItem{++srcLine, stream.readLine()};
 
-    titleFile = i18n("<clipboard>");
+    titleFile = i18nc("@info:status title bar file-name when loaded from clipboard", "<clipboard>");
     subjModified = false;
     updateApplicationTitle();
     sourceLineCount = -1;
@@ -961,7 +963,8 @@ void mainWidget::saveFilters()
 
 void mainWidget::saveFiltersAs()
 {
-    QString localFile = QFileDialog::getSaveFileName(this, "Save Filters To",
+    QString localFile = QFileDialog::getSaveFileName(this,
+                    i18nc("@title:window save filters file name dialog", "Save Filters To"),
                     QString(), i18n("JSON file (*.json);;All files (*.*)"));
     if (!localFile.isEmpty()) {
         if (doSaveFilters(localFile)) {
@@ -1014,7 +1017,20 @@ void mainWidget::toggleBookmark()
     auto& sourceItem = stepResults[0][srcIdx];
     if (!sourceItem.bookmarked) {
         sourceItem.bookmarked = true;
-        sourceItem.bmText = sourceItem.text.leftRef(40);
+        QString& sourceText = sourceItem.text;
+        if (result->hasSelectedText()) {
+            lineNumber_t lineFrom, lineTo;
+            int colFrom, colTo;
+            result->getSelection(&lineFrom, &colFrom, &lineTo, &colTo);
+status->setText(QString("#%1 (%2,%3) (%4,%5)").arg(lineNumber).arg(lineFrom).arg(colFrom).arg(lineTo).arg(colTo));
+            if (lineFrom == lineNumber) {
+                int count = (lineTo == lineNumber) ? (colTo - colFrom) : sourceText.size() - colFrom;
+                count = std::min(40, std::max(10, count));
+                sourceItem.bmText = sourceText.midRef(colFrom, count);
+            } else
+                sourceItem.bmText = sourceText.leftRef(40);
+        } else
+            sourceItem.bmText = sourceText.leftRef(40);
         bookmarkedLines.insert(sourceItem.srcLineNumber);
         result->setLinePixmap(lineNumber, pixmapIdUser);
     } else {
@@ -1034,10 +1050,10 @@ void mainWidget::gotoLine()
         return;
     auto sourceLineNo = sourceLineMap[currentPos.lineNumber()];
     bool ok;
-    sourceLineNo = QInputDialog::getInt(this, tr("Go to line"),
-                                        tr("Source line number:"),
-                                        sourceLineNo, 1,
-                                        sourceLineMap.back(), 1, &ok);
+    sourceLineNo = QInputDialog::getInt(this,
+                        i18nc("@title:window title of go to line number dialog", "Go to line"),
+                        i18nc("@label:textbox label for line number input field", "Source line number:"),
+                        sourceLineNo, 1, sourceLineMap.back(), 1, &ok);
     if (ok)
         jumpToSourceLine(sourceLineNo);
 }
@@ -1082,7 +1098,9 @@ void mainWidget::doResultFind(QTextDocument::FindFlags flags)
         if (!result->find(lastFoundText/*, flags*/)) {
             if (!findIgnoreCase)
                 flags |= QTextDocument::FindFlag::FindCaseSensitively;
-            QMessageBox::information(this, tr("Search failed"), tr("Text not found"));
+            QMessageBox::information(this,
+                        i18nc("@title:window title of search fail pop-up", "Search failed"),
+                        i18nc("@info:status text of search string not found", "String not found"));
         }
 }
 
@@ -1096,8 +1114,9 @@ void mainWidget::saveResult()
 
 void mainWidget::saveResultAs()
 {
-    QString localFile = QFileDialog::getSaveFileName(this, "Save Results To"/*,
-                            QString(), i18n("Log files (*.txt *.log);;All files (*.*)")*/);
+    QString localFile = QFileDialog::getSaveFileName(this,
+                i18nc("@title:window title of save to file dialog", "Save Results To")
+                /*,QString(), i18n("Log files (*.txt *.log);;All files (*.*)")*/);
     if (!localFile.isEmpty())
         if (doSaveResult(localFile))
             resultFileName = localFile;
@@ -1136,7 +1155,13 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     actionClearSelection->setEnabled(hasSelectedText);
 
     auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNo))->sourceItem();
-    actionToggleBookmark->setText(sourceItem->bookmarked ? i18n("Clear Bookmark") : i18n("Set bookmark") );
+    if (sourceItem->bookmarked) {
+        actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
+        actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));
+    } else {
+        actionToggleBookmark->setText(i18nc("@action:inmenu set bookmark", "Set bookmark"));
+        actionToggleBookmark->setToolTip(i18nc("@info:tooltip set bookmark", "Place a bookmark on the current line."));
+    }
 
     auto lineNums = bookmarkedLines.values();
     std::sort(lineNums.begin(), lineNums.end());
@@ -1392,17 +1417,17 @@ FindDialog::FindDialog(QWidget *parent, QString text)
     : QDialog(parent)
 {
     lineEdit = new QLineEdit;
-    findButton = new QPushButton(tr("&Find"));
-    findIgnoreCase = new QCheckBox(tr("&Ignore case:"));
+    findButton = new QPushButton(i18nc("@action:button label of find button in find dialog", "&Find"));
+    findIgnoreCase = new QCheckBox(i18nc("@option:check check box for case insensitive in find dialog", "&Ignore case:"));
 
     QHBoxLayout *layout = new QHBoxLayout;
-    layout->addWidget(new QLabel(tr("Find:")));
+    layout->addWidget(new QLabel(i18nc("@label:textbox label for find dialog search string input", "Find:")));
     layout->addWidget(lineEdit);
     layout->addWidget(findIgnoreCase);
     layout->addWidget(findButton);
 
     setLayout(layout);
-    setWindowTitle(tr("Find text"));
+    setWindowTitle(i18nc("@title:window window title of text search dialog", "Find text"));
     connect(findButton, &QPushButton::clicked, this, &FindDialog::findClicked);
     connect(findButton, &QPushButton::clicked, this, &FindDialog::accept);
     lineEdit->setText(text);
@@ -1413,8 +1438,9 @@ void FindDialog::findClicked()
     QString text = lineEdit->text();
 
     if (text.isEmpty()) {
-        QMessageBox::information(this, tr("Empty Search Field"),
-                                 tr("Please enter a text to find."));
+        QMessageBox::information(this,
+                i18nc("@title:window title of empty search text dialog", "Empty Search Field"),
+                i18nc("@info informational text in empty search text dialog", "Please enter a text to find."));
         return;
     } else {
         findText = text;

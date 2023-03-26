@@ -1007,8 +1007,8 @@ public:
     /**
      * @brief Get coordinates of the selection.
      *
-     * If there is a selection, *lineFrom is set to the number of the linegraph in
-     * which the selection begins and *lineTo is set to the number of the linegraph
+     * If there is a selection, *lineFrom is set to the number of the line in
+     * which the selection begins and *lineTo is set to the number of the line
      * in which the selection ends. (They could be the same.) *colFrom is set to
      * the col at which the selection begins within *lineFrom, and *colTo is set
      * to the col at which the selection ends within *lineTo.

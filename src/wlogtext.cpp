@@ -1155,11 +1155,10 @@ void wLogText::getSelection(lineNumber_t *lineFrom, int *colFrom,
 {
     cell sTop, sBot;
     if (d->selecting) {
-        sTop = sBot = cell(-1, -1);
-    } else {
         sTop = d->selectTop;
         sBot = d->selectBottom;
-    }
+    } else
+        sTop = sBot = cell(-1, -1);
 
     if (lineFrom) {
         *lineFrom = sTop.lineNumber();
