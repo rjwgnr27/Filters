@@ -1261,8 +1261,7 @@ protected:
 
 public:
     batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
-    virtual ~batchException() {}
-    virtual const char* what() const noexcept override {return errorString.c_str();}
+    const char* what() const noexcept override {return errorString.c_str();}
 };
 
 class filterLoadException : public batchException
@@ -1270,7 +1269,6 @@ class filterLoadException : public batchException
 public:
     filterLoadException(QString const& str) :
         batchException(QStringLiteral("Error loading filter file: %1").arg(str)) {}
-    virtual ~filterLoadException() {}
 };
 
 class loadDialectException : public batchException
@@ -1278,7 +1276,6 @@ class loadDialectException : public batchException
 public:
     loadDialectException(QString const& str) :
         batchException(QStringLiteral("Dialect mismatch loading filter file: %1").arg(str)) {}
-    virtual ~loadDialectException() {}
 };
 
 class dialectTypeException : public batchException
@@ -1286,7 +1283,6 @@ class dialectTypeException : public batchException
 public:
     dialectTypeException(QString const& str) :
         batchException(QStringLiteral("Unsupported dialect: %1").arg(str)) {}
-    virtual ~dialectTypeException() {}
 };
 
 class badRegexException : public batchException
@@ -1294,7 +1290,6 @@ class badRegexException : public batchException
 public:
     badRegexException(QString const& str) :
         batchException(QStringLiteral("bad regular expression: '%1'").arg(str)) {}
-    virtual ~badRegexException() {}
 };
 
 class subjectLoadException : public batchException
@@ -1302,7 +1297,6 @@ class subjectLoadException : public batchException
 public:
     subjectLoadException(QString const& str) :
         batchException(QStringLiteral("Error loading subject file: %1").arg(str)) {}
-    virtual ~subjectLoadException() {}
 };
 
 

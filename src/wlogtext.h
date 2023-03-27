@@ -289,7 +289,7 @@ public:
     logTextItem(const logTextItem&) noexcept = default;
     logTextItem(logTextItem&&) noexcept = default;
 
-    virtual ~logTextItem() {}
+    virtual ~logTextItem() = default;
 
     /**
      * Get the style for a logText line.
