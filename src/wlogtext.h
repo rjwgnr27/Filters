@@ -68,7 +68,7 @@ public:
      * Return the line number represented by this cell.
      * @return Line number of this cell
      **/
-    int lineNumber() const {return m_line;}            //!< Return line number represented by a cell.
+    [[nodiscard]] int lineNumber() const {return m_line;}            //!< Return line number represented by a cell.
 
     /**
      * Set the line position represented by this cell.
@@ -80,7 +80,7 @@ public:
      * Return the column number represented by this cell.
      * @return column number of this cell
      **/
-    int columnNumber() const {return m_col;}               //!< Return the character column this cell represents
+    [[nodiscard]] int columnNumber() const {return m_col;}               //!< Return the character column this cell represents
 
     /**
      * Set the column position represented by this cell.
@@ -100,14 +100,26 @@ public:
      * validation against any document structure.
      * @return A \c cell position one line down from this.
      **/
-    cell nextLine() const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
+    [[nodiscard]] cell nextLine() const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
+
+    void advanceLine(int inc = 1) {setLineNumber(lineNumber() + inc);}
+    void advanceColumn(int inc = 1) {setColumnNumber(columnNumber() + inc);}
 
     /**
      * Returns a cell one column after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
      * @return cell location of next column.
      **/
-    cell nextCol() const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
+    [[nodiscard]] cell nextCol() const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
+
+    /**
+     * @brief compare to cells for equality
+     *
+     * @param other @c cell to compare to
+     * @return @c true if the cells are equal
+     */
+    bool operator == (cell const& other) const {
+        return lineNumber() == other.lineNumber() && columnNumber() == other.columnNumber();}
 
     /**
      * Cell relative position comparison.
@@ -116,12 +128,32 @@ public:
      **/
     auto operator <=> (cell const& other) const {
         return lineNumber() == other.lineNumber() ? columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
-        auto operator == (cell const& other) const {
-            return lineNumber() == other.lineNumber() && columnNumber() == other.columnNumber();}
 
     void swap(cell &other) noexcept {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
+
+    [[nodiscard]] cell operator +(cell const& other) const {
+        return {lineNumber() + other.lineNumber(), columnNumber() + other.columnNumber()};}
+
+    [[nodiscard]] cell operator -(cell const& other) const {
+        return {lineNumber() - other.lineNumber(), columnNumber() - other.columnNumber()};}
+
+    [[nodiscard]] cell abs() const {return {::abs(lineNumber()), ::abs(columnNumber())};}
+    [[nodiscard]] friend cell abs(cell const& c) {return c.abs();}
+
+    cell& operator +=(cell const& other) {
+        setLineNumber(lineNumber() + other.lineNumber());
+        setColumnNumber(columnNumber() + other.columnNumber());
+        return *this;}
+
 };
 template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
+
+/* structured bindings API */
+template<> struct std::tuple_size<cell> {static constexpr int value = 2;};
+template<size_t N> struct std::tuple_element<N, cell> {using type = int;};
+template<int N> decltype(auto) get(cell const& c) {
+    if constexpr(N == 0) return c.lineNumber(); else return c.columnNumber();
+}
 
 /**
  * @brief a class representing a region of cells
@@ -140,10 +172,18 @@ public:
     region(region const&) = default;
     region& operator =(region const&) = default;
 
-    cell first() const {return m_first;}
-    cell second() const {return m_second;}
+    /**
+     * test for an empty region
+     * @return @c true if start == end
+     */
+    [[nodiscard]] bool empty() const {return m_first == m_second;}
 
-    void swap(region &other) {std::swap(m_first, other.m_first); std::swap(m_second, other.m_second);}
+    /**
+     * @brief get the start of the selection
+     * Returns the start (not necessarily the top) of the selection region
+     * @return @c cell of the selection start
+     */
+    [[nodiscard]] cell first() const {return m_first;}
 
     /**
      * @brief assure first() precedes second()
@@ -156,13 +196,30 @@ public:
      * returns a copy of this region, assuring it is normalized
      * @return ac opy of this, assuring first() precedes second()
      */
-    region normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
+    [[nodiscard]] region normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
+
+    /**
+     * @brief get the end of the selection
+     * Returns the end (not necessarily the bottom) of the selection region
+     * @return @c cell of the selection end
+     */
+    [[nodiscard]] cell second() const {return m_second;}
 
     /**
      * @brief test if first() and second() have the same line number
+     * Test if the region is not empty, and first line number equals the
+     * second line number.
      * @return @c true if line number of first is the same as second
      */
-    bool singleLine() const {return m_first.lineNumber() == m_second.lineNumber();}
+    [[nodiscard]] bool singleLine() const {return !empty() && m_first.lineNumber() == m_second.lineNumber();}
+
+    /**
+     * @brief swap this region with another
+     *
+     * @param other @c region to swap with
+     */
+    void swap(region &other) {
+        std::swap(m_first, other.m_first); std::swap(m_second, other.m_second);}
 
     /**
      * @brief simple approximation of the distance from first() to second()
@@ -171,14 +228,22 @@ public:
     int manhattanLength() const {
         return abs(m_second.lineNumber() - m_first.lineNumber()) +
                abs(m_second.columnNumber() - m_first.columnNumber());}
-    /**
-     * test for an empty region
-     * @return @c true if start == end
-     */
-    bool empty() const {return m_first == m_second;}
+
+    bool operator ==(region const& other) const {
+        return first() == other.first() && second() == other.second();}
+
+    region operator +(cell const& offs) const {return {first() + offs, second() + offs};}
+    region& operator +=(cell const& offs) {m_first += offs; m_second += offs; return *this;}
+
+    [[nodiscard]] cell span() {return first() - second();}
 };
 template<> inline void std::swap<region>(region &x, region &y) noexcept {x.swap(y);}
-static inline bool operator ==(region r1, region r2) {return r1.first() == r2.first() && r1.second() == r2.second();}
+
+/* structured bindings API: */
+template<> struct std::tuple_size<region> {static constexpr int value = 2;};
+template<size_t N> struct std::tuple_element<N, region> {using type = cell;};
+template<int N> decltype(auto) get(region const& r) {
+    if constexpr(N == 0) return r.first(); else return r.second();}
 
 /**
  * Class to define a line item for to be displayed in a logText widget.
@@ -1076,7 +1141,9 @@ public:
      * @param colFrom   Pointer to store column number of selection start
      * @param lineTo    Pointer to store line number of selection end
      * @param colTo     Pointer to store column number of selection end
+     * @deprecated use @c getSelection()
      **/
+    [[deprecated("use: region getSelection()")]]
     void getSelection(lineNumber_t *lineFrom, int *colFrom,
                       lineNumber_t *lineTo, int *colTo) const;
     /**

@@ -86,6 +86,7 @@ void Filters::setupActions()
 void mainWidget::setupActions()
 {
     KActionCollection *ac = mainWindow->actionCollection();
+    QAction *action;
 
     /***********************/
     /***    File menu    ***/
@@ -96,7 +97,8 @@ void mainWidget::setupActions()
     recentFileAction->loadEntries(KConfigGroup(KSharedConfig::openConfig(),
                                 QStringLiteral("RecentURLs")));
 
-    actionLoadFromClipboard = ac->addAction("file_load_from_clipboard", this, SLOT(loadSubjectFromCB()));
+    actionLoadFromClipboard = ac->addAction(QStringLiteral("file_load_from_clipboard"),
+                                            this, SLOT(loadSubjectFromCB()));
     actionLoadFromClipboard->setText(i18n("Load from clipboard"));
     actionLoadFromClipboard->setWhatsThis(i18n("Set subject to text contents of the clipboard"));
     actionLoadFromClipboard->setToolTip(i18n("Set subject to clipboard"));
@@ -122,12 +124,35 @@ void mainWidget::setupActions()
 
     /***********************/
     /***   Edit menu     ***/
-    actionGotoLine = KStandardAction::gotoLine(this, SLOT(gotoLine()), ac);
-    //actionGotoLine->setText(i18n("&Go to line"));
+    actionGotoLine = ac->addAction(QStringLiteral("goto_line"), this, SLOT(gotoLine()));
+    actionGotoLine->setText(i18nc("edit menu", "&Go to line"));
     actionGotoLine->setToolTip(i18n("Jump to subject line number"));
     actionGotoLine->setWhatsThis(i18n("Jump to the displayed line for the given subject line number, or the preceding line closest."));
-    //actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
-    //ac->setDefaultShortcut(actionGotoLine, QKeySequence(QStringLiteral("Ctrl+G")));
+    actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
+    ac->setDefaultShortcut(actionGotoLine, QKeySequence(tr("Ctrl+G")));
+
+    actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("goto_bookmark")),
+                                           QStringLiteral("Jump to bookmark"), ac);
+    action = ac->addAction(QStringLiteral("goto_bookmark"), actionBookmarkMenu);
+    connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
+    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+J")));
+
+    /***********************/
+    /***   View menu     ***/
+    action = ac->addAction(QStringLiteral("zoom_in"), result, SLOT(enlargeFont()));
+    action->setText(i18nc("view menu", "Increase Font Size"));
+    action->setIcon(QIcon::fromTheme(QStringLiteral("zoom-in")));
+    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl++")));
+
+    action = ac->addAction(QStringLiteral("zoom_out"), result, SLOT(shrinkFont()));
+    action->setText(i18nc("view menu", "Decrease Font Size"));
+    action->setIcon(QIcon::fromTheme(QStringLiteral("zoom-out")));
+    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+-")));
+
+    action = ac->addAction(QStringLiteral("actual_size"), result, SLOT(resetFontZoom()));
+    action->setText(i18nc("view menu", "Reset Font Size"));
+    action->setIcon(QIcon::fromTheme(QStringLiteral("actual-size")));
+    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+0")));
 
     /***********************/
     /***   Filters menu  ***/
@@ -150,7 +175,7 @@ void mainWidget::setupActions()
     actionDialect = new KSelectAction(i18n("Dialect"), this);
     actionDialect->addAction(QStringLiteral("QRegularExpression"));
     actionDialect->setCurrentItem(0);
-    QAction *action = ac->addAction(QStringLiteral("re_dialect"), actionDialect);
+    action = ac->addAction(QStringLiteral("re_dialect"), actionDialect);
     connect(actionDialect, SIGNAL(triggered(const QString&)), this, SLOT(dialectChanged(const QString&)));
     action->setText(i18n("Dialect"));
     action->setToolTip(i18n("Select the RE dialect used"));
@@ -296,13 +321,7 @@ void mainWidget::setupActions()
     actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
     ctxtMenu->addAction(actionToggleBookmark);
 
-    actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("go-JUMP")),
-                                           QStringLiteral("Jump to bookmark"), ac);
-    connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
-    actionBookmarkMenu->setShortcut(QKeySequence(Qt::CTRL, Qt::Key_J));
     ctxtMenu->addAction(actionBookmarkMenu);
-
-    ctxtMenu->addAction(KStandardAction::gotoLine(this, SLOT(gotoLine()), ac));
 
     QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
     QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
@@ -397,7 +416,7 @@ void mainWidget::setupUi()
     //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
     pixBmUser = QIcon::fromTheme("status-note").pixmap(16,16);
     pixBmUser.scaledToHeight(16);
-    result->setPixmap(pixmapIdUser, pixBmUser);
+    result->setPixmap(pixmapIdBookMark, pixBmUser);
     pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
     result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
     result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
@@ -1017,27 +1036,39 @@ void mainWidget::toggleBookmark()
     auto& sourceItem = stepResults[0][srcIdx];
     if (!sourceItem.bookmarked) {
         sourceItem.bookmarked = true;
-        QString& sourceText = sourceItem.text;
-        if (result->hasSelectedText()) {
-            lineNumber_t lineFrom, lineTo;
-            int colFrom, colTo;
-            result->getSelection(&lineFrom, &colFrom, &lineTo, &colTo);
-status->setText(QString("#%1 (%2,%3) (%4,%5)").arg(lineNumber).arg(lineFrom).arg(colFrom).arg(lineTo).arg(colTo));
-            if (lineFrom == lineNumber) {
-                int count = (lineTo == lineNumber) ? (colTo - colFrom) : sourceText.size() - colFrom;
-                count = std::min(40, std::max(10, count));
-                sourceItem.bmText = sourceText.midRef(colFrom, count);
-            } else
-                sourceItem.bmText = sourceText.leftRef(40);
+        QString const& sourceText = sourceItem.text;
+        if (auto sel = result->getSelection().normalized(); sel.singleLine()) {
+            auto [start, end]{sel};
+            sourceItem.bmText = sourceText.midRef(
+                start.columnNumber(), end.columnNumber() - start.columnNumber());
         } else
             sourceItem.bmText = sourceText.leftRef(40);
         bookmarkedLines.insert(sourceItem.srcLineNumber);
-        result->setLinePixmap(lineNumber, pixmapIdUser);
+        result->setLinePixmap(lineNumber, pixmapIdBookMark);
     } else {
         sourceItem.bookmarked = false;
         bookmarkedLines.remove(sourceItem.srcLineNumber);
         result->clearLinePixmap(lineNumber);
     }
+
+    auto lineNums = bookmarkedLines.values();
+    std::sort(lineNums.begin(), lineNums.end());
+    QStringList bms;
+    bmLineNums.clear();
+    bmLineNums.reserve(bmLineNums.size());
+    bms.reserve(bmLineNums.size());
+
+    auto const& items = stepResults[0];
+    for(lineNumber_t lineNo : lineNums) {
+        if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
+            auto srcIdx = std::max(0, lineNo - 1);
+            QString t = QString("%1: %2").arg(lineNo).arg(items[srcIdx].bmText);
+            bms.push_back(t);
+            bmLineNums.push_back(lineNo);
+        } else
+            bookmarkedLines.remove(lineNo);
+    }
+    actionBookmarkMenu->setItems(bms);
 }
 
 void mainWidget::gotoLine()
@@ -1163,25 +1194,6 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip set bookmark", "Place a bookmark on the current line."));
     }
 
-    auto lineNums = bookmarkedLines.values();
-    std::sort(lineNums.begin(), lineNums.end());
-    QStringList bms;
-    bmLineNums.clear();
-    bmLineNums.reserve(bmLineNums.size());
-    bms.reserve(bmLineNums.size());
-
-    auto const& items = stepResults[0];
-    for(lineNumber_t lineNo : lineNums) {
-        if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
-            auto srcIdx = std::max(0, lineNo - 1);
-            QString t = QString("%1: %2").arg(lineNo).arg(items[srcIdx].bmText);
-            bms.push_back(t);
-            bmLineNums.push_back(lineNo);
-        } else
-            bookmarkedLines.remove(lineNo);
-    }
-    actionBookmarkMenu->setItems(bms);
-
     ctxtMenu->exec(pos);
 }
 
@@ -1195,7 +1207,7 @@ void mainWidget::lineSpacingChange([[maybe_unused]] int oldHeight, int newHeight
 {
     QPixmap pmU = pixBmUser.scaledToHeight(newHeight);
     auto pmUWidth = pmU.width();
-    result->setPixmap(pixmapIdUser, std::move(pmU));
+    result->setPixmap(pixmapIdBookMark, std::move(pmU));
 
     QPixmap pmA = pixBmAnnotation.scaledToHeight(newHeight);
     auto pmAWidth = pmA.width();

@@ -84,7 +84,7 @@ class mainWidget : public QWidget {
 
 private:
     enum {ColEnable = 0, ColExclude=1, ColCaseIgnore=2, ColRegEx=3};
-    enum {pixmapIdUser = 0, pixmapIdAnnotation = 1};
+    enum {pixmapIdBookMark = 0, pixmapIdAnnotation = 1};
 
     class resultTextItem : public logTextItem {
     private:

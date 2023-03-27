@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="Filtersui"
-     version="24"
+     version="25"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -18,12 +18,20 @@
 
         <Menu name="edit">
             <Action name="goto_line" />
+            <Action name="goto_bookmark" />
             <!--
             <Action name="filter_cut" />
             <Action name="filter_copy" />
             <Action name="filter_paste" />
             <Separator lineSeparator="true" />
             -->
+        </Menu>
+
+        <Menu name="view">
+            <text context="@title:menu">&amp;View</text>
+            <Action name="zoom_in" />
+            <Action name="zoom_out" />
+            <Action name="actual_size" />
         </Menu>
 
         <Menu name="filters">
