@@ -21,7 +21,7 @@ SUDO=""
 EXEC=0
 #EXEC_ARGS=""
 
-while getopts 'hvbcisxC:B:' OPT; do
+while getopts 'hvbcisxC:B:NV' OPT; do
     case "$OPT" in
         h)
             echo "Usage $(basename "$0") OPTS"
@@ -31,7 +31,9 @@ while getopts 'hvbcisxC:B:' OPT; do
             echo "  -b    - also build"
             echo "  -c    - only with '-b': clean tree before build"
             echo "  -i    - also install"
+	    echo "  -N    - Use Ninja build system"
             echo "  -s    - only with '-i': do sudo install"
+	    echo "  -V    - enable verbose makefile"
             echo "  -x    - execute from build tree"
             echo "  -C COPT"
             echo "        - add 'COPT' to cmake configure options"
@@ -62,11 +64,14 @@ while getopts 'hvbcisxC:B:' OPT; do
         x)
             EXEC=1
             ;;
+        B)
+            BUILD_OPTS="$BUILD_OPTS $OPTARG"
+            ;;
         C)
             CONF_OPTS="$CONF_OPTS $OPTARG"
             ;;
-        B)
-            BUILD_OPTS="$BUILD_OPTS $OPTARG"
+        N)
+            CONF_OPTS="$CONF_OPTS -G Ninja"
             ;;
         # I)
         #     INSTALL_OPTS="$INSTALL_OPTS $OPTARG"
@@ -74,6 +79,9 @@ while getopts 'hvbcisxC:B:' OPT; do
         # A)
         #     EXEC_ARGS="$EXEC_ARGS $OPTARG"
         #     ;;
+	V)
+	    CONF_OPTS="$CONF_OPTS -DCMAKE_VERBOSE_MAKEFILE=ON"
+	    ;;
         *)
             echo "Unknown option: '$OPT'"
             exit 1
