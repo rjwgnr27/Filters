@@ -126,9 +126,10 @@ void mainWidget::setupActions()
     actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
     ac->setDefaultShortcut(actionGotoLine, QKeySequence(tr("Ctrl+G")));
 
-    actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("goto_bookmark")),
+    actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("bookmarks")),
                                            QStringLiteral("Jump to bookmark"), ac);
     action = ac->addAction(QStringLiteral("goto_bookmark"), actionBookmarkMenu);
+    action->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
     connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
     ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+J")));
 
@@ -302,7 +303,7 @@ void mainWidget::setupActions()
                                          SLOT(toggleBookmark()));
     actionToggleBookmark->setText(QStringLiteral("Toggle Bookmark"));
     actionToggleBookmark->setWhatsThis(QStringLiteral("Set/clear a bookmark on the current line."));
-    actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
+    actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
     ctxtMenu->addAction(actionToggleBookmark);
 
     ctxtMenu->addAction(actionBookmarkMenu);
@@ -1170,13 +1171,22 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
 
-    auto* sourceItem = resultTextItem::asResultTextItem(result->item(lineNo))->sourceItem();
-    if (sourceItem->bookmarked) {
+    auto currentPos = result->caretPosition();
+    auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
+    if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
+        return;
+    auto logItem = result->item(lineNumber);
+    auto sourceLineNo = resultTextItem::asResultTextItem(logItem)->sourceItem()->srcLineNumber;
+    auto srcIdx = std::max(0, sourceLineNo - 1);
+    auto& sourceItem = stepResults[0][srcIdx];
+    if (sourceItem.bookmarked) {
         actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));
+	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-remove")));
     } else {
         actionToggleBookmark->setText(i18nc("@action:inmenu set bookmark", "Set bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip set bookmark", "Place a bookmark on the current line."));
+	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
     }
 
     ctxtMenu->exec(pos);

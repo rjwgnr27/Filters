@@ -596,10 +596,8 @@ void wLogText::adjustHorizontalScrollBar()
 
 void wLogText::setFont(QFont font)
 {
-    if (!QFontInfo(font).fixedPitch()) {
-        qWarning() << "Ignoring non fixed pitch font" <<  font.family();
+    if (!QFontInfo(font).fixedPitch())
         return;
-    }
     font.setKerning(false);
     font.setFixedPitch(true);
     QWidget::setFont(font);
