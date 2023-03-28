@@ -3,9 +3,9 @@ This application allows the the filtering of a text file, by the sequential
 application of regular expressions.
 
 The application can be run in interactive mode, presenting a UI with a list 
-of regurlar expressions, and the final results of the applied filters. It can 
-also be run in non-interactive "batch" mode, applyng a filter set saved from 
-a previous interative session to an input file.
+of regular expressions, and the final results of the applied filters. It can
+also be run in non-interactive "batch" mode, applying a filter set saved from
+a previous interactive session to an input file.
 
 ## GUI mode
 When started, the program will
@@ -117,7 +117,7 @@ Application specific options can be enabled using the -DOPT=TRUE option, where O
 
 For example, to enable LTO and ASAN: `cmake .. -DWITH_ASAN=TRUE -DWITH_LTO=TRUE`.
 
-Note: Using ASAN may require preloading the libasan.so library:
+Note: Using ASAN may require pre-loading the libasan.so library:
   ex: LD_PRELOAD=/usr/lib64/libasan.so.8 ./filters
 
 Note: with ASAN: At runtime set environment variable
@@ -172,27 +172,5 @@ Use this option to make the application available to all users in the system.
 sudo cmake --install .
 ```
 
-## Bugs
-* The whole filter chain runs in the context of the UI event loop. It uses
-  `QtConcurrent::blockingFiltered()` to multi-thread filter application. Note
-  however, on very large subject files, the big time consumer seems to be the
-  `setPlainText()` of the result text widget, which has to be done in the UI
-  event loop.
-
 ## Todo
-There are a number of improvements to be made:
-
-* Big baddy here (see the "Bugs" section above): move the filter chain
-  out of the event loop. See also the note above about `setPlainText()`.
-
-* For inclusion filters, add an "or" option, so that two or more
-  expressions can be sequenced so that if one fails, the next is
-  tried; and only if all in the group fail, is the inclusion false.
-
-* Add a (optional?) "applied count" column to the filters table, so show the number of
-  inclusions/exclusions for a given filter. This could be used to optimize the
-  filter order, i.e. to give biggest exclusions at the top.
-
-* (optional) application time to give the filter step. And/or, time per
-  application to rank the complexity of the expression; again could be used to
-  optimize the expression order.
+* move the filter chain out of the event loop.

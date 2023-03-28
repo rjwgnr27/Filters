@@ -102,15 +102,11 @@ void mainWidget::setupActions()
     actionLoadFromClipboard->setText(i18n("Load from clipboard"));
     actionLoadFromClipboard->setWhatsThis(i18n("Set subject to text contents of the clipboard"));
     actionLoadFromClipboard->setToolTip(i18n("Set subject to clipboard"));
-    //actionLoadFromClipboard->setDefaultShortcut();
-    //actionLoadFromClipboard->setIcon();
-    //actionLoadFromClipboard->setEnabled(false);
 
     actionSaveResults = ac->addAction(QStringLiteral("save_result"), this, SLOT(saveResult()));
     actionSaveResults->setText(i18n("Save Result..."));
     actionSaveResults->setToolTip(i18n("Save the filtered result."));
     actionSaveResults->setWhatsThis(i18n("Save the results of applying the filters to the source."));
-    //actionSaveResults->setDefaultShortcut(actionSaveResults, QKeySequence(QStringLiteral("Ctrl+N"));
     actionSaveResults->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
     actionSaveResults->setEnabled(false);
 
@@ -118,7 +114,6 @@ void mainWidget::setupActions()
     actionSaveResultsAs->setText(i18n("Save Result As..."));
     actionSaveResultsAs->setToolTip(i18n("Save the result as a new file."));
     actionSaveResultsAs->setWhatsThis(i18n("Save the results of applying the filters to the source as a new file."));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
     actionSaveResultsAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
     actionSaveResultsAs->setEnabled(false);
 
@@ -159,7 +154,6 @@ void mainWidget::setupActions()
     actionRun = ac->addAction(QStringLiteral("run_filters"), this, SLOT(runButtonClicked()));
     actionRun->setText(i18n("Run filters"));
     actionRun->setToolTip(i18n("Run the filters against the input"));
-    //actionRun->setWhatsThis(i18n(""));
     ac->setDefaultShortcut(actionRun, QKeySequence(QStringLiteral("Ctrl+R")));
     actionRun->setIcon(QIcon::fromTheme(QStringLiteral("system-run")));
 
@@ -169,7 +163,6 @@ void mainWidget::setupActions()
     actionAutorun->setChecked(false);
     actionAutorun->setToolTip(i18n("Auto-run the filters on any change"));
     actionAutorun->setWhatsThis(i18n("When set, any change will cause the filters to be re-applied"));
-    //ac->setDefaultShortcut(actionAutorun, QKeySequence(QStringLiteral("Ctrl+"));
     actionAutorun->setIcon(QIcon::fromTheme(QStringLiteral("system-run")));
 
     actionDialect = new KSelectAction(i18n("Dialect"), this);
@@ -179,17 +172,12 @@ void mainWidget::setupActions()
     connect(actionDialect, SIGNAL(triggered(const QString&)), this, SLOT(dialectChanged(const QString&)));
     action->setText(i18n("Dialect"));
     action->setToolTip(i18n("Select the RE dialect used"));
-    //action->setWhatsThis(i18n(""));
-    //action->setIcon(QIcon::fromTheme(QStringLiteral("")));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+"));
 
     action = ac->addAction(QStringLiteral("load_filters"), this, SLOT(loadFilters()));
     action->setText(i18n("Load Filters..."));
     action->setToolTip(i18n("Replace current filter list with contents of a file."));
     action->setWhatsThis(i18n("Load a filter list from a file, replacing the current filter "
                               "set with the contents."));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
-    //action->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
 
     recentFiltersAction = reinterpret_cast<KRecentFilesAction*>(ac->addAction(
         KStandardAction::OpenRecent, QStringLiteral("load_filters_recent"),
@@ -198,8 +186,6 @@ void mainWidget::setupActions()
     recentFiltersAction->setToolTip(i18n("Replace current filter list a recent file."));
     recentFiltersAction->setWhatsThis(i18n("Load a filter list from a recent file, replacing "
                                             "the current filter set with the contents."));
-    //ac->setDefaultShortcut(recentFiltersAction, QKeySequence(QStringLiteral("Ctrl+N"));
-    //recentFiltersAction->setIcon(QIcon::fromTheme(QStringLiteral("document-save")));
     recentFiltersAction->loadEntries(KConfigGroup(KSharedConfig::openConfig(),
                                             QStringLiteral("RecentFilters")));
 
@@ -220,8 +206,6 @@ void mainWidget::setupActions()
     action = ac->addAction(QStringLiteral("clear_filters"), this, SLOT(clearFilters()));
     action->setText(i18n("Clear"));
     action->setToolTip(i18n("Clears the filters table"));
-    //action->setWhatsThis(i18n(""));
-    //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+N"));
     action->setIcon(QIcon::fromTheme(QStringLiteral("delete-table")));
 
     /**********************/
@@ -357,7 +341,7 @@ void mainWidget::setupUi()
     filtersTable = new QTableWidget(groupBox_2);
     filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
     filtersTable->setMouseTracking(true);
-    filtersTable->setColumnCount(4);
+    filtersTable->setColumnCount(NumCol);
     filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
     filtersTable->horizontalHeader()->setStretchLastSection(true);
     filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -368,7 +352,7 @@ void mainWidget::setupUi()
     item->setToolTip(i18n("Expression entry is enabled when checked"));
     item->setWhatsThis(i18n("When checked, this filter is enabled, and will be applied "
                             "to the result. When unchecked, this entry is not used."));
-    filtersTable->setHorizontalHeaderItem(0, item);
+    filtersTable->setHorizontalHeaderItem(ColEnable, item);
 
     item = new QTableWidgetItem;
     item->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
@@ -377,19 +361,19 @@ void mainWidget::setupUi()
     item->setWhatsThis(i18n("When not checked, lines matching the regular expression "
                             "will be included in the result. When checked, those which "
                             "do not match will be included."));
-    filtersTable->setHorizontalHeaderItem(1, item);
+    filtersTable->setHorizontalHeaderItem(ColExclude, item);
 
     item = new QTableWidgetItem;
     item->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
     item->setTextAlignment(Qt::AlignLeft);
     item->setToolTip(i18n("Use case insensitive matching"));
     item->setWhatsThis(i18n("When checked, the regular expression match will ignore text case."));
-    filtersTable->setHorizontalHeaderItem(2, item);
+    filtersTable->setHorizontalHeaderItem(ColCaseIgnore, item);
 
     item = new QTableWidgetItem;
     item->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
     item->setToolTip(i18n("Regular expression string"));
-    filtersTable->setHorizontalHeaderItem(3, item);
+    filtersTable->setHorizontalHeaderItem(ColRegEx, item);
 
     verticalLayout->addWidget(filtersTable);
 
@@ -522,13 +506,12 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         stepResults[0] = std::move(lines);
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
         // FIXME: After loading huge file, this line hangs:
-        //status->setText(QStringLiteral("%1: %2 lines").arg(localFile, sourceLineCount));
+        status->setText(QStringLiteral("%1: %2 lines").arg(localFile).arg(sourceLineCount));
         maybeAutoApply(0);
         return true;
-    } else {
-        status->setText(QStringLiteral("open '%1' failed").arg(localFile));
-        return false;
     }
+    status->setText(QStringLiteral("open '%1' failed").arg(localFile));
+    return false;
 }
 
 void mainWidget::loadRecentSubject(const QUrl& url)
@@ -582,7 +565,7 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
         return src;
 
     if (filtersTable->item(entry, ColEnable)->checkState() != Qt::Checked) {
-        item->setToolTip(QString{"disabled"});
+        item->setToolTip(i18nc("@info:tooltip filter table entry when expression is disabled", "disabled"));
         return src;
     }
 
@@ -600,9 +583,12 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
         return src;
 
     re.optimize();
+    QElapsedTimer timer;
+    timer.start();
     auto result = QtConcurrent::blockingFiltered(src,
         [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
-    item->setToolTip(QString("%L1 of %L2").arg(result.size()).arg(src.size()));
+    item->setToolTip(QStringLiteral("%L1 of %L2 -- %L3us").arg(result.size())
+            .arg(src.size()).arg(timer.nsecsElapsed()/1000));
     return result;
 }
 
@@ -689,9 +675,9 @@ void mainWidget::displayResult()
         std::vector<int> lineMap(items.size());
         auto mapIt = lineMap.begin();
         if (actionLineNumbers->isChecked()) {
-            int width = QString("%1").arg(items.back().srcLineNumber).size();
+            int width = QStringLiteral("%1").arg(items.back().srcLineNumber).size();
             for (auto& item : items) {
-                QString line = QString("%1| ").arg(item.srcLineNumber, width) + item.text;
+                QString line = QStringLiteral("%1| ").arg(item.srcLineNumber, width) + item.text;
                 auto ri = new resultTextItem(&item, std::move(line), 0);
                 result->append(ri);
                 *(mapIt++) = item.srcLineNumber;
@@ -810,7 +796,7 @@ filterEntry mainWidget::getFilterRow(int row)
     return entry;
 }
 
-void mainWidget::setFilterRow(int row, filterEntry entry)
+void mainWidget::setFilterRow(int row, filterEntry const& entry)
 {
     QSignalBlocker blocker(filtersTable);
     filtersTable->item(row, ColEnable)->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
@@ -835,7 +821,7 @@ void mainWidget::autoRunClicked()
         applyFrom(0);
 }
 
-void mainWidget::dialectChanged(QString text)
+void mainWidget::dialectChanged(QString const& text)
 {
     Q_UNUSED(text)
     maybeAutoApply(0);
@@ -932,7 +918,7 @@ bool mainWidget::loadFiltersTable(const filterData& filters)
         appendEmptyRow();
         maybeAutoApply(0);
     } else
-        qWarning() << "JSON file is not valid";
+        qWarning() << QStringLiteral("JSON file is not valid");
     return filters.valid;
 }
 
@@ -945,12 +931,12 @@ filterData mainWidget::loadFiltersFile(const QString& fileName)
         QByteArray data = file.readAll();
         QJsonDocument doc(QJsonDocument::fromJson(data));
         QJsonObject filters = doc.object();
-        if (filters.contains("dialect") && filters["dialect"].isString())
-            result.dialect = filters["dialect"].toString();
+        if (auto it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
+            result.dialect = it->toString();
 
-        if (filters.contains("filters") && filters["filters"].isArray()) {
-            const QJsonArray filterArray = filters["filters"].toArray();
-            for (const auto& entry : qAsConst(filterArray))
+        if (auto it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
+            const QJsonArray filterArray = filters[QStringLiteral("filters")].toArray();
+            for (const auto& entry : it->toArray())
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
             filtersFileName = fileName;
@@ -1062,8 +1048,7 @@ void mainWidget::toggleBookmark()
     for(lineNumber_t lineNo : lineNums) {
         if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
             auto srcIdx = std::max(0, lineNo - 1);
-            QString t = QString("%1: %2").arg(lineNo).arg(items[srcIdx].bmText);
-            bms.push_back(t);
+            bms.push_back(QStringLiteral("%1: %2").arg(lineNo).arg(items[srcIdx].bmText));
             bmLineNums.push_back(lineNo);
         } else
             bookmarkedLines.remove(lineNo);
@@ -1185,7 +1170,7 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
 
-    auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNo))->sourceItem();
+    auto* sourceItem = resultTextItem::asResultTextItem(result->item(lineNo))->sourceItem();
     if (sourceItem->bookmarked) {
         actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));
@@ -1235,20 +1220,20 @@ void mainWidget::selectResultFont()
 QJsonObject filterEntry::toJson() const
 {
     QJsonObject filter;
-    filter["enabled"] = enabled;
-    filter["exclude"] = exclude;
-    filter["ignore_case"] = ignoreCase;
-    filter["regexp"] = re;
+    filter[QStringLiteral("enabled")] = enabled;
+    filter[QStringLiteral("exclude")] = exclude;
+    filter[QStringLiteral("ignore_case")] = ignoreCase;
+    filter[QStringLiteral("regexp")] = re;
     return filter;
 }
 
 filterEntry filterEntry::fromJson(const QJsonObject& jentry)
 {
     filterEntry entry;
-    entry.enabled = jentry["enabled"].toBool();
-    entry.exclude = jentry["exclude"].toBool();
-    entry.ignoreCase = jentry["ignore_case"].toBool();
-    entry.re = jentry["regexp"].toString();
+    entry.enabled = jentry[QStringLiteral("enabled")].toBool();
+    entry.exclude = jentry[QStringLiteral("exclude")].toBool();
+    entry.ignoreCase = jentry[QStringLiteral("ignore_case")].toBool();
+    entry.re = jentry[QStringLiteral("regexp")].toString();
     return entry;
 }
 
@@ -1309,12 +1294,11 @@ static filterData batchLoadFilterFile(const QString& fileName)
         QByteArray data = file.readAll();
         QJsonDocument doc(QJsonDocument::fromJson(data));
         QJsonObject filters = doc.object();
-        if (filters.contains("dialect") && filters["dialect"].isString())
-            result.dialect = filters["dialect"].toString();
+        if (auto it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
+            result.dialect = it->toString();
 
-        if (filters.contains("filters") && filters["filters"].isArray()) {
-            const QJsonArray filterArray = filters["filters"].toArray();
-            for (const auto& entry : filterArray)
+        if (auto it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
+            for (const auto& entry : it->toArray())
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
         }
@@ -1393,7 +1377,7 @@ static itemList batchApplyQRegularExpressions(const filterData& filters, itemLis
 
 static itemList batchApplyFilters(const filterData& filters, const itemList& lines)
 {
-    if (filters.dialect == "QRegularExpression")
+    if (filters.dialect == QStringLiteral("QRegularExpression"))
         return batchApplyQRegularExpressions(filters, itemList(lines));
     throw dialectTypeException(filters.dialect);
 }
@@ -1419,10 +1403,12 @@ int doBatch(const commandLineOptions& opts)
     return 0;
 }
 
-FindDialog::FindDialog(QWidget *parent, QString text)
+FindDialog::FindDialog(QWidget *parent, QString const& text)
     : QDialog(parent)
 {
-    lineEdit = new QLineEdit;
+    setWindowTitle(i18nc("@title:window window title of text search dialog", "Find text"));
+
+    lineEdit = new QLineEdit(text);
     findButton = new QPushButton(i18nc("@action:button label of find button in find dialog", "&Find"));
     findIgnoreCase = new QCheckBox(i18nc("@option:check check box for case insensitive in find dialog", "&Ignore case:"));
 
@@ -1433,10 +1419,8 @@ FindDialog::FindDialog(QWidget *parent, QString text)
     layout->addWidget(findButton);
 
     setLayout(layout);
-    setWindowTitle(i18nc("@title:window window title of text search dialog", "Find text"));
     connect(findButton, &QPushButton::clicked, this, &FindDialog::findClicked);
     connect(findButton, &QPushButton::clicked, this, &FindDialog::accept);
-    lineEdit->setText(text);
 }
 
 void FindDialog::findClicked()
@@ -1448,11 +1432,10 @@ void FindDialog::findClicked()
                 i18nc("@title:window title of empty search text dialog", "Empty Search Field"),
                 i18nc("@info informational text in empty search text dialog", "Please enter a text to find."));
         return;
-    } else {
-        findText = text;
-        lineEdit->clear();
-        hide();
     }
+    findText = std::move(text);
+    lineEdit->clear();
+    hide();
 }
 
 bool FindDialog::getIgnoreCase() const

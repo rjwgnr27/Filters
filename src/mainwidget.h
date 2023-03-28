@@ -83,7 +83,7 @@ class mainWidget : public QWidget {
     Q_OBJECT
 
 private:
-    enum {ColEnable = 0, ColExclude=1, ColCaseIgnore=2, ColRegEx=3};
+    enum {ColEnable = 0, ColExclude, ColCaseIgnore, ColRegEx, NumCol};
     enum {pixmapIdBookMark = 0, pixmapIdAnnotation = 1};
 
     class resultTextItem : public logTextItem {
@@ -119,7 +119,7 @@ private Q_SLOTS:
     void clearFilterRow();
     void clearFilters();
     void deleteFilterRow();
-    void dialectChanged(QString text);
+    void dialectChanged(QString const& text);
     void filtersTableMenuRequested(QPoint point);
     void gotoBookmark(int entry);
     void gotoLine();
@@ -302,7 +302,7 @@ private:
 
     void swapFiltersRows(int a, int b);
     filterEntry getFilterRow(int row);
-    void setFilterRow(int row, filterEntry entry);
+    void setFilterRow(int row, filterEntry const& entry);
 
     /**
      * override base paintEvent
@@ -325,7 +325,7 @@ class FindDialog : public QDialog
     Q_OBJECT
 
 public:
-    FindDialog(QWidget *parent = nullptr, QString text={});
+    FindDialog(QWidget *parent = nullptr, QString const& text = QString{});
     QString getFindText() const {return findText;}
     bool getIgnoreCase() const;
     void setIgnoreCase(bool ic);
