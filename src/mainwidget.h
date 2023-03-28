@@ -76,7 +76,8 @@ struct textItem {
     textItem& operator=(textItem const&) = default;
     textItem& operator=(textItem&&) = default;
 };
-using itemList = QList<textItem>;
+using itemsList = std::vector<textItem>;
+using stepList = QList<textItem*>;
 
 class mainWidget : public QWidget {
     friend class Filters;
@@ -160,10 +161,13 @@ private:
     bool reModified = false;
     bool subjModified = false;
 
+    /** Vector of text originally sourced text items */
+    itemsList sourceItems;
+
     /** Vector of results for each step. The input file is read into results[0].
      * Each results[n] is the input to filter(n), and the filter result goes
      * to results[n+1]. The final displayed result is at results.back(). */
-    std::vector<itemList> stepResults;
+    std::vector<stepList> stepResults;
 
     /**
      * Map of display line number to source line number. The index into the
@@ -235,7 +239,7 @@ private:
      * @param src input string list to apply
      * @return result of the filter applied to the input list @p entry
      */
-    itemList applyExpression(size_t entry, itemList src);
+    stepList applyExpression(size_t entry, stepList src);
 
     /**
      * @brief apply filter chain from point and those following

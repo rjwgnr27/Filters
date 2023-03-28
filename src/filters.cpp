@@ -499,15 +499,20 @@ bool mainWidget::loadSubjectFile(const QString& localFile)
         sourceLineCount = -1;
         clearResultsAfter(0);
         bookmarkedLines.clear();
-        QTextStream stream(&source);
-        itemList lines;
+        sourceItems.clear();
         sourceLineCount = 0;
-        while(!stream.atEnd())
-            lines << textItem{++sourceLineCount, stream.readLine()};
-        stepResults[0] = std::move(lines);
+        for(QTextStream stream(&source); !stream.atEnd(); )
+            sourceItems.emplace_back(++sourceLineCount, stream.readLine());
+        sourceItems.shrink_to_fit();
+
+        stepList steps;
+        steps.reserve(sourceItems.size());
+        std::for_each(sourceItems.begin(), sourceItems.end(),
+                      [&steps](auto& item) mutable {steps.push_back(&item);});
+        stepResults.resize(1);
+        stepResults[0] = std::move(steps);
         recentFileAction->addUrl(QUrl::fromLocalFile(localFile));
-        // FIXME: After loading huge file, this line hangs:
-        status->setText(QStringLiteral("%1: %2 lines").arg(localFile).arg(sourceLineCount));
+        status->setText(QStringLiteral("%1: %2 lines").arg(localFile).arg(sourceItems.size()));
         maybeAutoApply(0);
         return true;
     }
@@ -531,26 +536,32 @@ void mainWidget::loadSubjectFromCB()
         return;
     }
 
-    QTextStream stream(&text, QIODevice::ReadOnly);
-    itemList lines;
+    bookmarkedLines.clear();
+    sourceItems.clear();
     int srcLine = 0;
-    while (!stream.atEnd())
-        lines << textItem{++srcLine, stream.readLine()};
+    for(QTextStream stream(&text, QIODevice::ReadOnly); !stream.atEnd(); )
+        sourceItems.emplace_back(++srcLine, stream.readLine());
+    sourceItems.shrink_to_fit();
+
+    stepList steps;
+    steps.reserve(sourceItems.size());
+    std::for_each(sourceItems.begin(), sourceItems.end(),
+                  [&steps](auto& item) mutable {steps.push_back(&item);});
+    stepResults.resize(1);
+    stepResults[0] = std::move(steps);
 
     titleFile = i18nc("@info:status title bar file-name when loaded from clipboard", "<clipboard>");
     subjModified = false;
     updateApplicationTitle();
     sourceLineCount = -1;
     clearResultsAfter(0);
-    bookmarkedLines.clear();
-    sourceLineCount = lines.size();
-    stepResults[0] = std::move(lines);
-    status->setText(QStringLiteral("%1: %2 lines").arg(titleFile, sourceLineCount ));
+    sourceLineCount = sourceItems.size();
+    status->setText(QStringLiteral("%1: %2 lines").arg(titleFile).arg(sourceLineCount));
     maybeAutoApply(0);
 }
 
 
-itemList mainWidget::applyExpression(size_t entry, itemList src)
+stepList mainWidget::applyExpression(size_t entry, stepList src)
 {
     if (src.empty())
         return src;
@@ -558,7 +569,7 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
     size_t rows = filtersTable->rowCount();
     if (entry >= rows) {
         qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
-        return itemList{};
+        return stepList{};
     }
 
     const auto item = filtersTable->item(entry, ColRegEx);
@@ -582,12 +593,12 @@ itemList mainWidget::applyExpression(size_t entry, itemList src)
     QRegularExpression re(reStr, pOpts);
     if (!re.isValid())
         return src;
-
     re.optimize();
+
     QElapsedTimer timer;
     timer.start();
     auto result = QtConcurrent::blockingFiltered(src,
-        [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
+        [&re, exclude](const textItem* item) -> bool {return re.match(item->text).hasMatch() ^ exclude;});
     item->setToolTip(QStringLiteral("%L1 of %L2 -- %L3us").arg(result.size())
             .arg(src.size()).arg(timer.nsecsElapsed()/1000));
     return result;
@@ -669,25 +680,26 @@ void mainWidget::clearResults()
 void mainWidget::displayResult()
 {
     size_t resultLines = 0;
+
     if (!stepResults.empty() && !stepResults.back().empty()) {
         QSignalBlocker disabler{result};
         result->clear();
-        itemList& items = stepResults.back();
+        stepList& items = stepResults.back();
         std::vector<int> lineMap(items.size());
         auto mapIt = lineMap.begin();
         if (actionLineNumbers->isChecked()) {
-            int width = QStringLiteral("%1").arg(items.back().srcLineNumber).size();
+            int width = QStringLiteral("%1").arg(items.back()->srcLineNumber).size();
             for (auto& item : items) {
-                QString line = QStringLiteral("%1| ").arg(item.srcLineNumber, width) + item.text;
-                auto ri = new resultTextItem(&item, std::move(line), 0);
+                QString line = QStringLiteral("%1| ").arg(item->srcLineNumber, width) + item->text;
+                auto ri = new resultTextItem(item, std::move(line), 0);
                 result->append(ri);
-                *(mapIt++) = item.srcLineNumber;
+                *(mapIt++) = item->srcLineNumber;
             }
         } else {
             for (auto& item : items) {
-                auto ri = new resultTextItem(&item, item.text, 0);
+                auto ri = new resultTextItem(item, item->text, 0);
                 result->append(ri);
-                *(mapIt++) = item.srcLineNumber;
+                *(mapIt++) = item->srcLineNumber;
             }
         }
         sourceLineMap = std::move(lineMap);
@@ -1017,24 +1029,21 @@ void mainWidget::toggleBookmark()
     auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    auto logItem = result->item(lineNumber);
-    auto sourceLineNo = resultTextItem::asResultTextItem(logItem)->sourceItem()->srcLineNumber;
-    auto srcIdx = std::max(0, sourceLineNo - 1);
-    auto& sourceItem = stepResults[0][srcIdx];
-    if (!sourceItem.bookmarked) {
-        sourceItem.bookmarked = true;
-        QString const& sourceText = sourceItem.text;
+    auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
+    if (!sourceItem->bookmarked) {
+        sourceItem->bookmarked = true;
+        QString const& sourceText = sourceItem->text;
         if (auto sel = result->getSelection().normalized(); sel.singleLine()) {
             auto [start, end]{sel};
-            sourceItem.bmText = sourceText.midRef(
+            sourceItem->bmText = sourceText.midRef(
                 start.columnNumber(), end.columnNumber() - start.columnNumber());
         } else
-            sourceItem.bmText = sourceText.leftRef(40);
-        bookmarkedLines.insert(sourceItem.srcLineNumber);
+            sourceItem->bmText = sourceText.leftRef(40);
+        bookmarkedLines.insert(sourceItem->srcLineNumber);
         result->setLinePixmap(lineNumber, pixmapIdBookMark);
     } else {
-        sourceItem.bookmarked = false;
-        bookmarkedLines.remove(sourceItem.srcLineNumber);
+        sourceItem->bookmarked = false;
+        bookmarkedLines.remove(sourceItem->srcLineNumber);
         result->clearLinePixmap(lineNumber);
     }
 
@@ -1049,7 +1058,7 @@ void mainWidget::toggleBookmark()
     for(lineNumber_t lineNo : lineNums) {
         if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
             auto srcIdx = std::max(0, lineNo - 1);
-            bms.push_back(QStringLiteral("%1: %2").arg(lineNo).arg(items[srcIdx].bmText));
+            bms.push_back(QStringLiteral("%1: %2").arg(lineNo).arg(items[srcIdx]->bmText));
             bmLineNums.push_back(lineNo);
         } else
             bookmarkedLines.remove(lineNo);
@@ -1175,11 +1184,8 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    auto logItem = result->item(lineNumber);
-    auto sourceLineNo = resultTextItem::asResultTextItem(logItem)->sourceItem()->srcLineNumber;
-    auto srcIdx = std::max(0, sourceLineNo - 1);
-    auto& sourceItem = stepResults[0][srcIdx];
-    if (sourceItem.bookmarked) {
+    auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
+    if (sourceItem->bookmarked) {
         actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));
 	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-remove")));
@@ -1337,34 +1343,35 @@ static filterData batchLoadFilters(const commandLineOptions& opts)
 }
 
 
-static itemList batchLoadSubjectFile(const commandLineOptions& opts)
+static itemsList batchLoadSubjectFile(const commandLineOptions& opts)
 {
     QFile source(opts.subjectFile);
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream stream(&source);
-        itemList lines;
+
+        itemsList lines;
         int srcLine = 0;
-        while(!stream.atEnd())
-          lines << textItem{++srcLine, stream.readLine()};
+        for(QTextStream stream(&source); !stream.atEnd(); )
+          lines.emplace_back(++srcLine, stream.readLine());
+        lines.shrink_to_fit();
         return lines;
     }
     throw subjectLoadException(opts.subjectFile);
 }
 
-static itemList readStdIn()
+static itemsList readStdIn()
 {
-  itemList lines;
-  int srcLine = 0;
-  while(std::cin) {
-    std::string line;
-    std::getline(std::cin, line);
-    lines << textItem{++srcLine, QString::fromStdString(line)};
-  }
-  return lines;
+    itemsList lines;
+    int srcLine = 0;
+    while(std::cin) {
+        std::string line;
+        std::getline(std::cin, line);
+        lines.emplace_back(++srcLine, QString::fromStdString(line));
+    }
+    return lines;
 }
 
 
-static itemList batchApplyQRegularExpressions(const filterData& filters, itemList items)
+static stepList batchApplyQRegularExpressions(const filterData& filters, stepList items)
 {
     for (const filterEntry& entry : filters.filters) {
         if (entry.enabled) {
@@ -1377,7 +1384,7 @@ static itemList batchApplyQRegularExpressions(const filterData& filters, itemLis
                 throw badRegexException(entry.re);
             re.optimize();
             items = QtConcurrent::blockingFiltered(items,
-                    [&re, exclude](const textItem& item) -> bool {return re.match(item.text).hasMatch() ^ exclude;});
+                    [&re, exclude](const textItem* item) -> bool {return re.match(item->text).hasMatch() ^ exclude;});
             if (items.empty())
                 break;
         }
@@ -1385,25 +1392,31 @@ static itemList batchApplyQRegularExpressions(const filterData& filters, itemLis
     return items;
 }
 
-static itemList batchApplyFilters(const filterData& filters, const itemList& lines)
+static stepList batchApplyFilters(const filterData& filters, const stepList& lines)
 {
     if (filters.dialect == QStringLiteral("QRegularExpression"))
-        return batchApplyQRegularExpressions(filters, itemList(lines));
+        return batchApplyQRegularExpressions(filters, stepList{lines});
     throw dialectTypeException(filters.dialect);
 }
 
 int doBatch(const commandLineOptions& opts)
 {
     filterData filters;
-    itemList items;
+    itemsList sourceItems;
     try {
         filters = batchLoadFilters(opts);
         if (opts.stdin)
-            items = readStdIn();
+            sourceItems = readStdIn();
         else
-            items = batchLoadSubjectFile(opts);
-        items = batchApplyFilters(filters, items);
-        for (auto const& item : qAsConst(items))
+            sourceItems = batchLoadSubjectFile(opts);
+
+        stepList steps;
+        steps.reserve(sourceItems.size());
+        std::for_each(sourceItems.begin(), sourceItems.end(),
+                      [&steps](auto& item) mutable {steps.push_back(&item);});
+
+        steps = batchApplyFilters(filters, steps);
+        for (auto const& item : qAsConst(sourceItems))
             std::cout << item.text.toUtf8().constData() << '\n';
     }
     catch (std::exception const &except) {
