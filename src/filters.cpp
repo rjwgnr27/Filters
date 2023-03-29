@@ -572,7 +572,7 @@ stepList mainWidget::applyExpression(size_t entry, stepList src)
         return stepList{};
     }
 
-    const auto item = filtersTable->item(entry, ColRegEx);
+    auto* item = filtersTable->item(entry, ColRegEx);
     if (!item)
         return src;
 
@@ -585,6 +585,7 @@ stepList mainWidget::applyExpression(size_t entry, stepList src)
         item->setToolTip(QString{});
         return src;
     }
+
     auto reStr = item->text();
     bool exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
     QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
@@ -620,15 +621,14 @@ void mainWidget::applyFrom(size_t start)
 
         size_t rows = filtersTable->rowCount();
         QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-        qApp->processEvents();
         stepResults.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
             auto result = applyExpression(row, stepResults[row]);
             subjModified |= stepResults[row].size() != result.size();
-            stepResults[row+1] = result;
+            stepResults[row+1] = std::move(result);
+            qApp->processEvents();
         }
         updateApplicationTitle();
-        qApp->processEvents();
         displayResult();
         QGuiApplication::restoreOverrideCursor();
     } else
@@ -691,14 +691,12 @@ void mainWidget::displayResult()
             int width = QStringLiteral("%1").arg(items.back()->srcLineNumber).size();
             for (auto& item : items) {
                 QString line = QStringLiteral("%1| ").arg(item->srcLineNumber, width) + item->text;
-                auto ri = new resultTextItem(item, std::move(line), 0);
-                result->append(ri);
+                result->append(new resultTextItem(item, std::move(line), 0));
                 *(mapIt++) = item->srcLineNumber;
             }
         } else {
             for (auto& item : items) {
-                auto ri = new resultTextItem(item, item->text, 0);
-                result->append(ri);
+                result->append(new resultTextItem(item, item->text, 0));
                 *(mapIt++) = item->srcLineNumber;
             }
         }
@@ -1006,12 +1004,12 @@ bool mainWidget::doSaveFilters(const QString& fileName)
         }
         const KAboutData& app = KAboutData::applicationData();
         QJsonObject about;
-        about["application"] = app.componentName();
-        about["version"] = app.version();
+        about[QStringLiteral("application")] = app.componentName();
+        about[QStringLiteral("version")] = app.version();
         QJsonObject filters;
-        filters["about"] = about;
-        filters["dialect"] = actionDialect->currentText();
-        filters["filters"] = filterArray;
+        filters[QStringLiteral("about")] = about;
+        filters[QStringLiteral("dialect")] = actionDialect->currentText();
+        filters[QStringLiteral("filters")] = filterArray;
         auto jDoc = QJsonDocument(filters).toJson();
         bool success = dest.write(jDoc) == jDoc.size();
         reModified &= !success;
@@ -1361,8 +1359,7 @@ static itemsList batchLoadSubjectFile(const commandLineOptions& opts)
 static itemsList readStdIn()
 {
     itemsList lines;
-    int srcLine = 0;
-    while(std::cin) {
+    for(int srcLine = 0; std::cin;) {
         std::string line;
         std::getline(std::cin, line);
         lines.emplace_back(++srcLine, QString::fromStdString(line));
@@ -1470,4 +1467,3 @@ void FindDialog::setIgnoreCase(bool ic)
 {
     findIgnoreCase->setCheckState(ic ? Qt::Checked : Qt::Unchecked);
 }
-

@@ -14,7 +14,7 @@
  * exception of a single selection region. This eliminates having to interpret
  * embedded formatting codes or having to make font shifts on a line. Lines are
  * displayed with a fixed pitch font, with all lines having the same height.
- * This simpifies position calculation and rendering.
+ * This simplifies position calculation and rendering.
  **/
 //#define TIME_DRAW_REQUEST
 
@@ -128,7 +128,7 @@ void wLogText::timerEvent(QTimerEvent *event)
                         mouseHovering = true;
                         Q_EMIT hover(line, -1);
                     } else {
-                        int col = d->xToCharColumn(mouseRawPos.x());
+                        int const col = d->xToCharColumn(mouseRawPos.x());
                         if (col < items[line]->m_text.length()) {
                             mouseHovering = true;
                             Q_EMIT hover(line, col);
@@ -269,7 +269,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         pixmapPainter.setBackground(m_qpalette.color(QPalette::Active, QPalette::ToolTipBase));
         pixmapPainter.eraseRect(0, 0, gutterWidth, pmSize.height());
         if (gutterBorder > 0) {   // Draw gutter edge?
-            QPen save(pixmapPainter.pen());
+            QPen const save(pixmapPainter.pen());
             QPen pen(save);
             pen.setColor(QPalette::Shadow);
             pen.setWidth(gutterBorder);
@@ -348,7 +348,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 pmYTop += m_textLineHeight, pmYBase += m_textLineHeight) {
         logTextItemCPtr item = *it;
         const QString text(item->text().mid(firstChar, pmChars));
-        int lineCharacters = text.length();
+        int const lineCharacters = text.length();
 
         // Can we avoid a font change?
         if (lastStyleId != item->styleId()) [[unlikely]] {
@@ -376,7 +376,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
                 // and to the right of the last selection line (first and last
                 // may be the same line):
                 // FIXME: this causes only partial painting of line background, up to length of text:
-                auto bgColor = (caretPosition.lineNumber() == line)  ?
+                auto const bgColor = (caretPosition.lineNumber() == line)  ?
                         style->clBackgroundColor : style->backgroundColor;
 
                 if (bgColor != defBGColor) {
@@ -395,7 +395,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
             }
 
             if (selChars.size() != 0) {
-                int x = leftChars.size() * m_characterWidth + m_gutterOffset;
+                int const x = leftChars.size() * m_characterWidth + m_gutterOffset;
                 pixmapPainter.setBackground(m_qpalette.color(QPalette::Active,
                                                              QPalette::Highlight));
                 pixmapPainter.setPen(m_qpalette.color(QPalette::Active,
@@ -424,7 +424,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
 
         // If the gutter is showing, and this item has a pixmap, draw it now:
         if (gutterWidth > 0 && item->hasPixmap()) [[unlikely]] {
-            if (auto it = itemPixMaps.constFind(item->pixmapId()); it != itemPixMaps.cend()) {
+            if (auto const it = itemPixMaps.constFind(item->pixmapId()); it != itemPixMaps.cend()) {
                 int y = pmYTop;       // Start at top of line
                 int dy = 0;
                 QPixmap const& pm = *it;
@@ -838,7 +838,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
     }
     cell at = pointToCell(event->pos());
     if (d->inTheGutter(event->x())) {
-        int line = at.lineNumber();
+        int const line = at.lineNumber();
         if (validLineNumber(line)) {
             Q_EMIT gutterClick(line, event);
         }
@@ -910,7 +910,7 @@ void wLogText::contextMenuEvent(QContextMenuEvent *event)
 {
     cell const at = pointToCell(event->pos());
     if (validLineNumber(at.lineNumber())) {
-        QPoint gPos = viewport()->mapToGlobal(event->pos());
+        QPoint const gPos = viewport()->mapToGlobal(event->pos());
         if (d->inTheGutter(event->x())) {
             Q_EMIT gutterContextClick(at.lineNumber(), gPos, event);
         } else {
@@ -1645,7 +1645,7 @@ bool wLogText::find(const QString& str, cell *at,
     int col = pos.columnNumber();
     auto it = items.cbegin() + lineNumber;
     if (forward) {
-        for (auto end=items.cend(); it != end; ++it, ++lineNumber) {
+        for (auto const end=items.cend(); it != end; ++it, ++lineNumber) {
             col = (*it)->m_text.indexOf(str, col, caseSensitive);
             match = (col != -1);
             if (match) {
@@ -1657,7 +1657,7 @@ bool wLogText::find(const QString& str, cell *at,
             col = 0;
         }
     } else {
-        for (auto end = items.cbegin(); it != end; --it, --lineNumber) {
+        for (auto const end = items.cbegin(); it != end; --it, --lineNumber) {
             col = (*it)->m_text.lastIndexOf(str, col, caseSensitive);
             match = (col != -1);
             if (match) {
@@ -1686,7 +1686,7 @@ bool wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
         pos.setLineNumber(*line);
     if (col)
         pos.setColumnNumber(*col);
-    bool result = find(str, &pos, caseSensitive, forward);
+    bool const result = find(str, &pos, caseSensitive, forward);
     if (result) {
         if (line)
             *line = pos.lineNumber();
@@ -1757,7 +1757,7 @@ bool wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const
         pos.setLineNumber(q->m_lineCount - 1);
         pos.setColumnNumber(-1);
     }
-    int lineLen = q->items[pos.lineNumber()]->text().length();
+    int const lineLen = q->items[pos.lineNumber()]->text().length();
     if (pos.columnNumber() >= lineLen)
         pos.setColumnNumber(lineLen - 1);
     return true;
@@ -1850,7 +1850,7 @@ void wLogTextPrivate::setHardLock(bool state)
 {
     if (hardLocked != state) {
         hardLocked = state;
-        bool now = isScrollable();
+        bool const now = isScrollable();
         if (now) {
             q->viewport()->update();
         }
@@ -1919,7 +1919,7 @@ void wLogText::visitSelection(logTextItemVisitor &v)
 {
     if (d->selecting) {
         auto it  = items.cbegin() + d->selectTop.lineNumber();
-        auto end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
+        auto const end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
 
         QSignalBlocker disabler(this);
         for (lineNumber_t lineNumber = d->selectTop.lineNumber(); it != end; ++it) {
@@ -1934,7 +1934,7 @@ void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem&))
 {
     if (d->selecting) {
         auto it  = items.cbegin() + d->selectTop.lineNumber();
-        auto end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
+        auto const end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
 
         QSignalBlocker signalBlocker(this);
         for (lineNumber_t lineNumber = d->selectTop.lineNumber(); it != end; ++it) {
