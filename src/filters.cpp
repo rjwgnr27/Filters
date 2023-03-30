@@ -53,6 +53,10 @@
 #include <iostream>
 #include <utility>
 
+static auto generalConfigName = QStringLiteral("general");
+static auto filtersConfigName = QStringLiteral("filters");
+static auto resultsConfigName = QStringLiteral("results");
+
 Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
         KXmlGuiWindow(parent), m_ui(new mainWidget(this))
 {
@@ -62,7 +66,28 @@ Filters::Filters(const commandLineOptions& opts, QWidget *parent) :
     StandardWindowOptions options = Default;
     options.setFlag(ToolBar, false);
     setupGUI(options);
+    setAutoSaveSettings();
     m_ui->initialLoad(opts);
+}
+
+void Filters::saveGlobalProperties(KConfig *sessionConfig)
+{
+    qWarning() << __func__ << sessionConfig->name();
+}
+
+void Filters::readGlobalProperties(KConfig *sessionConfig)
+{
+    qWarning() << __func__ << sessionConfig->name();
+}
+
+void Filters::readProperties(KConfigGroup const& config)
+{
+    qWarning() << __func__ << config.name();
+}
+
+void Filters::saveProperties(KConfigGroup& config)
+{
+    qWarning() << __func__ << config.name();
 }
 
 
@@ -79,14 +104,101 @@ void Filters::setupActions()
 {
     KActionCollection *ac = actionCollection();
     KStandardAction::quit(this, SLOT(close()), ac);
-    m_ui->setupActions();
 
     stateChanged(QStringLiteral("results_save"), StateReverse);
     stateChanged(QStringLiteral("filters_save"), StateReverse);
 }
 
-void mainWidget::setupActions()
+mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
+QWidget(parent), mainWindow(main)
 {
+    setupUi();
+    appendEmptyRow();
+}
+
+
+void mainWidget::setupUi()
+{
+    QVBoxLayout *verticalLayout_3 = new QVBoxLayout(this);
+    verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
+
+    QSplitter *splitter = new QSplitter(this);
+    splitter->setObjectName(QString::fromUtf8("splitter"));
+    splitter->setOrientation(Qt::Vertical);
+
+    QGroupBox *groupBox_2 = new QGroupBox(splitter);
+    groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
+
+    QVBoxLayout *verticalLayout = new QVBoxLayout(groupBox_2);
+    verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+
+    filtersTable = new QTableWidget(groupBox_2);
+    filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
+    filtersTable->setMouseTracking(true);
+    filtersTable->setColumnCount(NumCol);
+    filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    filtersTable->horizontalHeader()->setStretchLastSection(true);
+    filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    auto item = new QTableWidgetItem;
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
+    item->setToolTip(i18n("Expression entry is enabled when checked"));
+    item->setWhatsThis(i18n("When checked, this filter is enabled, and will be applied "
+    "to the result. When unchecked, this entry is not used."));
+    filtersTable->setHorizontalHeaderItem(ColEnable, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setToolTip(i18n("Exclude matching lines"));
+    item->setWhatsThis(i18n("When not checked, lines matching the regular expression "
+    "will be included in the result. When checked, those which "
+    "do not match will be included."));
+    filtersTable->setHorizontalHeaderItem(ColExclude, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
+    item->setTextAlignment(Qt::AlignLeft);
+    item->setToolTip(i18n("Use case insensitive matching"));
+    item->setWhatsThis(i18n("When checked, the regular expression match will ignore text case."));
+    filtersTable->setHorizontalHeaderItem(ColCaseIgnore, item);
+
+    item = new QTableWidgetItem;
+    item->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
+    item->setToolTip(i18n("Regular expression string"));
+    filtersTable->setHorizontalHeaderItem(ColRegEx, item);
+
+    verticalLayout->addWidget(filtersTable);
+
+    splitter->addWidget(groupBox_2);
+
+    QGroupBox *groupBox_3 = new QGroupBox(splitter);
+    groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
+
+    result = new wLogText(groupBox_3);
+    result->setObjectName(QString::fromUtf8("result"));
+    result->setGutter(32);
+    result->setFont(QFont{QString::fromUtf8("Monospace")});
+    QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
+    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
+    verticalLayout_2->addWidget(result);
+
+    splitter->addWidget(groupBox_3);
+
+    verticalLayout_3->addWidget(splitter);
+
+    status = new QLabel;
+    mainWindow->statusBar()->insertWidget(0, status);
+
+    //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
+    pixBmUser = QIcon::fromTheme("status-note").pixmap(16,16);
+    pixBmUser.scaledToHeight(16);
+    result->setPixmap(pixmapIdBookMark, pixBmUser);
+    pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
+    result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
+    result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
+
     KActionCollection *ac = mainWindow->actionCollection();
     QAction *action;
 
@@ -232,7 +344,6 @@ void mainWidget::setupActions()
     actionLineNumbers->setText(i18n("Show &Line Numbers"));
     actionLineNumbers->setToolTip(i18n("Toggle showing of source line numbers"));
     actionLineNumbers->setCheckable(true);
-    actionLineNumbers->setChecked(true);
 
     action = ac->addAction(QStringLiteral("filter_font"), this, SLOT(selectFilterFont()));
     action->setText(i18n("Filter Font..."));
@@ -285,6 +396,7 @@ void mainWidget::setupActions()
     actionInsertFilters->setIcon(QIcon::fromTheme(QStringLiteral("edit-table-insert-row-above")));
     //ac->setDefaultShortcut(action, QKeySequence(QStringLiteral(""));
 
+    ctxtMenu = new QMenu(this);
     ctxtMenu->addAction(KStandardAction::selectAll(result, SLOT(selectAll()), ac));
     actionClearSelection = KStandardAction::deselect(result, SLOT(clearSelection()), ac);
     ctxtMenu->addAction(actionClearSelection);
@@ -307,108 +419,17 @@ void mainWidget::setupActions()
     actionToggleBookmark->setWhatsThis(QStringLiteral("Set/clear a bookmark on the current line."));
     actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
     ctxtMenu->addAction(actionToggleBookmark);
-
     ctxtMenu->addAction(actionBookmarkMenu);
 
-    QObject::connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
-    QObject::connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
-}
+    connect(filtersTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(tableItemChanged(QTableWidgetItem*)));
+    connect(filtersTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(filtersTableMenuRequested(QPoint)));
+    connect(actionLineNumbers, SIGNAL(triggered(bool)), this, SLOT(actionLineNumbersTriggerd(bool)));
 
-mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
-    QWidget(parent), mainWindow(main)
-{
-    setupUi();
-    appendEmptyRow();
-}
-
-void mainWidget::setupUi()
-{
     if (objectName().isEmpty())
         setObjectName(QString::fromUtf8("mainWidget"));
     resize(906, 646);
     setWindowTitle(QCoreApplication::translate("mainWidget", "Form", nullptr));
 
-    QVBoxLayout *verticalLayout_3 = new QVBoxLayout(this);
-    verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
-
-    QSplitter *splitter = new QSplitter(this);
-    splitter->setObjectName(QString::fromUtf8("splitter"));
-    splitter->setOrientation(Qt::Vertical);
-
-    QGroupBox *groupBox_2 = new QGroupBox(splitter);
-    groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
-
-    QVBoxLayout *verticalLayout = new QVBoxLayout(groupBox_2);
-    verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-
-    filtersTable = new QTableWidget(groupBox_2);
-    filtersTable->setObjectName(QString::fromUtf8("filtersTable"));
-    filtersTable->setMouseTracking(true);
-    filtersTable->setColumnCount(NumCol);
-    filtersTable->setContextMenuPolicy(Qt::CustomContextMenu);
-    filtersTable->horizontalHeader()->setStretchLastSection(true);
-    filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-    auto item = new QTableWidgetItem;
-    item->setTextAlignment(Qt::AlignLeft);
-    item->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
-    item->setToolTip(i18n("Expression entry is enabled when checked"));
-    item->setWhatsThis(i18n("When checked, this filter is enabled, and will be applied "
-                            "to the result. When unchecked, this entry is not used."));
-    filtersTable->setHorizontalHeaderItem(ColEnable, item);
-
-    item = new QTableWidgetItem;
-    item->setText(QCoreApplication::translate("mainwidget", "Ex", nullptr));
-    item->setTextAlignment(Qt::AlignLeft);
-    item->setToolTip(i18n("Exclude matching lines"));
-    item->setWhatsThis(i18n("When not checked, lines matching the regular expression "
-                            "will be included in the result. When checked, those which "
-                            "do not match will be included."));
-    filtersTable->setHorizontalHeaderItem(ColExclude, item);
-
-    item = new QTableWidgetItem;
-    item->setText(QCoreApplication::translate("mainwidget", "IC", nullptr));
-    item->setTextAlignment(Qt::AlignLeft);
-    item->setToolTip(i18n("Use case insensitive matching"));
-    item->setWhatsThis(i18n("When checked, the regular expression match will ignore text case."));
-    filtersTable->setHorizontalHeaderItem(ColCaseIgnore, item);
-
-    item = new QTableWidgetItem;
-    item->setText(QCoreApplication::translate("mainwidget", "Regular Expression", nullptr));
-    item->setToolTip(i18n("Regular expression string"));
-    filtersTable->setHorizontalHeaderItem(ColRegEx, item);
-
-    verticalLayout->addWidget(filtersTable);
-
-    splitter->addWidget(groupBox_2);
-
-    QGroupBox *groupBox_3 = new QGroupBox(splitter);
-    groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
-
-    result = new wLogText(groupBox_3);
-    result->setObjectName(QString::fromUtf8("result"));
-    result->setGutter(32);
-    result->setFont(QFont{QString::fromUtf8("Monospace")});
-    QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
-    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
-    verticalLayout_2->addWidget(result);
-
-    splitter->addWidget(groupBox_3);
-
-    verticalLayout_3->addWidget(splitter);
-
-    status = new QLabel;
-    mainWindow->statusBar()->insertWidget(0, status);
-
-    //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
-    pixBmUser = QIcon::fromTheme("status-note").pixmap(16,16);
-    pixBmUser.scaledToHeight(16);
-    result->setPixmap(pixmapIdBookMark, pixBmUser);
-    pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
-    result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
-    result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
-
-    ctxtMenu = new QMenu(this);
     connect(result, SIGNAL(contextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
             SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
     connect(result, SIGNAL(gutterContextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
@@ -416,7 +437,16 @@ void mainWidget::setupUi()
     connect(result, SIGNAL(lineSpacingChange(int,int)), SLOT(lineSpacingChange(int,int)));
 
     QMetaObject::connectSlotsByName(this);
-} // setupUi
+
+    KConfigGroup generalConfig{KSharedConfig::openConfig(), generalConfigName};
+
+    KConfigGroup filtersConfig{KSharedConfig::openConfig(), filtersConfigName};
+    filtersTable->setFont(filtersConfig.readEntry(QStringLiteral("font"), QFont{}));
+
+    KConfigGroup resultsConfig{KSharedConfig::openConfig(), resultsConfigName};
+    result->setFont(resultsConfig.readEntry(QStringLiteral("font"), QFont{}));
+    actionLineNumbers->setChecked(resultsConfig.readEntry(QStringLiteral("showLineNumbers"), false));
+}
 
 
 void mainWidget::updateApplicationTitle()
@@ -1066,6 +1096,12 @@ void mainWidget::toggleBookmark()
     actionBookmarkMenu->setItems(bms);
 }
 
+void mainWidget::actionLineNumbersTriggerd(bool checked)
+{
+    KConfigGroup resultsConfig{KSharedConfig::openConfig(), resultsConfigName};
+    resultsConfig.writeEntry(QStringLiteral("showLineNumbers"), checked);
+}
+
 void mainWidget::gotoLine()
 {
     if (sourceLineMap.empty())
@@ -1228,16 +1264,22 @@ void mainWidget::selectFilterFont()
 {
     bool ok;
     QFont font = QFontDialog::getFont(&ok, filtersTable->font(), this);
-    if (ok)
+    if (ok) {
+        KConfigGroup filtersConfig{KSharedConfig::openConfig(), filtersConfigName};
+        filtersConfig.writeEntry(QStringLiteral("font"), font);
         filtersTable->setFont(font);
+    }
 }
 
 void mainWidget::selectResultFont()
 {
     bool ok;
     QFont font = QFontDialog::getFont(&ok, result->font(), this);
-    if (ok)
+    if (ok) {
+        KConfigGroup resultessConfig{KSharedConfig::openConfig(), resultsConfigName};
+        resultessConfig.writeEntry(QStringLiteral("font"), font);
         result->setFont(font);
+    }
 }
 
 QJsonObject filterEntry::toJson() const

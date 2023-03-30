@@ -112,11 +112,11 @@ private:
 
 public:
     mainWidget(KXmlGuiWindow *main, QWidget *parent = nullptr);
-    void setupActions();
     bool initialLoad(const commandLineOptions& opts);
 
 private Q_SLOTS:
     void appendEmptyRow();
+    void actionLineNumbersTriggerd(bool checked);
     void autoRunClicked();
     void clearFilterRow();
     void clearFilters();

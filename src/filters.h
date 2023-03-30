@@ -41,6 +41,11 @@ private:
 
     void setupActions();
 
+    void readProperties(KConfigGroup const&) override;
+    void saveProperties(KConfigGroup&) override;
+    void saveGlobalProperties(KConfig *sessionConfig) override;
+    void readGlobalProperties(KConfig *sessionConfig) override;
+
     /**
      * @brief inherited close event
      *
