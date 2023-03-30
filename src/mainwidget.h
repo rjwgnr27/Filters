@@ -325,25 +325,4 @@ private:
     bool validateExpressions(int entry=0);
 };
 
-class FindDialog : public QDialog
-{
-    Q_OBJECT
-
-public:
-    FindDialog(QWidget *parent = nullptr, QString const& text = QString{});
-    QString getFindText() const {return findText;}
-    bool getIgnoreCase() const;
-    void setIgnoreCase(bool ic);
-    // void setFindText(QString text);
-
-public slots:
-    void findClicked();
-
-private:
-    QPushButton *findButton;
-    QCheckBox *findIgnoreCase;
-    QLineEdit *lineEdit;
-    QString findText;
-};
-
 #endif // MAINWIDGET_H

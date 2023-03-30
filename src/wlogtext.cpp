@@ -34,6 +34,8 @@
 #include <QPainter>
 #include <QScrollBar>
 
+#include <KFind>
+
 #include <algorithm>
 #include <ranges>
 
