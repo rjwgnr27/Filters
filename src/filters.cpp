@@ -1096,7 +1096,7 @@ void mainWidget::jumpToSourceLine(int lineNumber)
 
 void mainWidget::resultFind()
 {
-    KFindDialog findDlg(this, 0, QStringList{});
+    KFindDialog findDlg(this, findOptions, findHistory);
     findDlg.setPattern(lastFoundText);
     findDlg.setHasCursor(true);
     findDlg.setSupportsBackwardsFind(true);
@@ -1109,6 +1109,8 @@ void mainWidget::resultFind()
     QString text = findDlg.pattern();
     if (text.size() > 0) {
         lastFoundText = text;
+        findHistory.removeAll(text);
+        findHistory << text;
         findOptions = findDlg.options();
         doResultFind(findOptions);
     }

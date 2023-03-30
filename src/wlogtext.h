@@ -1125,7 +1125,7 @@ public:
      * @retval p If the parameter @p p is not null, *p will be set to the resultant
      * location of the text.
      */
-    bool find(const QRegExp& re, cell *at, bool forward = true);
+    bool find(QRegularExpression const& re, cell *at, bool forward = true);
 
     /**
      * @brief Ensure the caret is visible, scrolling if needed.

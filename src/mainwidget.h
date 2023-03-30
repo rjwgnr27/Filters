@@ -227,7 +227,7 @@ private:
 
     QString lastFoundText;
     long findOptions = 0;
-
+    QStringList findHistory;
     void setupUi();
 
     /**

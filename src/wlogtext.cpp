@@ -1628,13 +1628,24 @@ void wLogText::clear(int top, int count)
     d->setContentSize();
 }
 
+static void KFindOptionsToQRegularExpr(ulong opts, QRegularExpression& re)
+{
+    QRegularExpression::PatternOptions reOpts{QRegularExpression::NoPatternOption};
+    if (!(opts & KFind::CaseSensitive))
+        reOpts |= QRegularExpression::QRegularExpression::CaseInsensitiveOption;
+    re.setPatternOptions(reOpts);
+}
+
+
 std::optional<cell> wLogText::find(QString const& str, long options)
 {
     cell pos = (options & KFind::FromCursor) ? caretPosition() : cell{};
     bool forward = !(options & KFind::FindBackwards);
     auto sensitivity = (options & KFind::CaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive;
     if (options & KFind::RegularExpression) {
-        if (find(QRegExp(str), &pos, forward))
+        QRegularExpression re{str};
+        KFindOptionsToQRegularExpr(options, re);
+        if (find(re, &pos, forward))
             return {pos};
     } else {
         if (find(str, &pos, sensitivity, forward))
@@ -1711,7 +1722,7 @@ bool wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
 }
 
 
-bool wLogText::find(const QRegExp& re, cell *at, bool forward)
+bool wLogText::find(QRegularExpression const& re, cell *at, bool forward)
 {
     // Anything to search?
     if (m_lineCount == 0)
@@ -1725,16 +1736,16 @@ bool wLogText::find(const QRegExp& re, cell *at, bool forward)
     if (!d->prepareFind(forward, pos, at))
         return false;
 
-    bool match=false;
+    bool matched=false;
     auto [lineNumber, col] = pos;
     auto it = items.cbegin() + lineNumber;
     if (forward) {
         for (auto const end=items.cend(); it != end; ++it, ++lineNumber) {
-            col = (*it)->m_text.indexOf(re, col);
-            match = (col != -1);
-            if (match) {
-qWarning() << __func__ << "fwd" << re.capturedTexts() << col << re.matchedLength();
-                d->updateCaretPos(cell(lineNumber, col + re.matchedLength()));
+            QRegularExpressionMatch match;
+            col = (*it)->m_text.indexOf(re, col, &match);
+            matched = (col != -1);
+            if (matched) {
+                d->updateCaretPos(cell(lineNumber, col + match.capturedLength()));
                 d->setSelection(cell(lineNumber, col), d->caretPosition);
                 break;
             }
@@ -1742,23 +1753,23 @@ qWarning() << __func__ << "fwd" << re.capturedTexts() << col << re.matchedLength
         }
     } else {
         for (auto it=items.cbegin() + lineNumber; lineNumber >= 0; --it, --lineNumber) {
-            col = (*it)->m_text.lastIndexOf(re, col);
-            match = (col != -1);
-            if (match) {
-qWarning() << __func__ << "rev" << re.capturedTexts() << col << re.matchedLength();
+            QRegularExpressionMatch match;
+            col = (*it)->m_text.lastIndexOf(re, col, &match);
+            matched = (col != -1);
+            if (matched) {
                 d->updateCaretPos(cell(lineNumber, col));
-                d->setSelection(d->caretPosition, cell(lineNumber, col + re.matchedLength()));
+                d->setSelection(d->caretPosition, cell(lineNumber, col + match.capturedLength()));
                 break;
             }
             // col is already == -1 from find fail
         }
     }
-    if (match) {
+    if (matched) {
         pos=cell(lineNumber, col);
         if (at) *at = pos;
         ensureCaretVisible();
     }
-    return match;
+    return matched;
 }
 
 
