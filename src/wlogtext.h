@@ -9,6 +9,7 @@
 
 #include <climits>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <QAbstractScrollArea>
@@ -1010,6 +1011,25 @@ public:
      **/
     bool showCaret() const;
 
+
+    /**
+     * @brief Search for text string.
+     *
+     * Find a line containing a text string.  If the search point pointer is
+     * non-zero, it is the starting point of the search; otherwise the search begins
+     * at the current caret position.  If the pointer is non-zero, it is updated
+     * with found location, if the find is successful.
+     *
+     * @remarks The search occurs only within whole text lines.  Searches which span
+     * multiple lines are not supported.
+     *
+     * @param str Text string to search for.
+     * @param options KFind::Options
+     * @return a @c std::optional; if not set, the search failed. If set, the
+     * contained @c cell holds the location of the found text
+     */
+    std::optional<cell> find(QString const& str, long options=0);
+
     /**
      * @brief Search for text string.
      *
@@ -1023,7 +1043,7 @@ public:
      *
      * @param str Text string to search for.
      *
-     * @param pt Pointer to @a QPoint giving cell location (y() = line, x() = column)
+     * @param pt Pointer to @c cell giving cell location (line, column)
      * to begin the search.
      *
      * @param caseSensitive True if the search is case sensitive.

@@ -42,6 +42,8 @@
 #include <KAboutData>
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KFind>
+#include <KFindDialog>
 #include <KLocalizedString>
 #include <KSharedConfig>
 #include <KSelectAction>
@@ -1094,38 +1096,43 @@ void mainWidget::jumpToSourceLine(int lineNumber)
 
 void mainWidget::resultFind()
 {
-    FindDialog dialog(this, lastFoundText);
-    dialog.setIgnoreCase(findIgnoreCase);
-    if (dialog.exec() == QDialog::Accepted) {
-        QString text = dialog.getFindText();
-        if (text.size() > 0) {
-            lastFoundText = text;
-            findIgnoreCase = dialog.getIgnoreCase();
-            doResultFind();
-        }
+    KFindDialog findDlg(this, 0, QStringList{});
+    findDlg.setPattern(lastFoundText);
+    findDlg.setHasCursor(true);
+    findDlg.setSupportsBackwardsFind(true);
+    findDlg.setSupportsCaseSensitiveFind(true);
+    findDlg.setSupportsWholeWordsFind(false);
+    findDlg.setSupportsRegularExpressionFind(true);
+    if (findDlg.exec() != QDialog::Accepted)
+        return;
+
+    QString text = findDlg.pattern();
+    if (text.size() > 0) {
+        lastFoundText = text;
+        findOptions = findDlg.options();
+        doResultFind(findOptions);
     }
 }
 
 void mainWidget::resultFindNext()
 {
-    doResultFind();
+    doResultFind((findOptions | KFind::FromCursor) & ~KFind::FindBackwards);
 }
 
 void mainWidget::resultFindPrev()
 {
-    doResultFind(QTextDocument::FindBackward);
+    doResultFind(findOptions | KFind::FromCursor | KFind::FindBackwards);
 }
 
-void mainWidget::doResultFind(QTextDocument::FindFlags flags)
+void mainWidget::doResultFind(long options)
 {
-    if (!lastFoundText.isEmpty())
-        if (!result->find(lastFoundText/*, flags*/)) {
-            if (!findIgnoreCase)
-                flags |= QTextDocument::FindFlag::FindCaseSensitively;
-            QMessageBox::information(this,
-                        i18nc("@title:window title of search fail pop-up", "Search failed"),
-                        i18nc("@info:status text of search string not found", "String not found"));
-        }
+    if (lastFoundText.isEmpty())
+        return;
+    if (!result->find(lastFoundText, options)) {
+        QMessageBox::information(this,
+                    i18nc("@title:window title of search fail pop-up", "Search failed"),
+                    i18nc("@info:status text of search string not found", "String not found"));
+    }
 }
 
 void mainWidget::saveResult()
@@ -1421,49 +1428,4 @@ int doBatch(const commandLineOptions& opts)
         return -3;
     }
     return 0;
-}
-
-FindDialog::FindDialog(QWidget *parent, QString const& text)
-    : QDialog(parent)
-{
-    setWindowTitle(i18nc("@title:window window title of text search dialog", "Find text"));
-
-    lineEdit = new QLineEdit(text);
-    findButton = new QPushButton(i18nc("@action:button label of find button in find dialog", "&Find"));
-    findIgnoreCase = new QCheckBox(i18nc("@option:check check box for case insensitive in find dialog", "&Ignore case:"));
-
-    QHBoxLayout *layout = new QHBoxLayout;
-    layout->addWidget(new QLabel(i18nc("@label:textbox label for find dialog search string input", "Find:")));
-    layout->addWidget(lineEdit);
-    layout->addWidget(findIgnoreCase);
-    layout->addWidget(findButton);
-
-    setLayout(layout);
-    connect(findButton, &QPushButton::clicked, this, &FindDialog::findClicked);
-    connect(findButton, &QPushButton::clicked, this, &FindDialog::accept);
-}
-
-void FindDialog::findClicked()
-{
-    QString text = lineEdit->text();
-
-    if (text.isEmpty()) {
-        QMessageBox::information(this,
-                i18nc("@title:window title of empty search text dialog", "Empty Search Field"),
-                i18nc("@info informational text in empty search text dialog", "Please enter a text to find."));
-        return;
-    }
-    findText = std::move(text);
-    lineEdit->clear();
-    hide();
-}
-
-bool FindDialog::getIgnoreCase() const
-{
-    return findIgnoreCase->checkState() == Qt::Checked;
-}
-
-void FindDialog::setIgnoreCase(bool ic)
-{
-    findIgnoreCase->setCheckState(ic ? Qt::Checked : Qt::Unchecked);
 }

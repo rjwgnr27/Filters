@@ -64,9 +64,9 @@ find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
     I18n
     IconThemes
     KIO
+    TextWidgets
     XmlGui
 )
-
 set(filters_SRC
     src/main.cpp
     src/filters.cpp
@@ -104,6 +104,7 @@ target_link_libraries(filters PRIVATE
     KF5::KIOCore
     KF5::KIOFileWidgets
     KF5::KIOWidgets
+    KF5::TextWidgets
     KF5::XmlGui
 )
 

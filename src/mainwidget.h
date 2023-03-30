@@ -17,26 +17,27 @@
 #ifndef MAINWIDGET_H
 #define MAINWIDGET_H
 
+#include <QApplication>
 #include <QDialog>
 #include <QFile>
+#include <QGroupBox>
+#include <QHeaderView>
+#include <QPlainTextEdit>
 #include <QScopedPointer>
+#include <QSplitter>
 #include <QStringList>
+#include <QTableWidget>
+#include <QVBoxLayout>
+#include <QVariant>
+#include <QWidget>
+
+#include <KFind>
 
 #include <vector>
 
 #include "wlogtext.h"
 
 
-/********  import ui_mainwidget.h ****/
-#include <QtCore/QVariant>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QGroupBox>
-#include <QtWidgets/QHeaderView>
-#include <QtWidgets/QPlainTextEdit>
-#include <QtWidgets/QSplitter>
-#include <QtWidgets/QTableWidget>
-#include <QtWidgets/QVBoxLayout>
-#include <QtWidgets/QWidget>
 
 class QCheckBox;
 class QLabel;
@@ -225,7 +226,7 @@ private:
     QAction *actionCopySelection;
 
     QString lastFoundText;
-    bool findIgnoreCase = false;
+    long findOptions = 0;
 
     void setupUi();
 
@@ -269,7 +270,7 @@ private:
      * Helper function for resultFind/resultFindNext/resultFindPrev
      * @param flags QTextDocument::FindFlag for search; default={} for forward
      */
-    void doResultFind(QTextDocument::FindFlags flags={});
+    void doResultFind(long options);
 
     /**
      * @brief save the filters to a JSON file
