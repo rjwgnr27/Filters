@@ -83,6 +83,19 @@ wLogText::~wLogText()
     qDeleteAll(items);
 }
 
+QDebug operator<<(QDebug dbg, cell const& c)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "(" << c.lineNumber() << ", " << c.columnNumber() << ")";
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, region const& r)
+{
+    QDebugStateSaver saver(dbg);
+    dbg.nospace() << "(" << r.first() << "," << r.second() << ")";
+    return dbg;
+}
 
 cell wLogText::pointToCell(QPoint const& point) const
 {
@@ -716,13 +729,8 @@ void wLogTextPrivate::setSelection(const cell& a, const cell& b)
     if (a == b) {
         selecting= false;
     } else {
-        if (a < b) {
-            selectTop = a;
-            selectBottom = b;
-        } else {
-            selectTop = b;
-            selectBottom = a;
-        }
+        selectTop = a;
+        selectBottom = b;
         selecting= true;
     }
 
@@ -1672,25 +1680,29 @@ bool wLogText::find(const QString& str, cell *at,
     int col = pos.columnNumber();
     auto it = items.cbegin() + lineNumber;
     if (forward) {
+qWarning() << __func__ << "fwd start:" << pos << *at;
         for (auto const end=items.cend(); it != end; ++it, ++lineNumber) {
             col = (*it)->m_text.indexOf(str, col, caseSensitive);
             match = (col != -1);
             if (match) {
-                int span = col + str.length();
-                d->updateCaretPos(cell(lineNumber, span));
+                int end = col + str.length();
+                d->updateCaretPos(cell(lineNumber, end));
                 d->setSelection(cell(lineNumber, col), d->caretPosition);
+qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
                 break;
             }
             col = 0;
         }
     } else {
+qWarning() << __func__ << "rev start:" << pos << *at;
         for (auto const end = items.cbegin(); it != end; --it, --lineNumber) {
             col = (*it)->m_text.lastIndexOf(str, col, caseSensitive);
             match = (col != -1);
             if (match) {
-                int span = col + str.length();
+                int end = col + str.length();
                 d->updateCaretPos(cell(lineNumber, col));
-                d->setSelection(d->caretPosition, cell(lineNumber, span));
+                d->setSelection(cell(lineNumber, end), cell(lineNumber, col));
+qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
                 break;
             }
             // col is already == -1 from find fail

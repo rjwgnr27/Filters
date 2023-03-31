@@ -148,6 +148,8 @@ public:
 
 };
 template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
+QDebug operator<<(QDebug dbg, cell const& c);
+
 
 /* structured bindings API */
 template<> struct std::tuple_size<cell> {static constexpr int value = 2;};
@@ -199,6 +201,8 @@ public:
      */
     [[nodiscard]] region normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
 
+    void reverse() {std::swap(m_first, m_second);}
+
     /**
      * @brief get the end of the selection
      * Returns the end (not necessarily the bottom) of the selection region
@@ -239,6 +243,7 @@ public:
     [[nodiscard]] cell span() {return first() - second();}
 };
 template<> inline void std::swap<region>(region &x, region &y) noexcept {x.swap(y);}
+QDebug operator<<(QDebug dbg, region const& r);
 
 /* structured bindings API: */
 template<> struct std::tuple_size<region> {static constexpr int value = 2;};
