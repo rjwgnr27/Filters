@@ -20,6 +20,10 @@
 #include <KXmlGuiWindow>
 #include <QStringList>
 
+extern QString const generalConfigName;
+extern QString const filtersConfigName;
+extern QString const resultsConfigName;
+
 class mainWidget;
 
 struct commandLineOptions {
@@ -40,11 +44,6 @@ private:
     mainWidget *m_ui;
 
     void setupActions();
-
-    void readProperties(KConfigGroup const&) override;
-    void saveProperties(KConfigGroup&) override;
-    void saveGlobalProperties(KConfig *sessionConfig) override;
-    void readGlobalProperties(KConfig *sessionConfig) override;
 
     /**
      * @brief inherited close event
