@@ -176,7 +176,7 @@ protected:
      * @param top Top cell (line/column) of region to update.
      * @param bottom Bottom cell of region to update.
      **/
-    void updateCellRange(const cell&, const cell&);
+    auto updateCellRange(const cell&, const cell&) -> void;
 
     /**
      * @brief return line number of first visible line
@@ -185,14 +185,14 @@ protected:
      * 
      * @return linenumber of the top most line visible in the client area
      **/
-    inline lineNumber_t firstVisibleLine() const;
+    auto firstVisibleLine() const -> lineNumber_t;
     
     /**
      * @brief return number of lines visible on the painted region
      *
      * @return linenumber lines displayable for the current client region size
      **/
-    inline lineNumber_t linesPerPage() const;
+    auto linesPerPage() const -> lineNumber_t;
     
     /**
      * @brief return line number of last visible line
@@ -201,7 +201,7 @@ protected:
      *
      * @return linenumber of the bottom most line visible in the client area
      **/
-    inline lineNumber_t lastVisibleLine() const;
+    auto lastVisibleLine() const -> lineNumber_t;
 
     // Miscellaneous
     /**
@@ -214,7 +214,7 @@ protected:
      * @return true if the initial cell location is valid, and the find may proceed.
      * Otherwise false, in which case the find will fail.
      **/
-    bool prepareFind(bool forward, cell& pos, const cell *at) const;
+    auto prepareFind(bool forward, cell& pos, const cell *at) const -> bool;
 
     /**
      * @brief Activate a palette.
@@ -227,7 +227,7 @@ protected:
      * @param name Name of palette, allocated by @a newPalette(), to make active.
      * @return true if the activation succeeded; else false;
      */
-    bool activatePalette(const QString& name);
+    auto activatePalette(const QString& name) -> bool;
 
     /**
      * @brief Create a named palette.
@@ -241,14 +241,14 @@ protected:
      * @param name Name assigned to the palette.
      * @return Pointer to a palette if creation was successful; 0 on failure.
      */
-    logTextPalette *createPalette( int, const QString& );
+    auto createPalette( int, const QString& ) -> logTextPalette *;
 
 
     /**
      * @brief return soft-lock state
      * @return @c true if view scrolling is soft locked, else @c false
      **/
-    inline bool isSoftLocked() const { return softLocked; };
+    auto isSoftLocked() const -> bool { return softLocked; };
 
     /**
      * @brief Set soft scroll lock state.
@@ -257,7 +257,7 @@ protected:
      *
      * @param state New scroll lock state.
      **/
-    void setSoftLock(bool state);
+    auto setSoftLock(bool state) -> void;
 
     /**
      * @brief Get hardlock state
@@ -265,7 +265,7 @@ protected:
      * Returns the state of the hard lock (i.e. SrclLck key)
      * @return hard-lock state
      **/
-    inline bool isHardLocked() const { return hardLocked; };
+    auto isHardLocked() const -> bool { return hardLocked; };
 
     /**
      * @brief Set hard scroll lock state.
@@ -274,7 +274,7 @@ protected:
      *
      * @param state New scroll lock state.
      **/
-    void setHardLock(bool state);
+    auto setHardLock(bool state) -> void;
 
     /**
      * @brief Check scrollability of new text.
@@ -284,7 +284,7 @@ protected:
      *
      * @return true if scrolling is unlocked.
      **/
-    inline bool isScrollable() const;
+    auto isScrollable() const -> bool;
 
     // Caret methods
     /**
@@ -295,7 +295,7 @@ protected:
      * @param line New caret line.
      * @param col New caret column.
      */
-    void updateCaretPos(lineNumber_t line, int col);
+    auto updateCaretPos(lineNumber_t line, int col) -> void;
 
     /**
      * @brief Move caret with update.
@@ -304,7 +304,7 @@ protected:
      *
      * @param pos New caret position.
      */
-    void updateCaretPos(const cell& pos);
+    auto updateCaretPos(const cell& pos) -> void;
 
     // Selection and clipboard methods
     /**
@@ -315,7 +315,7 @@ protected:
      * @param sel Cell location (line/column) to extend the selection from the
      * origin.
      **/
-    void setSelection(const cell& sel);
+    auto setSelection(const cell& sel) -> void;
 
     /**
      * @brief Set selection range.
@@ -325,7 +325,7 @@ protected:
      * @param a Cell location (line/column) the selection origin.
      * @param b Cell location (line/column) the selection end.
      **/
-    void setSelection(const cell& a, const cell& b);
+    auto setSelection(const cell& a, const cell& b) -> void;
 
     /**
      * @brief Copy the selected text to a clipboard.
@@ -336,7 +336,7 @@ protected:
      * @param cbMode Specifies the target of the copy, either the global
      * selection or the clipboard.
      **/
-    void copySelToClipboard(QClipboard::Mode cbMode) const;
+    auto copySelToClipboard(QClipboard::Mode cbMode) const -> void;
 
     /**
      * @brief Make internal adjustment to calculated metrics.
@@ -345,14 +345,14 @@ protected:
      * is changed.  These metrics are used for the conversion to/from character to
      * pixel position.
      */
-    void adjustTextMetrics();
+    auto adjustTextMetrics() -> void;
 
     /**
      * @brief Set QAbstractScrollArea content size.
      *
      * Set QAbstractScrollArea content size based on text content size and metrics.
      */
-    inline void setContentSize();
+    auto setContentSize() -> void;
 
     /**
      * @brief draw the text area
@@ -362,7 +362,7 @@ protected:
      * @param bounds Bounding area of the client which is invalidated, and needs
      * drawing.
      **/
-    void drawContents(const QRect& bounds);
+    auto drawContents(const QRect& bounds) -> void;
 
     /**
      * Draw the caret onto a QPainter.
@@ -372,7 +372,7 @@ protected:
      * @param top top offset in painter coordinates.
      * @param bot bottom offset in painter coordinates.
      **/
-    void drawCaret(QPainter& painter, int x, int top, int bot) const;
+    auto drawCaret(QPainter& painter, int x, int top, int bot) const -> void;
 
     /**
      * @brief Check if location is in the gutter area.
@@ -382,7 +382,7 @@ protected:
      * @param x x-axis point in scroll view coordinates.
      * @return @c true is point is in the gutter region.
      **/
-    inline bool inTheGutter(int x) const;
+    bool inTheGutter(int x) const;
 
     /**
      * @brief Convert line/column cell to pixel position.
@@ -394,7 +394,7 @@ protected:
      * @param c cell coordinate to convert.
      * @return Pixel point position.
      **/
-    inline QPoint cellToPoint(const cell&) const;
+    QPoint cellToPoint(const cell&) const;
 
     /**
      * @brief Convert view pixel position to character column.
@@ -410,7 +410,7 @@ protected:
      * @param x Scroll view x-coordinate to translate.
      * @return Character column number on text view.
      **/
-    inline int xToCharColumn(int x) const;
+    int xToCharColumn(int x) const;
 
     /**
      * @brief scrollView y pixel coordinate to line number
@@ -423,7 +423,7 @@ protected:
      * @param y viewport visible y coordinate to translate.
      * @return Calculated line number based on scroll view coordinate.
      **/
-    inline lineNumber_t yToLine(int y) const;
+    lineNumber_t yToLine(int y) const;
 };
 
 #endif //ifndef LOGTEXTPRIVATE_H

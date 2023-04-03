@@ -75,7 +75,7 @@ public:
      * Set the line position represented by this cell.
      * @param l New line number for this cell.
      **/
-    auto setLineNumber(lineNumber_t l) ->void {m_line = l;}                //!< Set the line number this cell represents
+    auto setLineNumber(lineNumber_t l) -> void {m_line = l;}                //!< Set the line number this cell represents
 
     /**
      * Return the column number represented by this cell.
@@ -87,7 +87,7 @@ public:
      * Set the column position represented by this cell.
      * @param c New column number for this cell.
      */
-    auto setColumnNumber(int c) ->void {m_col = c;}         //!< Set the character column this cell represents
+    auto setColumnNumber(int c) -> void {m_col = c;}         //!< Set the character column this cell represents
 
     int manhattanLength() const {return ::abs(lineNumber()) + ::abs(columnNumber());}
 
@@ -96,7 +96,7 @@ public:
      * @param l New line number for this cell.
      * @param c New column number for this cell.
      **/
-    auto setPos(lineNumber_t l, int c) ->void {setLineNumber(l); setColumnNumber(c);}  //!< Set the cell location
+    auto setPos(lineNumber_t l, int c) -> void {setLineNumber(l); setColumnNumber(c);}  //!< Set the cell location
 
     /**
      * Returns a cell one line after this.  Note, the position strictly mathematical, there is no
@@ -106,7 +106,7 @@ public:
     [[nodiscard]]
     auto nextLine() -> cell const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
 
-    auto advanceLine(lineNumber_t inc = 1) ->void {setLineNumber(lineNumber() + inc);}
+    auto advanceLine(lineNumber_t inc = 1) -> void {setLineNumber(lineNumber() + inc);}
 
     /**
      * Returns a cell one column after this.  Note, the position strictly mathematical, there is no
@@ -115,7 +115,7 @@ public:
      **/
     [[nodiscard]]
     auto nextCol() -> cell const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
-    auto advanceColumn(int inc = 1) ->void {setColumnNumber(columnNumber() + inc);}
+    auto advanceColumn(int inc = 1) -> void {setColumnNumber(columnNumber() + inc);}
 
     /**
      * @brief compare to cells for equality
@@ -135,7 +135,7 @@ public:
         return lineNumber() == other.lineNumber() ?
                 columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
 
-    auto swap(cell &other) noexcept ->void {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
+    auto swap(cell &other) noexcept -> void {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
 
     [[nodiscard]]
     auto operator +(cell const& other) const ->cell{
@@ -188,36 +188,40 @@ public:
      * test for an empty region
      * @return @c true if start == end
      */
-    [[nodiscard]] bool empty() const {return m_first == m_second;}
+    [[nodiscard]]
+    auto empty() const {return m_first == m_second;}
 
     /**
      * @brief get the start of the selection
      * Returns the start (not necessarily the top) of the selection region
      * @return @c cell of the selection start
      */
-    [[nodiscard]] cell first() const {return m_first;}
+    [[nodiscard]]
+    auto first() const {return m_first;}
 
     /**
      * @brief assure first() precedes second()
      * Assures that first() precedes second(), tat is that the line/column of first
      * < the line/column of second.
      */
-    void normalize() {if (m_second < m_first) std::swap(m_first, m_second);}
+    auto normalize() {if (m_second < m_first) std::swap(m_first, m_second);}
 
     /**
      * returns a copy of this region, assuring it is normalized
-     * @return ac opy of this, assuring first() precedes second()
+     * @return a copy of this, assuring first() precedes second()
      */
-    [[nodiscard]] region normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
+    [[nodiscard]]
+    auto normalized() const {region t{m_first, m_second}; t.normalize(); return t;}
 
-    void reverse() {std::swap(m_first, m_second);}
+    auto reverse() {std::swap(m_first, m_second);}
 
     /**
      * @brief get the end of the selection
      * Returns the end (not necessarily the bottom) of the selection region
      * @return @c cell of the selection end
      */
-    [[nodiscard]] cell second() const {return m_second;}
+    [[nodiscard]]
+    auto second() const {return m_second;}
 
     /**
      * @brief test if first() and second() have the same line number
@@ -225,27 +229,28 @@ public:
      * second line number.
      * @return @c true if line number of first is the same as second
      */
-    [[nodiscard]] bool singleLine() const {return !empty() && m_first.lineNumber() == m_second.lineNumber();}
+    [[nodiscard]]
+    auto singleLine() const {return !empty() && m_first.lineNumber() == m_second.lineNumber();}
 
     /**
      * @brief swap this region with another
      *
      * @param other @c region to swap with
      */
-    void swap(region &other) {
+    auto swap(region &other) {
         std::swap(m_first, other.m_first); std::swap(m_second, other.m_second);}
 
     /**
      * @brief simple approximation of the distance from first() to second()
      * @return sum of the difference of line numbers and column numbers
      */
-    int manhattanLength() const {return (m_second - m_first).manhattanLength();}
+    auto manhattanLength() const {return (m_second - m_first).manhattanLength();}
 
-    bool operator ==(region const& other) const {
+    auto operator ==(region const& other) const {
         return first() == other.first() && second() == other.second();}
 
-    region operator +(cell const& offs) const {return {first() + offs, second() + offs};}
-    region& operator +=(cell const& offs) {m_first += offs; m_second += offs; return *this;}
+    auto operator +(cell const& offs) const -> region {return {first() + offs, second() + offs};}
+    auto operator +=(cell const& offs) ->region& {m_first += offs; m_second += offs; return *this;}
 
     [[nodiscard]] cell span() {return first() - second();}
 };
@@ -292,8 +297,8 @@ public:
     logTextItem(QString&& text, styleId_t styleNo) :
             m_text(std::move(text)), m_styleId(styleNo) {}
 
-    static logTextItem *newItem(const QString& text, styleId_t styleNo) {return new logTextItem{text, styleNo};}
-    static logTextItem *newItem(QString&& text, styleId_t styleNo) {return new logTextItem{std::move(text), styleNo};}
+    static auto newItem(const QString& text, styleId_t styleNo) {return new logTextItem{text, styleNo};}
+    static auto newItem(QString&& text, styleId_t styleNo) {return new logTextItem{std::move(text), styleNo};}
 
     /**
      * Copy constructor.
@@ -309,7 +314,7 @@ public:
      *
      * @return Style number applied to this text.
      **/
-    styleId_t styleId() const {return m_styleId;}
+    auto styleId() const ->styleId_t {return m_styleId;}
 
     /**
      * @brief set line style
@@ -322,14 +327,14 @@ public:
      * so that it can synchronize the on screen view with changes.
      * @param styleNo New style number to be applied to this text.
      */
-    void setStyleId(styleId_t styleNo) {m_styleId = styleNo;}
+    auto setStyleId(styleId_t styleNo) -> void {m_styleId = styleNo;}
 
     /**
      * Get the text of the log item.
      *
      * @return const reference to the logTextItem text string.
      **/
-    const QString &text() const {return m_text;}
+    auto text() const ->QString const& {return m_text;}
 
     /**
      * Set a pixmap on a logTextItem.
@@ -340,15 +345,15 @@ public:
      *
      * @param pm Pixmap ID in logtext to attach to the logTextItem.
      **/
-    void setPixmap(int pm) {m_pixmapId = pm;}
+    auto setPixmap(int pm) {m_pixmapId = pm;}
 
     /**
      * Remove the pixmap selector from this text item
      **/
-    void clearPixmap() {m_pixmapId = -1;}
+    auto clearPixmap() {m_pixmapId = -1;}
 
-    bool hasPixmap() const {return m_pixmapId != -1;}
-    int pixmapId() const {return m_pixmapId;}
+    auto hasPixmap() const {return m_pixmapId != -1;}
+    auto pixmapId() const {return m_pixmapId;}
 };
 using logTextItemPtr = logTextItem *;
 using logTextItemCPtr = logTextItem const *;
@@ -412,18 +417,19 @@ public:
         visitedItem(wLogText *log, logTextItem *item, lineNumber_t firstLine) :
                     logText(log), lineItem(item), lineNumber(firstLine) {}
     };
-    virtual ~logTextItemVisitor();
-        /**
-         * @brief Visit action method
-         * This method is called on each item in the log text visit range.
-         * @param logText The wLogText instance from which the items visited.
-         * @param item An instance of the item in the iteration step.
-         * @return true if visiting should continue; else false to terminate
-         *         visitation.
-         * @see wLogText::visitItems
-         * @see wLogText::visitSelection
-         */
-    virtual bool visit(const visitedItem& item)=0;
+    virtual ~logTextItemVisitor() = default;
+
+    /**
+     * @brief Visit action method
+     * This method is called on each item in the log text visit range.
+     * @param logText The wLogText instance from which the items visited.
+     * @param item An instance of the item in the iteration step.
+     * @return true if visiting should continue; else false to terminate
+     *         visitation.
+     * @see wLogText::visitItems
+     * @see wLogText::visitSelection
+     */
+    virtual auto visit(const visitedItem& item) -> bool=0;
 };
 
 
@@ -552,7 +558,7 @@ protected:
      * the gutter area, emit a gutterContextClick() signal, else emit a
      * contextClick() signal.
      */
-    void contextMenuEvent(QContextMenuEvent *event) override;
+    auto contextMenuEvent(QContextMenuEvent *event) -> void override;
 
     /**
      * @brief Handle QWidget custom events from the Qt event loop. [virtual, inherited]
@@ -563,7 +569,7 @@ protected:
      *
      * @param event The Qt custom event object.
      */
-    void customEvent(QEvent *) override;
+    auto customEvent(QEvent *) -> void override;
 
     /**
      * @brief Handle QWidget focusInEvent. [virtual, inherited]
@@ -572,7 +578,7 @@ protected:
      *
      * @param event QFocusEvent object passed from QWidget.
      */
-    void focusInEvent(QFocusEvent *event) override;
+    auto focusInEvent(QFocusEvent *event) -> void override;
 
     /**
      * @brief Handle QWidget focusOutEvent. [virtual, inherited]
@@ -581,7 +587,7 @@ protected:
      *
      * @param  event QFocusEvent object passed from QWidget.
      */
-    void focusOutEvent(QFocusEvent *event) override;
+    auto focusOutEvent(QFocusEvent *event) -> void override;
 
     /**
      * @brief Handle key press event.
@@ -590,7 +596,7 @@ protected:
      *
      * @param event QKeyEvent describing the event.
      */
-    void keyPressEvent (QKeyEvent *event) override;
+    auto keyPressEvent (QKeyEvent *event) -> void override;
 
     /**
      * @brief Mouse double-click event handler. [virtual, overloaded: QAbstractScrollArea]
@@ -601,7 +607,7 @@ protected:
      * @param event event describing the mouse position and state.
      *
      */
-    void mouseDoubleClickEvent (QMouseEvent* event) override;
+    auto mouseDoubleClickEvent (QMouseEvent* event) -> void override;
 
     /**
      * @brief Mouse movement event handler. [virtual, overloaded: QAbstractScrollArea]
@@ -613,7 +619,7 @@ protected:
      *
      * @param event event describing the mouse position and state.
      */
-    void mouseMoveEvent(QMouseEvent *event) override;
+    auto mouseMoveEvent(QMouseEvent *event) -> void override;
 
     /**
      * @brief Handle mouse button press event.
@@ -627,7 +633,7 @@ protected:
      *
      * @param event QMouseEvent
      */
-    void mousePressEvent(QMouseEvent *event) override;
+    auto mousePressEvent(QMouseEvent *event) -> void override;
 
     /**
      * @brief Handle mouse button release event.
@@ -636,7 +642,7 @@ protected:
      *
      * @param event QMouseEvent for the mouse release.
      */
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    auto mouseReleaseEvent(QMouseEvent *event) -> void override;
 
     /**
      * @brief Paint a region of the visible text area. [virtual, overload]
@@ -649,7 +655,7 @@ protected:
      *
      * @param event Event describing the region to be updated.
      */
-    void paintEvent(QPaintEvent *event) override;
+    auto paintEvent(QPaintEvent *event) -> void override;
 
     /**
      * @brief Visible region size changed event. [virtual, overloaded:
@@ -660,7 +666,7 @@ protected:
      *
      * @param event Resize event data.
      */
-    void resizeEvent(QResizeEvent *event) override;
+    auto resizeEvent(QResizeEvent *event) -> void override;
 
     /**
      * @brief Reimplementation of QObject::timerEvent [virtual]
@@ -670,7 +676,7 @@ protected:
      *
      * @param event A QTimerEvent for the fired timer.
      */
-    void timerEvent(QTimerEvent *event) override;
+    auto timerEvent(QTimerEvent *event) -> void override;
 
     /**
      * @brief Handle mouse wheel event.
@@ -688,7 +694,7 @@ protected:
      *
      * @param event Event for the wheel event.
      */
-    void wheelEvent(QWheelEvent *event) override;
+    auto wheelEvent(QWheelEvent *event) -> void override;
 
     /**
      * @brief recalculate the horizontal scrollbar limits
@@ -696,7 +702,7 @@ protected:
      * Called when the character width or max line length changes, to
      * recalculate the horizontal scroll bad limits.
      **/
-    void adjustHorizontalScrollBar();
+    auto adjustHorizontalScrollBar() -> void;
 
     /**
      * @brief Signal the need to refresh the display.
@@ -709,12 +715,12 @@ protected:
      *
      * @param level Level of update detail being set.
      */
-    void setUpdatesNeeded(updateLevel level);
+    auto setUpdatesNeeded(updateLevel level) -> void;
 
     /**
      * Remove lines in excess of maximumLogLines from the top of the widget
      **/
-    void trimLines();
+    auto trimLines() -> void;
 
     cell pointToCell(QPoint const& point) const;
 
@@ -740,7 +746,7 @@ public:
      * activated, the styles are rendered from this base.
      * @return Font base for the style
      **/
-    QFont const& font() const;
+    auto font() const -> QFont const&;
 
     /**
      * @brief Interline spacing, in pixels.
@@ -750,7 +756,7 @@ public:
      *
      * @return Height of a text line, in scrollView units.
      */
-    int lineHeight() const;
+    auto lineHeight() const -> int;
 
     /**
      * @brief Text zoom factor
@@ -759,7 +765,7 @@ public:
      * the text is zoomed in or out.
      * @return Zoom factor in +/- points from base. Returns 0 when zoom is set to normal.
      **/
-    int fontZoom() const;
+    auto fontZoom() const -> int;
 
     /**
      * @brief Returns the number of characters in a line.
@@ -769,7 +775,7 @@ public:
      * @param  lineNumber Line number of which to get the length.
      * @return length of the line if @p lineNumber is a valid line number; else 0.
      **/
-    int length(lineNumber_t lineNumber) const;
+    auto length(lineNumber_t lineNumber) const -> int;
 
     /**
      * @brief Return count of lines.
@@ -781,7 +787,7 @@ public:
      *
      * @return Number of lines of text.
      */
-    lineNumber_t lineCount() const {return m_lineCount;}
+    auto lineCount() const -> lineNumber_t {return m_lineCount;}
 
     /**
      * @brief get maxLogLines property
@@ -799,7 +805,7 @@ public:
      * @return Configured maximum number of lines kept by the widget.
      * @sa wLogText::setMaxLogLines().
      **/
-    lineNumber_t maxLogLines() const;
+    auto maxLogLines() const -> lineNumber_t;
 
     /**
      * @brief Mark begin/end of content update period. [virtual, overload: QWidget]
@@ -813,7 +819,7 @@ public:
      *          @c true: re-enable screen refreshes, and apply updates made
      *          while updates are enabled.
      */
-    void setUpdatesEnabled(bool newState);
+    auto setUpdatesEnabled(bool newState) -> void;
 
     /**
      * @brief Append a single line of text.
@@ -825,7 +831,7 @@ public:
      * @param item pointer to logTextItem. Ownership of the pointer transfers
      * @return line number of newly added line
      **/
-    lineNumber_t append(logTextItem *item) {
+    auto append(logTextItem *item) {
         m_maxLineChars = std::max(m_maxLineChars, item->m_text.length());
         items.push_back(item);
         setUpdatesNeeded(updateCond);
@@ -835,10 +841,10 @@ public:
         return m_lineCount++;
     }
 
-    lineNumber_t append(QString const& text, styleId_t styleNo) {
+    auto append(QString const& text, styleId_t styleNo) {
         return append(logTextItem::newItem(text, styleNo));}
 
-    lineNumber_t append(QString&& text, styleId_t styleNo) {
+    auto append(QString&& text, styleId_t styleNo) {
         return append(logTextItem::newItem(std::move(text), styleNo));}
 
     /**
@@ -849,7 +855,7 @@ public:
      * @param top Line number to start erasure
      * @param count Number of lines from @p top to clear
      **/
-    void clear(int top, int count);
+    auto clear(int top, int count) -> void;
 
     /**
      * @brief Check validity of a line number
@@ -860,7 +866,7 @@ public:
      * @param lineNo Line number to validate
      * @return @c true if @p lineNo is a valid line number.
      **/
-    bool validLineNumber(lineNumber_t lineNo) const {
+    auto validLineNumber(lineNumber_t lineNo) const {
         return (lineNo >= 0) && (lineNo < m_lineCount); }
 
     /**
@@ -872,7 +878,7 @@ public:
      * @param lineNo number of line to retrieve.
      * @return const pointer to line item.
      */
-    const logTextItem *item(lineNumber_t lineNo) const {
+    auto item(lineNumber_t lineNo) const -> logTextItem const* {
         if (lineNo >= m_lineCount)
             lineNo = m_lineCount - 1;
         return items[lineNo];
@@ -884,7 +890,7 @@ public:
      * @param lineNo number of line to retrieve.
      * @return pointer to line item.
      **/
-    logTextItem *item(lineNumber_t lineNo) {
+    auto item(lineNumber_t lineNo) -> logTextItem* {
         if (lineNo >= m_lineCount)
             lineNo = m_lineCount - 1;
         return items[lineNo];
@@ -902,7 +908,7 @@ public:
      * @param name Name of palette, allocated by @a newPalette(), to make active.
      * @return true if the activation succeeded; else false;
      */
-    bool activatePalette(const QString& name= QString());
+    auto activatePalette(const QString& name= QString()) -> bool;
 
     /**
      * @brief Create a named palette.
@@ -916,7 +922,7 @@ public:
      * @param name Name assigned to the palette.
      * @return Pointer to a palette if creation was successful; 0 on failure.
      */
-    logTextPalette *createPalette(size_t size, const QString& name);
+    auto createPalette(size_t size, const QString& name) ->logTextPalette *;
 
     /**
      * @brief Create a clone of an existing palette.
@@ -928,7 +934,7 @@ public:
      * @param source Source palette to clone.
      * @return Pointer to a palette if creation was successful; 0 on failure.
      */
-    logTextPalette *createPalette(const QString& name, const logTextPalette *source);
+    auto createPalette(const QString& name, const logTextPalette *source) ->logTextPalette *;
 
     /**
      * @brief Return a pointer to a named palette.
@@ -938,7 +944,7 @@ public:
      * @param name  Name of the palette to get.
      * @return Pointer to the named palette.  Zero if it does not exist.
      */
-    logTextPalette *palette(const QString& name) const;
+    auto palette(const QString& name) const ->logTextPalette*;
 
     /**
      * @brief Delete a named palette.
@@ -949,7 +955,7 @@ public:
      *
      * @param name Name of the palette to delete.
      */
-    void deletePalette(const QString& name);
+    auto deletePalette(const QString& name) -> void;
 
     /**
      * @brief Return the name of active palette.
@@ -958,7 +964,7 @@ public:
      *
      * @return Name of the active palette.
      */
-    QString activePaletteName() const;
+    auto activePaletteName() const ->QString;
 
     /**
      * @brief Return the name of default palette.
@@ -967,7 +973,7 @@ public:
      *
      * @return Name of the active palette.
      */
-    QString defaultPaletteName() const;
+    auto defaultPaletteName() const ->QString;
 
     /**
      * @brief Get a list of palette names.
@@ -976,7 +982,7 @@ public:
      *
      * @return String list of palette names.
      */
-    QStringList paletteNames() const;
+    auto paletteNames() const ->QStringList;
 
     /**
      * @brief Return the cell (line/column) of the caret.
@@ -985,7 +991,7 @@ public:
      *
      * @return @c cell caret position
      */
-    cell caretPosition() const;
+    auto caretPosition() const ->cell;
 
     /**
      * Set the current cursor position, in the form of line, column.  If line is
@@ -998,7 +1004,7 @@ public:
      * @param lineNumber New line number for cursor position.
      * @param columnNumber New column position.
      **/
-    void setCaretPosition(lineNumber_t lineNumber, int columnNumber);
+    auto setCaretPosition(lineNumber_t lineNumber, int columnNumber) -> void;
 
     /**
      * @brief Set the caret to a specified line, column coordinate.
@@ -1012,7 +1018,7 @@ public:
      *
      * @param p New cursor position.
      **/
-    void setCaretPosition(const cell&);
+    auto setCaretPosition(const cell&) -> void;
 
     /**
      * @brief Get state of showCaret flag.
@@ -1021,7 +1027,7 @@ public:
      *
      * @return true if the caret will be shown.
      **/
-    bool showCaret() const;
+    auto showCaret() const -> bool;
 
 
     /**
@@ -1040,7 +1046,7 @@ public:
      * @return a @c std::optional; if not set, the search failed. If set, the
      * contained @c cell holds the location of the found text
      */
-    std::optional<cell> find(QString const& str, long options=0);
+    auto find(QString const& str, long options=0) ->std::optional<cell>;
 
     /**
      * @brief Search for text string.
@@ -1071,8 +1077,8 @@ public:
      * @return If the parameter @p p is not null, *p will be set to the resultant
      * location of the text.
      */
-    bool find(const QString& str, cell *pt,
-              Qt::CaseSensitivity=Qt::CaseInsensitive, bool forward=true);
+    auto find(const QString& str, cell *pt,
+              Qt::CaseSensitivity=Qt::CaseInsensitive, bool forward=true) -> bool;
 
     /**
      * @brief Search for text string.
@@ -1110,8 +1116,8 @@ public:
      * @retval col If the parameter @p col is not null, *col will be set to the
      * resultant column number of the location of the text.
      */
-    bool find(const QString&, Qt::CaseSensitivity=Qt::CaseInsensitive,
-              bool forward=true, lineNumber_t *line=nullptr, int *col=nullptr);
+    auto find(const QString&, Qt::CaseSensitivity=Qt::CaseInsensitive,
+              bool forward=true, lineNumber_t *line=nullptr, int *col=nullptr) -> bool;
 
     /**
      * @brief Search for text matching a regular expression.
@@ -1137,7 +1143,7 @@ public:
      * @retval p If the parameter @p p is not null, *p will be set to the resultant
      * location of the text.
      */
-    bool find(QRegularExpression const& re, cell *at, bool forward = true);
+    auto find(QRegularExpression const& re, cell *at, bool forward = true) -> bool;
 
     /**
      * @brief Ensure the caret is visible, scrolling if needed.
@@ -1145,7 +1151,7 @@ public:
      * Ensure that the caret position is visible, scrolling the visible region if
      * needed.
      **/
-    void ensureCaretVisible();
+    auto ensureCaretVisible() -> void;
 
     /**
      * @brief Check for text selection.
@@ -1154,7 +1160,7 @@ public:
      *
      * @return Returns @c TRUE if some text is selected; otherwise returns @c FALSE.
      **/
-    bool hasSelectedText() const;
+    auto hasSelectedText() const -> bool;
 
     /**
      * @brief Get coordinates of the selection.
@@ -1176,8 +1182,8 @@ public:
      * @deprecated use @c getSelection()
      **/
     [[deprecated("use: region getSelection()")]]
-    void getSelection(lineNumber_t *lineFrom, int *colFrom,
-                      lineNumber_t *lineTo, int *colTo) const;
+    auto getSelection(lineNumber_t *lineFrom, int *colFrom,
+                      lineNumber_t *lineTo, int *colTo) const -> void;
     /**
      * @brief get the region of the selected text
      * Returns a region describing the currently selected text. If there is
@@ -1187,13 +1193,13 @@ public:
      * bottom right to top left, the returned region may not be 'normalized'. See
      * @c regions::normalize().
      */
-    region getSelection() const;
+    auto getSelection() const -> region;
 
     /**
      * @brief return all lines as a single string, with new-line separations.
      * @return A new-line separated string of all lines.
      */
-    QString toPlainText(QLatin1Char sep = QLatin1Char('\n')) const;
+    auto toPlainText(QLatin1Char sep = QLatin1Char('\n')) const -> QString;
 
     /**
      * @brief Returns a single string of text selection.
@@ -1203,7 +1209,7 @@ public:
      *
      * @return Selection region, concatenated with new-line separation.
      **/
-    QString selectedText() const;
+    auto selectedText() const -> QString;
 
     /**
      * @brief Get the current mouse hover delay time.
@@ -1213,7 +1219,7 @@ public:
      *
      * @return hover time in milliseconds
      **/
-    int hoverTime() const {return m_hoverTime;}
+    auto hoverTime() const {return m_hoverTime;}
 
     /**
      * @brief Set time for mouse hover signal
@@ -1224,7 +1230,7 @@ public:
      *
      * @param t Mouse hover time in milliseconds.
      **/
-    void setHoverTime(int t);
+    auto setHoverTime(int t) -> void;
 
     /**
      * @brief Return current state of scroll lock.
@@ -1233,7 +1239,8 @@ public:
      *
      * @return Current scroll lock state.
      */
-    bool scrollLock() const;
+    [[nodiscard]]
+    auto scrollLock() const -> bool;
 
     /**
      * @brief behavior of esc key when the view is scrolled
@@ -1245,7 +1252,7 @@ public:
      * view will jump to the last line.
      * @return @c false escape key will not release a scroll lock
      **/
-    bool escJumpsToEnd() const;
+    auto escJumpsToEnd() const -> bool;
 
     /**
      * @brief set behavior of escape key press when the view is scroll-locked
@@ -1255,7 +1262,7 @@ public:
      *
      * @param jump new state for the escJumpsToEnd property
      **/
-    void setEscJumpsToEnd(bool jump);
+    auto setEscJumpsToEnd(bool jump) -> void;
 
     /**
      * @brief Returns the current gutter width.
@@ -1266,7 +1273,7 @@ public:
      * @return Width in pixels of the gutter.  The vertical space per line is the
      *  same as the text height, @a lineHeight().
      */
-    int gutter() const;
+    auto gutter() const -> int;
 
     /**
      * @brief map a pixmap to a pixmap ID
@@ -1279,8 +1286,8 @@ public:
      * @param pixmapId ID of the pixmap to map
      * @param pixmap visual pixmap assigned to the @p pixmapId
      **/
-    void setPixmap(int pixmapId, QPixmap const& pixmap);
-    void setPixmap(int pixmapId, QPixmap&& pixmap);
+    auto setPixmap(int pixmapId, QPixmap const& pixmap) -> void;
+    auto setPixmap(int pixmapId, QPixmap&& pixmap) -> void;
 
     /**
      * @brief unmap a pixmap ID
@@ -1289,7 +1296,7 @@ public:
      *
      * @param pixmapId pixmap ID to unmap
      **/
-    void clearPixmap(int pixmapId);
+    auto clearPixmap(int pixmapId) -> void;
 
     /**
      * @brief Assign a gutter pixmap to a line.
@@ -1303,7 +1310,7 @@ public:
      * @param lineNo Number of the line to receive the pixmap.
      * @param pixmapId identifier for the pixmap on this line.
      */
-    void setLinePixmap(lineNumber_t lineNo, int pixmapId);
+    auto setLinePixmap(lineNumber_t lineNo, int pixmapId) -> void;
 
     /**
      * @brief Remove a pixmap for the line
@@ -1312,7 +1319,7 @@ public:
      *
      * @param lineNo Line number of line on which to remove the pixmap.
      */
-    void clearLinePixmap(lineNumber_t lineNo);
+    auto clearLinePixmap(lineNumber_t lineNo) -> void;
 
     /**
      * @brief Set the style on an item.
@@ -1325,7 +1332,7 @@ public:
      * @param item pointer to the item to be updated.
      * @param style New style value for the item.
      */
-    void setLineStyle( lineNumber_t line, int style);
+    auto setLineStyle( lineNumber_t line, int style) -> void;
 
     /**
      * @brief Apply a function to items in the item list.
@@ -1344,7 +1351,7 @@ public:
      * @param v Visitor object to be applied to each item.
      * @param firstLine Line number of the first element to be applied.
      */
-    void visitItems(logTextItemVisitor &v, lineNumber_t firstLine=0);
+    auto visitItems(logTextItemVisitor &v, lineNumber_t firstLine=0) -> void;
 
     /**
      * @brief Apply a function to items in the item list.
@@ -1362,7 +1369,7 @@ public:
      *
      * @param op Visitor function to be applied to each item.
      */
-    void visitItems(bool (*op)(const logTextItemVisitor::visitedItem&));
+    auto visitItems(bool (*op)(const logTextItemVisitor::visitedItem&)) -> void;
 
 
     /**
@@ -1383,21 +1390,21 @@ public:
      *
      * @param v Visitor object to be applied to each item.
      */
-    void visitSelection(logTextItemVisitor &v);
-    void visitSelection(bool (*v)(const logTextItemVisitor::visitedItem& item));
+    auto visitSelection(logTextItemVisitor &v) -> void;
+    auto visitSelection(bool (*v)(const logTextItemVisitor::visitedItem& item)) -> void;
 
 protected Q_SLOTS:
     /**
      * @brief slot called when the vertical scrollbar scroll position is changed
      * @param value new scrollbar position value
      **/
-    void vScrollChange(int value);
+    auto vScrollChange(int value) -> void;
 
     /**
      * @brief slot called when the horizontal scrollbar scroll position is changed
      * @param value new scrollbar position value
      **/
-    void hScrollChange(int value);
+    auto hScrollChange(int value) -> void;
 
 public Q_SLOTS:
     /**
@@ -1411,7 +1418,7 @@ public Q_SLOTS:
      *
      * @param mll Maximum number of lines.  Use 0 for unlimited.
      */
-    void setMaxLogLines(lineNumber_t mll);
+    auto setMaxLogLines(lineNumber_t mll) -> void;
 
     /**
      * @brief Clear display and delete all line d->items.
@@ -1419,7 +1426,7 @@ public Q_SLOTS:
      * Deletes the line items, and clears the display area.  Resets sizes and
      * counts apropriately.
      */
-    void clear();
+    auto clear() -> void;
 
     /**
      * @brief advisory that no new items are expected
@@ -1430,7 +1437,7 @@ public Q_SLOTS:
      * crash) if any new lines are received after finalize(). Note that accesses
      * and line deletions are still possible.
      */
-    void finalize();
+    auto finalize() -> void;
 
     /**
      * @brief Assign a new fixed-pitch base font.
@@ -1441,7 +1448,7 @@ public Q_SLOTS:
      *
      * @param font New fixed pitch QFont to use for text display.
      **/
-    void setFont(QFont font);
+    auto setFont(QFont font) -> void;
 
     /**
      * @brief Increment the font magnification.
@@ -1449,7 +1456,7 @@ public Q_SLOTS:
      * Increments the displayed font zoom increment by one point. Same as doing
      * setFontZoom(fontZoom() + 1);
      **/
-    void enlargeFont();
+    auto enlargeFont() -> void;
 
     /**
      * @brief Decrement the font magnification.
@@ -1457,7 +1464,7 @@ public Q_SLOTS:
      * Decrement the displayed font zoom increment by one point. Same as doing
      * setFontZoom(fontZoom() - 1), when fontZoom > 2;
      **/
-    void shrinkFont();
+    auto shrinkFont() -> void;
 
     /**
      * @brief Set the mouse zoom increment.
@@ -1467,14 +1474,14 @@ public Q_SLOTS:
      *
      * @param zoom Font size increment in points.
      */
-    void setFontZoom(int zoom);
+    auto setFontZoom(int zoom) -> void;
 
     /**
      * @brief Reset font magnification.
      *
      * Resets the displayed text size to the base font size.
      **/
-    void resetFontZoom();
+    auto resetFontZoom() -> void;
 
     /**
      * @brief Select all text.
@@ -1482,7 +1489,7 @@ public Q_SLOTS:
      * Select all the text.  Selected text is copied to the global clipboard. Emits
      * a copyAvailable(true) signal.
      **/
-    void selectAll();
+    auto selectAll() -> void;
 
     /**
      * @brief Remove selection
@@ -1491,7 +1498,7 @@ public Q_SLOTS:
      * Emits a copyAvailable(false) signal.
      *
      **/
-    void clearSelection();
+    auto clearSelection() -> void;
 
     /**
      * @brief Copy selection to the clipboard.
@@ -1499,7 +1506,7 @@ public Q_SLOTS:
      * Request to copy the current selection, if there is one, to the clipboard.  If
      * there is no current selection, no action is taken.
      */
-    void copy() const;
+    auto copy() const -> void;
 
     /**
      * @brief Set the gutter width.
@@ -1512,7 +1519,7 @@ public Q_SLOTS:
      * @param width Width in pixels for the gutter.  Zero disables gutter.
      * @sa wLogText::setLinePixmap() for setting a pixmap into the gutter of a line.
      */
-    void setGutter(int);
+    auto setGutter(int) -> void;
 
     /**
      * @brief Set scroll lock state.
@@ -1521,7 +1528,7 @@ public Q_SLOTS:
      *
      * @param state New scroll lock state.
      **/
-    void setScrollLock(bool state);
+    auto setScrollLock(bool state) -> void;
 
     /**
      * @brief Set whether the caret will be shown.
@@ -1530,7 +1537,7 @@ public Q_SLOTS:
      *
      * @param show New state of the show caret flag.
      **/
-    void setShowCaret(bool show);
+    auto setShowCaret(bool show) -> void;
 
 Q_SIGNALS:
     /**
@@ -1540,7 +1547,7 @@ Q_SIGNALS:
      *
      * @param event Mouse event context.
      */
-    void clicked(QMouseEvent *event);
+    auto clicked(QMouseEvent *event) -> void;
 
     /**
      * @brief Context menu request in log body.
@@ -1554,7 +1561,7 @@ Q_SIGNALS:
      * @param globalPos The @c QPoint global location of the mouse pointer when the click occurred.
      * @param event Mouse event context.
      */
-    void contextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent *event);
+    auto contextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent *event) -> void;
 
     /**
      * @brief When selection state changes.
@@ -1566,7 +1573,7 @@ Q_SIGNALS:
      * @param avail true when hasSelectedText() would return true; i.e. when text is
      * available to be copied.
      */
-    void copyAvailable(bool avail);
+    auto copyAvailable(bool avail) -> void;
 
     /**
      * @brief Double click at line/column position.
@@ -1577,7 +1584,7 @@ Q_SIGNALS:
      * @param cell The line (\p cell.y()) and column (\p cell.x()) the event
      *          occurred on.
      */
-    void doubleClicked(cell cell);
+    auto doubleClicked(cell cell) -> void;
 
     /**
      * @fn void wLogText::gutterClick(int lineNo, ButtonState btn, QPoint point)
@@ -1588,7 +1595,7 @@ Q_SIGNALS:
      *          display area.
      * @param event Mouse event context.
      */
-    void gutterClick(lineNumber_t lineNo, QMouseEvent *event);
+    auto gutterClick(lineNumber_t lineNo, QMouseEvent *event) -> void;
 
     /**
      * @fn void wLogText::gutterContextClick(int lineNo, ButtonState btn, QPoint point)
@@ -1600,7 +1607,7 @@ Q_SIGNALS:
      * @param globalPos The @c QPoint global location of the mouse pointer when the click occurred.
      * @param event Event context
      */
-    void gutterContextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent* event);
+    auto gutterContextClick(lineNumber_t lineNo, QPoint globalPos, QContextMenuEvent* event) -> void;
 
     /**
      * @brief Double-click in gutter of line.
@@ -1609,7 +1616,7 @@ Q_SIGNALS:
      *          number relative to the start of the text, not the start of the
      *          display area.
      */
-    void gutterDoubleClicked(lineNumber_t lineNo);
+    auto gutterDoubleClicked(lineNumber_t lineNo) -> void;
 
     /**
      * @brief signal mouse hovering
@@ -1620,7 +1627,7 @@ Q_SIGNALS:
      * @param lineNo Line number of the text being hovered on
      * @param col Column number in the text line of mouse
      **/
-    void hover(lineNumber_t lineNo, int col);
+    auto hover(lineNumber_t lineNo, int col) -> void;
 
     /**
      * @brief Handle key press event.
@@ -1630,7 +1637,7 @@ Q_SIGNALS:
      *
      * @param evt The Qt QKeyEvent for the key press.
      */
-    void keyPress(QKeyEvent *evt);
+    auto keyPress(QKeyEvent *evt) -> void;
 
     /**
      * @brief Signal a scroll lock/unlock
@@ -1642,7 +1649,7 @@ Q_SIGNALS:
      *
      * @param lock New scroll lock state.
      */
-    void scrollLockChange(bool lock);
+    auto scrollLockChange(bool lock) -> void;
 
     /**
      * @brief Line trimming has occurred through line @p 'lines'
@@ -1665,7 +1672,7 @@ Q_SIGNALS:
      *
      * @param lines Number of lines trimmed from the beginning.
      */
-    void trimmed(int lines);
+    auto trimmed(int lines) -> void;
 
     /**
      * @brief signal line height change
@@ -1677,7 +1684,7 @@ Q_SIGNALS:
      * @param oldHeight former heigh in pixels of a text line
      * @param newHeight newly calculated text line height
      **/
-    void lineSpacingChange(int oldHeight, int newHeight);
+    auto lineSpacingChange(int oldHeight, int newHeight) -> void;
 };
 
 
@@ -1749,13 +1756,13 @@ public:
      *
      * @return Current background color.
      **/
-    QColor const& backgroundColor() const;
+    auto backgroundColor() const -> QColor const&;
 
     /**
      * @brief Get background color for caret line
      * @return Color for the background of the caret line
      */
-    QColor const& caretLineBackgroundColor() const;
+    auto caretLineBackgroundColor() const -> QColor const&;
 
     /**
      * @brief Set background color.
@@ -1764,9 +1771,9 @@ public:
      *
      * @param c New color for the background.
      **/
-    void setBackgroundColor(const QColor& c);
+    auto setBackgroundColor(const QColor& c) -> void;
 
-    void setCaretLineBackgroundColor(const QColor& c);
+    auto setCaretLineBackgroundColor(const QColor& c) -> void;
 
     /**
      * @brief Get text color.
@@ -1775,7 +1782,7 @@ public:
      *
      * @return The defined text color.
      **/
-    QColor const& textColor() const;
+    auto textColor() const -> QColor const&;
 
     /**
      * @brief Set text color.
@@ -1784,7 +1791,7 @@ public:
      *
      * @param c New text color for the style.
      **/
-    void setTextColor(const QColor& c);
+    auto setTextColor(const QColor& c) -> void;
 
     /**
      * @brief Get palette item attributes.
@@ -1793,7 +1800,7 @@ public:
      *
      * @return Attribute bits for this logTextPaletteEntry.
      **/
-    textAttributes attributes() const;
+    auto attributes() const -> textAttributes;
 
     /**
      * @brief Set palette item attributes.
@@ -1803,7 +1810,7 @@ public:
      *
      * @param a New attribute state for this entry.
      **/
-    void setAttributes(logTextPaletteEntry::textAttributes a);
+    auto setAttributes(logTextPaletteEntry::textAttributes a) -> void;
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(logTextPaletteEntry::textAttributes)
 Q_DECLARE_TYPEINFO(logTextPaletteEntry, Q_MOVABLE_TYPE);        //!< Declare as movable type for Qt containers
@@ -1853,7 +1860,7 @@ public:
      * @param clBgColor background color of caret line
      * @return @c styleId_t of the added style
      */
-     styleId_t addStyle(QColor const& textColor, QColor const& bgColor, QColor const& clBgColor);
+     auto addStyle(QColor const& textColor, QColor const& bgColor, QColor const& clBgColor) -> styleId_t;
 
      /**
       * @brief add a new style to the palette
@@ -1861,7 +1868,7 @@ public:
       * @param style style to add
       * @return @c styleId_t of the added style
       */
-     styleId_t addStyle(logTextPaletteEntry style);
+     auto addStyle(logTextPaletteEntry style) -> styleId_t;
 
     /**
      * Get a reference to a specified palette style entry.
@@ -1870,14 +1877,15 @@ public:
      * @return Reference to a style entry.  If the style number @p s is out of
      *         range, a reference to the last entry is returned.
      **/
-    logTextPaletteEntry& style(styleId_t id);
+    auto style(styleId_t id) -> logTextPaletteEntry&;
+    auto style(styleId_t id) const -> logTextPaletteEntry const&;
 
     /**
      * Returns the (compile time defined) number of styles in a palette.
      *
      * @return Number of styles available in a palette.
      **/
-    int numStyles() const {return styles.count();}
+    auto numStyles() const {return styles.count();}
 };
 
 #endif // WLOGTEXT_H

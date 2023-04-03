@@ -1984,11 +1984,6 @@ void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem&))
 }
 
 
-logTextItemVisitor::~logTextItemVisitor()
-{
-}
-
-
 /******************************************************************************
  *
  *    palette class:

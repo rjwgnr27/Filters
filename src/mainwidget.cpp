@@ -592,7 +592,7 @@ void mainWidget::applyFrom(size_t start)
         qWarning() << QStringLiteral("No source entry %1/%2").arg(start).arg(stepResults.size());
 }
 
-bool mainWidget::validateExpressions(int entry)
+bool mainWidget::validateExpressions(int entry) const
 {
     auto table = filtersTable;
     for (int rows = table->rowCount(); entry < rows; ++entry) {

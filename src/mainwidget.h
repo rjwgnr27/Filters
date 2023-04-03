@@ -228,7 +228,7 @@ private:
     QString lastFoundText;
     long findOptions = 0;
     QStringList findHistory;
-    void setupUi();
+    auto setupUi() -> void;
 
     /**
      * @brief apply an expression entry
@@ -240,29 +240,29 @@ private:
      * @param src input string list to apply
      * @return result of the filter applied to the input list @p entry
      */
-    stepList applyExpression(size_t entry, stepList src);
+    auto applyExpression(size_t entry, stepList src) -> stepList;
 
     /**
      * @brief apply filter chain from point and those following
      * @param entry table entry (row) number to start applying from
      */
-    void applyFrom(size_t entry);
+    auto applyFrom(size_t entry) -> void;;
 
     /**
      * @brief clear the interim and final results from a given entry
      * @param entry entry number to clear from
      */
-    void clearResultsAfter(size_t entry);
+    auto clearResultsAfter(size_t entry) -> void;;
 
     /**
      * @brief clear the results field
      */
-    void clearResults();
+    auto clearResults() -> void;;
 
     /**
      * @brief update result display with the results of the final evaluation
      */
-    void displayResult();
+    auto displayResult() -> void;;
 
     /**
      * @brief common perform find
@@ -270,7 +270,7 @@ private:
      * Helper function for resultFind/resultFindNext/resultFindPrev
      * @param flags QTextDocument::FindFlag for search; default={} for forward
      */
-    void doResultFind(long options);
+    auto doResultFind(long options) -> void;
 
     /**
      * @brief save the filters to a JSON file
@@ -286,13 +286,13 @@ private:
      */
     bool doSaveResult(const QString& fileName);
 
-    void insertFiltersAt(int at, const filterData& fData);
+    auto insertFiltersAt(int at, const filterData& fData) -> void;
 
     /**
      * go to displayed line for, or nearest previous line displayed for, a source line
      * @param lineNumber source line number to display
      */
-    void jumpToSourceLine(int lineNumber);
+    auto jumpToSourceLine(int lineNumber) -> void;
 
     QString getFilterFile();
     bool loadFiltersTable(const QString& localFile);
@@ -303,18 +303,18 @@ private:
      * @brief run expressions, if auto-apply option is enabled
      * @param entry table entry number to start applying from
      */
-    void maybeAutoApply(int entry);
+    auto maybeAutoApply(int entry) -> void;
 
-    void swapFiltersRows(int a, int b);
+    auto swapFiltersRows(int a, int b) -> void;
     filterEntry getFilterRow(int row);
-    void setFilterRow(int row, filterEntry const& entry);
+    auto setFilterRow(int row, filterEntry const& entry) -> void;
 
     /**
      * override base paintEvent
      */
-    void showEvent(QShowEvent *ev) override;
+    auto showEvent(QShowEvent *ev) -> void override;
 
-    void updateApplicationTitle();
+    auto updateApplicationTitle() -> void;
 
     /**
      * @brief validate expressions in the expressions table
@@ -322,7 +322,7 @@ private:
      * @return @c true if all expressions (from @p entry) are valid; @c false if any
      * expressions are invalid
      */
-    bool validateExpressions(int entry=0);
+    auto validateExpressions(int entry=0) const -> bool;
 };
 
 #endif // MAINWIDGET_H
