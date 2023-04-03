@@ -44,15 +44,15 @@ class wLogTextPrivate;
 /**
  * @brief A class providing character cell (line, column) semantics.
  *
- * An class to represent a character cell position of line and column. It adds the notion
+ * A class to represent a character cell position of line and column. It has the notion
  * screen positional comparison, i.e.
- * if ( cell_a \< cell_b ).  Cell_a \< cell_b if:
+ * if ( cell_a \< cell_b ). Cell_a \< cell_b if:
  *     ((cell_a.line() \< cell_b.line) ||
  *      ((cell_a.line() == cell_b.line()) && cell_a.col() \< cell_b.col()) );
  **/
 class cell {
 private:
-    int m_line = 0;
+    lineNumber_t m_line = 0;
     int m_col = 0;
 
 public:
@@ -69,49 +69,53 @@ public:
      * Return the line number represented by this cell.
      * @return Line number of this cell
      **/
-    [[nodiscard]] int lineNumber() const {return m_line;}            //!< Return line number represented by a cell.
+    auto lineNumber() const -> decltype(m_line) {return m_line;}    //!< Return line number represented by a cell.
 
     /**
      * Set the line position represented by this cell.
      * @param l New line number for this cell.
      **/
-    void setLineNumber(int l) {m_line = l;}          //!< Set the line number this cell represents
+    auto setLineNumber(lineNumber_t l) ->void {m_line = l;}                //!< Set the line number this cell represents
 
     /**
      * Return the column number represented by this cell.
      * @return column number of this cell
      **/
-    [[nodiscard]] int columnNumber() const {return m_col;}               //!< Return the character column this cell represents
+    auto columnNumber() const -> decltype(m_col) {return m_col;}    //!< Return the character column this cell represents
 
     /**
      * Set the column position represented by this cell.
      * @param c New column number for this cell.
      */
-    void setColumnNumber(int c) {m_col = c;}         //!< Set the character column this cell represents
+    auto setColumnNumber(int c) ->void {m_col = c;}         //!< Set the character column this cell represents
+
+    int manhattanLength() const {return ::abs(lineNumber()) + ::abs(columnNumber());}
 
     /**
      * Set the line and column position represented by this cell.
      * @param l New line number for this cell.
      * @param c New column number for this cell.
      **/
-    void setPos(int l, int c) {setLineNumber(l); setColumnNumber(c);}  //!< Set the cell location
+    auto setPos(lineNumber_t l, int c) ->void {setLineNumber(l); setColumnNumber(c);}  //!< Set the cell location
 
     /**
      * Returns a cell one line after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
      * @return A \c cell position one line down from this.
      **/
-    [[nodiscard]] cell nextLine() const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
+    [[nodiscard]]
+    auto nextLine() -> cell const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
 
-    void advanceLine(int inc = 1) {setLineNumber(lineNumber() + inc);}
-    void advanceColumn(int inc = 1) {setColumnNumber(columnNumber() + inc);}
+    auto advanceLine(lineNumber_t inc = 1) ->void {setLineNumber(lineNumber() + inc);}
 
     /**
      * Returns a cell one column after this.  Note, the position strictly mathematical, there is no
      * validation against any document structure.
      * @return cell location of next column.
      **/
-    [[nodiscard]] cell nextCol() const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
+    [[nodiscard]]
+    auto nextCol() -> cell const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
+    auto advanceColumn(int inc = 1) ->void {setColumnNumber(columnNumber() + inc);}
 
     /**
      * @brief compare to cells for equality
@@ -119,7 +123,7 @@ public:
      * @param other @c cell to compare to
      * @return @c true if the cells are equal
      */
-    bool operator == (cell const& other) const {
+    auto operator == (cell const& other) const {
         return lineNumber() == other.lineNumber() && columnNumber() == other.columnNumber();}
 
     /**
@@ -128,24 +132,27 @@ public:
      * @return returns <, ==, or > based on line, then cell
      **/
     auto operator <=> (cell const& other) const {
-        return lineNumber() == other.lineNumber() ? columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
+        return lineNumber() == other.lineNumber() ?
+                columnNumber() <=> other.columnNumber() : lineNumber() <=> other.lineNumber();}
 
-    void swap(cell &other) noexcept {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
+    auto swap(cell &other) noexcept ->void {std::swap(m_line, other.m_line); std::swap(m_col, other.m_col);}
 
-    [[nodiscard]] cell operator +(cell const& other) const {
+    [[nodiscard]]
+    auto operator +(cell const& other) const ->cell{
         return {lineNumber() + other.lineNumber(), columnNumber() + other.columnNumber()};}
 
-    [[nodiscard]] cell operator -(cell const& other) const {
+    [[nodiscard]]
+    auto operator -(cell const& other) const ->cell {
         return {lineNumber() - other.lineNumber(), columnNumber() - other.columnNumber()};}
 
-    [[nodiscard]] cell abs() const {return {::abs(lineNumber()), ::abs(columnNumber())};}
-    [[nodiscard]] friend cell abs(cell const& c) {return c.abs();}
+    [[nodiscard]]
+    auto abs() const ->cell {return {::abs(lineNumber()), ::abs(columnNumber())};}
+    [[nodiscard]] friend auto abs(cell c) {return c.abs();}
 
-    cell& operator +=(cell const& other) {
+    auto operator +=(cell const& other) -> cell& {
         setLineNumber(lineNumber() + other.lineNumber());
         setColumnNumber(columnNumber() + other.columnNumber());
         return *this;}
-
 };
 template<> inline void std::swap<cell>(cell &x, cell &y) noexcept {x.swap(y);}
 QDebug operator<<(QDebug dbg, cell const& c);
@@ -153,8 +160,10 @@ QDebug operator<<(QDebug dbg, cell const& c);
 
 /* structured bindings API */
 template<> struct std::tuple_size<cell> {static constexpr int value = 2;};
-template<size_t N> struct std::tuple_element<N, cell> {using type = int;};
-template<int N> decltype(auto) get(cell const& c) {
+template<size_t N> struct std::tuple_element<N, cell>;
+template<> struct std::tuple_element<0, cell> {using type = decltype(cell{}.lineNumber());};
+template<> struct std::tuple_element<1, cell> {using type = decltype(cell{}.columnNumber());};
+template<int N> auto get(cell const& c) {
     if constexpr(N == 0) return c.lineNumber(); else return c.columnNumber();
 }
 
@@ -230,9 +239,7 @@ public:
      * @brief simple approximation of the distance from first() to second()
      * @return sum of the difference of line numbers and column numbers
      */
-    int manhattanLength() const {
-        return abs(m_second.lineNumber() - m_first.lineNumber()) +
-               abs(m_second.columnNumber() - m_first.columnNumber());}
+    int manhattanLength() const {return (m_second - m_first).manhattanLength();}
 
     bool operator ==(region const& other) const {
         return first() == other.first() && second() == other.second();}

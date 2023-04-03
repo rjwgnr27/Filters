@@ -756,7 +756,7 @@ void wLogText::mouseMoveEvent(QMouseEvent *event)
              * cell (line, column) coordinates. The mouse point needs to be
              * mapped to a cell.
              */
-            if ((event->pos() - QPoint(d->dragStart)).manhattanLength()
+            if ((cell{event->pos()} - d->dragStart).manhattanLength()
                 < QApplication::startDragDistance())
                 return;
             d->dragState = dragStates::dragDragging;
