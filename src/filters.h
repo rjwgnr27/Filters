@@ -43,7 +43,7 @@ private:
     /** application widget placed in the main window */
     mainWidget *m_ui;
 
-    void setupActions();
+    auto setupActions() -> void;
 
     /**
      * @brief inherited close event
@@ -51,9 +51,9 @@ private:
      * Notification of close, allowing the save of the confiuration
      * @param event event for the close event
      **/
-    virtual void closeEvent(QCloseEvent *event) override;
+    auto closeEvent(QCloseEvent *event) -> void override;
 };
 
-int doBatch(const commandLineOptions& opts);
+auto doBatch(const commandLineOptions& opts) -> int;
 
 #endif // FILTERS_H

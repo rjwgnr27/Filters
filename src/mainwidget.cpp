@@ -191,7 +191,8 @@ void mainWidget::setupUi()
 
     /***********************/
     /***   Filters menu  ***/
-    actionRun = ac->addAction(QStringLiteral("run_filters"), this, SLOT(runButtonClicked()));
+    actionRun = ac->addAction(QStringLiteral("run_filters"), this, [this](){applyFrom(0);}
+                              /*SLOT(runButtonClicked())*/);
     actionRun->setText(i18n("Run filters"));
     actionRun->setToolTip(i18n("Run the filters against the input"));
     ac->setDefaultShortcut(actionRun, QKeySequence(QStringLiteral("Ctrl+R")));
@@ -352,7 +353,6 @@ void mainWidget::setupUi()
 
     if (objectName().isEmpty())
         setObjectName(QString::fromUtf8("mainWidget"));
-    resize(906, 646);
     setWindowTitle(QCoreApplication::translate("mainWidget", "Form", nullptr));
 
     connect(result, SIGNAL(contextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
@@ -363,13 +363,20 @@ void mainWidget::setupUi()
 
     QMetaObject::connectSlotsByName(this);
 
+    /* settings related to the general application */
     KConfigGroup generalConfig{KSharedConfig::openConfig(), generalConfigName};
 
+    /* settings related to the filters section */
     KConfigGroup filtersConfig{KSharedConfig::openConfig(), filtersConfigName};
     filtersTable->setFont(filtersConfig.readEntry(QStringLiteral("font"), QFont{}));
 
+    /* settings related to the results section */
     KConfigGroup resultsConfig{KSharedConfig::openConfig(), resultsConfigName};
-    result->setFont(resultsConfig.readEntry(QStringLiteral("font"), QFont{}));
+    result->setFont(resultsConfig.readEntry(QStringLiteral("font"), QFont{QStringLiteral("monospace")}));
+
+    findHistory = resultsConfig.readEntry(QStringLiteral("findHistory"), QStringList{});
+    findHistorySize = resultsConfig.readEntry(QStringLiteral("findHistorySize"), findHistorySize);
+
     actionLineNumbers->setChecked(resultsConfig.readEntry(QStringLiteral("showLineNumbers"), false));
 }
 
@@ -597,15 +604,18 @@ bool mainWidget::validateExpressions(int entry) const
     auto table = filtersTable;
     for (int rows = table->rowCount(); entry < rows; ++entry) {
         if (table->item(entry, ColEnable)->checkState() == Qt::Checked) {
-            auto reStr = table->item(entry, ColRegEx)->text();
+            auto* reItem = table->item(entry, ColRegEx);
+            auto reStr = reItem->text();
             if (!reStr.isEmpty()) {
                 QRegularExpression re(reStr);
                 if (!re.isValid()) {
                     status->setText(QStringLiteral("Invalid RE at %1: '%2'")
                             .arg(entry).arg(re.errorString()));
                     table->setCurrentCell(entry, ColRegEx);
+                    reItem->setToolTip(status->text());
                     return false;
-                }
+                } else
+                    reItem->setToolTip(QString{});
             }
         }
     }
@@ -795,10 +805,6 @@ void mainWidget::dialectChanged(QString const& text)
     maybeAutoApply(0);
 }
 
-void mainWidget::runButtonClicked()
-{
-    applyFrom(0);
-}
 
 void mainWidget::tableItemChanged(QTableWidgetItem *item)
 {
@@ -1070,8 +1076,13 @@ void mainWidget::resultFind()
     QString text = findDlg.pattern();
     if (text.size() > 0) {
         lastFoundText = text;
-        findHistory.removeAll(text);
-        findHistory << text;
+        findHistory.removeAll(lastFoundText);
+        findHistory.push_back(lastFoundText);
+        if (findHistory.size() > findHistorySize)
+            findHistory.erase(findHistory.begin(), findHistory.begin() + (findHistory.size() - findHistorySize));
+        KConfigGroup resultsConfig{KSharedConfig::openConfig(), resultsConfigName};
+        resultsConfig.writeEntry(QStringLiteral("findHistory"), findHistory);
+
         findOptions = findDlg.options();
         doResultFind(findOptions);
     }

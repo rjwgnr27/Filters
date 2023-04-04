@@ -102,54 +102,54 @@ private:
         resultTextItem(resultTextItem const&) = default;
         resultTextItem(resultTextItem&&) = default;
 
-        static resultTextItem* asResultTextItem(logTextItem* item) {
+        static auto asResultTextItem(logTextItem* item) -> resultTextItem* {
             return static_cast<resultTextItem *>(item);}
-        static resultTextItem const* asResultTextItem(logTextItem const* item) {
+        static auto asResultTextItem(logTextItem const* item) -> resultTextItem const* {
             return static_cast<resultTextItem const*>(item);}
 
-        textItem* sourceItem() const {return srcItem;}
+        auto sourceItem() const -> textItem* {return srcItem;}
     };
 
 public:
-    mainWidget(KXmlGuiWindow *main, QWidget *parent = nullptr);
-    bool initialLoad(const commandLineOptions& opts);
+    explicit mainWidget(KXmlGuiWindow *main, QWidget *parent = nullptr);
+
+    auto initialLoad(const commandLineOptions& opts) -> bool;
 
 private Q_SLOTS:
-    void appendEmptyRow();
-    void actionLineNumbersTriggerd(bool checked);
-    void autoRunClicked();
-    void clearFilterRow();
-    void clearFilters();
-    void deleteFilterRow();
-    void dialectChanged(QString const& text);
-    void filtersTableMenuRequested(QPoint point);
-    void gotoBookmark(int entry);
-    void gotoLine();
-    void insertEmptyFilterAbove();
-    void insertEmptyRowAt(int row);
-    void insertFiltersAbove();
-    void loadFilters();
-    void loadFiltersTable(const QUrl&);
-    void lineSpacingChange(int oldHeight, int newHeight);
-    void loadRecentSubject(const QUrl& url);
-    void loadSubjectFile();
-    bool loadSubjectFile(const QString& localFile);
-    void loadSubjectFromCB();
-    void moveFilterDown();
-    void moveFilterUp();
-    void resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*);
-    void resultFind();
-    void resultFindNext();
-    void resultFindPrev();
-    void runButtonClicked();
-    void saveFilters();
-    void saveFiltersAs();
-    void saveResult();
-    void saveResultAs();
-    void selectFilterFont();
-    void selectResultFont();
-    void tableItemChanged(QTableWidgetItem *item);
-    void toggleBookmark();
+    auto appendEmptyRow() -> void;
+    auto actionLineNumbersTriggerd(bool checked) -> void;
+    auto autoRunClicked() -> void;
+    auto clearFilterRow() -> void;
+    auto clearFilters() -> void;
+    auto deleteFilterRow() -> void;
+    auto dialectChanged(QString const& text) -> void;
+    auto filtersTableMenuRequested(QPoint point) -> void;
+    auto gotoBookmark(int entry) -> void;
+    auto gotoLine() -> void;
+    auto insertEmptyFilterAbove() -> void;
+    auto insertEmptyRowAt(int row) -> void;
+    auto insertFiltersAbove() -> void;
+    auto loadFilters() -> void;
+    auto loadFiltersTable(const QUrl&) -> void;
+    auto lineSpacingChange(int oldHeight, int newHeight) -> void;
+    auto loadRecentSubject(const QUrl& url) -> void;
+    auto loadSubjectFile() -> void;
+    auto loadSubjectFile(const QString& localFile) -> bool;
+    auto loadSubjectFromCB() -> void;
+    auto moveFilterDown() -> void;
+    auto moveFilterUp() -> void;
+    auto resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*) -> void;
+    auto resultFind() -> void;
+    auto resultFindNext() -> void;
+    auto resultFindPrev() -> void;
+    auto saveFilters() -> void;
+    auto saveFiltersAs() -> void;
+    auto saveResult() -> void;
+    auto saveResultAs() -> void;
+    auto selectFilterFont() -> void;
+    auto selectResultFont() -> void;
+    auto tableItemChanged(QTableWidgetItem *item) -> void;
+    auto toggleBookmark() -> void;
 
 private:
     KXmlGuiWindow *mainWindow = nullptr;
@@ -184,7 +184,7 @@ private:
      * set containing the source line numbers of source lines with bookmarks
      */
     QSet<int> bookmarkedLines;
-    QList<int> bmLineNums;
+    std::vector<int> bmLineNums;
 
     /** label widget placed in the status bar */
     QLabel *status = nullptr;
@@ -225,9 +225,11 @@ private:
     QAction *actionClearSelection;
     QAction *actionCopySelection;
 
+    int findHistorySize = 10;
     QString lastFoundText;
     long findOptions = 0;
     QStringList findHistory;
+
     auto setupUi() -> void;
 
     /**
@@ -277,14 +279,14 @@ private:
      * @param fileName file name to save result text to
      * @return @c true if the file was opened, and the filters saved; otherwise @c false
      */
-    bool doSaveFilters(const QString& fileName);
+    auto doSaveFilters(const QString& fileName) -> bool;
 
     /**
      * @brief save the result text to a file
      * @param fileName file name to save result text to
      * @return @c true if the file was opened, and the text saved; otherwise @c false
      */
-    bool doSaveResult(const QString& fileName);
+    auto doSaveResult(const QString& fileName) -> bool;
 
     auto insertFiltersAt(int at, const filterData& fData) -> void;
 
@@ -294,10 +296,10 @@ private:
      */
     auto jumpToSourceLine(int lineNumber) -> void;
 
-    QString getFilterFile();
-    bool loadFiltersTable(const QString& localFile);
-    bool loadFiltersTable(const filterData& filters);
-    filterData loadFiltersFile(const QString& fileName);
+    auto getFilterFile() -> QString;
+    auto loadFiltersTable(const QString& localFile) -> bool;
+    auto loadFiltersTable(const filterData& filters) -> bool;
+    auto loadFiltersFile(const QString& fileName) -> filterData;
 
     /**
      * @brief run expressions, if auto-apply option is enabled
@@ -306,7 +308,7 @@ private:
     auto maybeAutoApply(int entry) -> void;
 
     auto swapFiltersRows(int a, int b) -> void;
-    filterEntry getFilterRow(int row);
+    auto getFilterRow(int row) -> filterEntry;
     auto setFilterRow(int row, filterEntry const& entry) -> void;
 
     /**
