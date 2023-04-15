@@ -99,14 +99,14 @@ void mainWidget::setupUi()
     splitter->addWidget(groupBox_2);
 
     QGroupBox *groupBox_3 = new QGroupBox(splitter);
-    groupBox_3->setObjectName(QString::fromUtf8("groupBox_3"));
+    groupBox_3->setObjectName(QStringLiteral("groupBox_3"));
 
     result = new wLogText(groupBox_3);
-    result->setObjectName(QString::fromUtf8("result"));
+    result->setObjectName(QStringLiteral("result"));
     result->setGutter(32);
-    result->setFont(QFont{QString::fromUtf8("Monospace")});
+    result->setFont(QFont{QStringLiteral("Monospace")});
     QVBoxLayout *verticalLayout_2 = new QVBoxLayout(groupBox_3);
-    verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
+    verticalLayout_2->setObjectName(QStringLiteral("verticalLayout_2"));
     verticalLayout_2->addWidget(result);
 
     splitter->addWidget(groupBox_3);
@@ -117,7 +117,7 @@ void mainWidget::setupUi()
     mainWindow->statusBar()->insertWidget(0, status);
 
     //pixBmUser = KIconLoader::global()->loadIcon(QStringLiteral("bookmarks"), KIconLoader::Small);
-    pixBmUser = QIcon::fromTheme("status-note").pixmap(16,16);
+    pixBmUser = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
     pixBmUser.scaledToHeight(16);
     result->setPixmap(pixmapIdBookMark, pixBmUser);
     pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
@@ -163,31 +163,31 @@ void mainWidget::setupUi()
     actionGotoLine->setToolTip(i18n("Jump to subject line number"));
     actionGotoLine->setWhatsThis(i18n("Jump to the displayed line for the given subject line number, or the preceding line closest."));
     actionGotoLine->setIcon(QIcon::fromTheme(QStringLiteral("goto-line")));
-    ac->setDefaultShortcut(actionGotoLine, QKeySequence(tr("Ctrl+G")));
+    ac->setDefaultShortcut(actionGotoLine, QKeySequence(QStringLiteral("Ctrl+G")));
 
     actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("bookmarks")),
                                            QStringLiteral("Jump to bookmark"), ac);
     action = ac->addAction(QStringLiteral("goto_bookmark"), actionBookmarkMenu);
     action->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
     connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
-    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+J")));
+    ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+J")));
 
     /***********************/
     /***   View menu     ***/
     action = ac->addAction(QStringLiteral("zoom_in"), result, SLOT(enlargeFont()));
     action->setText(i18nc("view menu", "Increase Font Size"));
     action->setIcon(QIcon::fromTheme(QStringLiteral("zoom-in")));
-    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl++")));
+    ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl++")));
 
     action = ac->addAction(QStringLiteral("zoom_out"), result, SLOT(shrinkFont()));
     action->setText(i18nc("view menu", "Decrease Font Size"));
     action->setIcon(QIcon::fromTheme(QStringLiteral("zoom-out")));
-    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+-")));
+    ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+-")));
 
     action = ac->addAction(QStringLiteral("actual_size"), result, SLOT(resetFontZoom()));
     action->setText(i18nc("view menu", "Reset Font Size"));
     action->setIcon(QIcon::fromTheme(QStringLiteral("actual-size")));
-    ac->setDefaultShortcut(action, QKeySequence(tr("Ctrl+0")));
+    ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+0")));
 
     /***********************/
     /***   Filters menu  ***/
@@ -352,7 +352,7 @@ void mainWidget::setupUi()
     connect(actionLineNumbers, SIGNAL(triggered(bool)), this, SLOT(actionLineNumbersTriggerd(bool)));
 
     if (objectName().isEmpty())
-        setObjectName(QString::fromUtf8("mainWidget"));
+        setObjectName(QStringLiteral("mainWidget"));
     setWindowTitle(QCoreApplication::translate("mainWidget", "Form", nullptr));
 
     connect(result, SIGNAL(contextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
@@ -614,8 +614,8 @@ bool mainWidget::validateExpressions(int entry) const
                     table->setCurrentCell(entry, ColRegEx);
                     reItem->setToolTip(status->text());
                     return false;
-                } else
-                    reItem->setToolTip(QString{});
+                }
+                reItem->setToolTip(QString{});
             }
         }
     }
@@ -656,13 +656,13 @@ void mainWidget::displayResult()
         auto mapIt = lineMap.begin();
         if (actionLineNumbers->isChecked()) {
             int width = QStringLiteral("%1").arg(items.back()->srcLineNumber).size();
-            for (auto& item : items) {
+            for (auto const& item : items) {
                 QString line = QStringLiteral("%1| ").arg(item->srcLineNumber, width) + item->text;
                 result->append(new resultTextItem(item, std::move(line), 0));
                 *(mapIt++) = item->srcLineNumber;
             }
         } else {
-            for (auto& item : items) {
+            for (auto const& item : items) {
                 result->append(new resultTextItem(item, item->text, 0));
                 *(mapIt++) = item->srcLineNumber;
             }
@@ -799,9 +799,8 @@ void mainWidget::autoRunClicked()
         applyFrom(0);
 }
 
-void mainWidget::dialectChanged(QString const& text)
+void mainWidget::dialectChanged([[maybe_unused]] QString const& text)
 {
-    Q_UNUSED(text)
     maybeAutoApply(0);
 }
 
@@ -986,8 +985,7 @@ void mainWidget::toggleBookmark()
     if (sourceLineMap.empty())
         return;
 
-    auto currentPos = result->caretPosition();
-    auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
+    auto lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
@@ -995,7 +993,7 @@ void mainWidget::toggleBookmark()
         sourceItem->bookmarked = true;
         QString const& sourceText = sourceItem->text;
         if (auto sel = result->getSelection().normalized(); sel.singleLine()) {
-            auto [start, end]{sel};
+            auto [start, end] = sel;
             sourceItem->bmText = sourceText.midRef(
                 start.columnNumber(), end.columnNumber() - start.columnNumber());
         } else
@@ -1106,7 +1104,6 @@ void mainWidget::doResultFind(long options)
         QMessageBox::information(this,
                     i18nc("@title:window title of search fail pop-up", "Search Not Found"),
                     i18nc("@info:status text of search string not found", "Search text not found"));
-        return;
     }
 }
 
@@ -1160,8 +1157,7 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
 
-    auto currentPos = result->caretPosition();
-    auto lineNumber = currentPos.lineNumber();      /*!< line number in results */
+    auto lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
@@ -1174,7 +1170,6 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip set bookmark", "Place a bookmark on the current line."));
 	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
     }
-
     ctxtMenu->exec(pos);
 }
 
@@ -1193,7 +1188,6 @@ void mainWidget::lineSpacingChange([[maybe_unused]] int oldHeight, int newHeight
     QPixmap pmA = pixBmAnnotation.scaledToHeight(newHeight);
     auto pmAWidth = pmA.width();
     result->setPixmap(pixmapIdAnnotation, std::move(pmA));
-
     result->setGutter(std::max(pmUWidth, pmAWidth));
 }
 
