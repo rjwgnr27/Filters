@@ -131,7 +131,7 @@ private Q_SLOTS:
     auto insertFiltersAbove() -> void;
     auto loadFilters() -> void;
     auto loadFiltersTable(const QUrl&) -> void;
-    auto lineSpacingChange(int oldHeight, int newHeight) -> void;
+    auto fontMetricsChanged(int lineHeight, int charWidth) -> void;
     auto loadRecentSubject(const QUrl& url) -> void;
     auto loadSubjectFile() -> void;
     auto loadSubjectFile(const QString& localFile) -> bool;

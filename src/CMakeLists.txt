@@ -5,21 +5,6 @@ set(filters_SRC
     wlogtext.cpp
 )
 
-find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
-    Core
-    Widgets
-)
-
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
-    CoreAddons
-    DBusAddons
-    I18n
-    IconThemes
-    KIO
-    TextWidgets
-    XmlGui
-)
-
 add_executable(filters ${filters_SRC})
 configure_file(filters_config.h.in filters_config.h)
 
@@ -40,8 +25,8 @@ add_compile_options(-Wzero-as-null-pointer-constant)
 add_compile_options(-Wold-style-cast)
 
 target_link_libraries(filters PRIVATE
-    Qt5::Core
-    Qt5::Widgets
+    Qt::Core
+    Qt::Widgets
     KF5::CoreAddons
     KF5::DBusAddons
     KF5::I18n

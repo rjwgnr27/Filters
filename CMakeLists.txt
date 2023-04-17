@@ -20,11 +20,26 @@ option(WITH_ASAN "build with address sanitizer" FALSE)
 option(WITH_UBSAN "build with undefined behavior sanitizer" FALSE)
 option(WITH_LTO "build with link-time (inter-procedural) optimization (LTO, IPO)" FALSE)
 
-set(QT_MIN_VERSION "5.3.0")
+set(QT_MIN_VERSION "5.15.0")
 set(KF5_MIN_VERSION "5.2.0")
+
+#find_package(Qt6 COMPONENTS Core Widgets)
+#if (NOT Qt6_FOUND)
+    find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets)
+#endif()
 
 find_package(ECM 1.0.0 REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
+    CoreAddons
+    DBusAddons
+    I18n
+    IconThemes
+    KIO
+    TextWidgets
+    XmlGui
+)
 
 include(KDEInstallDirs)
 include(KDECMakeSettings)

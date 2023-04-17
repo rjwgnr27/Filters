@@ -658,6 +658,18 @@ protected:
     auto paintEvent(QPaintEvent *event) -> void override;
 
     /**
+     * @brief translate an event QPoint position to character position
+     *
+     * Translates a QPoint position from an event, such as from mouseEvent(),
+     * to a @c cell{} (line and column numbers) position. The position is
+     * absolute relative to all the items, not relative to the display area.
+     *
+     * @param point mouse point from the event
+     * @return character position within the virtual display
+     */
+    auto pointToCell(QPoint const& point) const -> cell;
+
+    /**
      * @brief Visible region size changed event. [virtual, overloaded:
      * QAbstractScrollArea]
      *
@@ -722,7 +734,7 @@ protected:
      **/
     auto trimLines() -> void;
 
-    cell pointToCell(QPoint const& point) const;
+    auto updateFontMetrics(int lineHeight, int charWidth) -> void {Q_EMIT(fontMetricsChanged(lineHeight, charWidth));}
 
 public:
     /**
@@ -1587,6 +1599,19 @@ Q_SIGNALS:
     auto doubleClicked(cell cell) -> void;
 
     /**
+     * @brief notification when font metrics have changed
+     *
+     * Called when the font character width and/or line spacing have changed.
+     * This happens in a (initial) paint event after the font has changed.
+     * Note that after a font change, the font metrics are not knowable until
+     * a paint event to which the font can be attached.
+     *
+     * @param lineHeight line-to-line spacing
+     * @param charWidth fixed width of a single character
+     */
+    auto fontMetricsChanged(int lineHeight, int charWidth) -> void;
+
+    /**
      * @fn void wLogText::gutterClick(int lineNo, ButtonState btn, QPoint point)
      * @brief Click in gutter of for a line.
      *
@@ -1640,6 +1665,18 @@ Q_SIGNALS:
     auto keyPress(QKeyEvent *evt) -> void;
 
     /**
+     * @brief signal line height change
+     *
+     * Signals a chang in line height, due to events such as a change inf font
+     * or zoom. Signaled from the repaint code prior to drawing, when the text
+     * line height gets recalculated.
+     *
+     * @param oldHeight former heigh in pixels of a text line
+     * @param newHeight newly calculated text line height
+     **/
+    auto lineSpacingChange(int oldHeight, int newHeight) -> void;
+
+    /**
      * @brief Signal a scroll lock/unlock
      *
      * The scroll lock is used to prevent scrolling of the text region when new
@@ -1673,18 +1710,6 @@ Q_SIGNALS:
      * @param lines Number of lines trimmed from the beginning.
      */
     auto trimmed(int lines) -> void;
-
-    /**
-     * @brief signal line height change
-     *
-     * Signals a chang in line height, due to events such as a change inf font
-     * or zoom. Signaled from the repaint code prior to drawing, when the text
-     * line height gets recalculated.
-     *
-     * @param oldHeight former heigh in pixels of a text line
-     * @param newHeight newly calculated text line height
-     **/
-    auto lineSpacingChange(int oldHeight, int newHeight) -> void;
 };
 
 
@@ -1711,7 +1736,7 @@ protected:
     QColor m_backgroundColor;           //!< text line background color
     QColor m_clBackgroundColor;         //!< caret line background color
     QColor m_textColor;                 //!< text font color
-    textAttributes m_attributes;        //!< font modifier attribute flags
+    textAttributes m_attributes = attrNone;        //!< font modifier attribute flags
 
 public:
     /**
@@ -1719,9 +1744,12 @@ public:
      *
      * Default constructor, using widget default font, color, and no attributes.
      */
-    logTextPaletteEntry();
-
     logTextPaletteEntry(logTextPaletteEntry const&) = default;
+
+    explicit logTextPaletteEntry(QPalette::ColorGroup cg = QPalette::Active);
+    explicit logTextPaletteEntry(QPalette const& palette);
+
+    void fromPalette(QPalette const& palette);
 
     /**
      * @brief Constructor with full attributes.
@@ -1827,6 +1855,16 @@ private:
 #endif  // DOXYGEN_EXCLUDE
 
 public:
+    /**
+     * @brief Constructor with default colors
+     *
+     * Create a palette, using the palette of the active style
+     *
+     * @param name Name assigned to the new palette.
+     * @param numEntries Number of styles to allocate.
+     **/
+    logTextPalette(const QString& name, int numEntries);
+
     /**
      * @brief Constructor with default colors.
      *

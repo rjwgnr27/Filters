@@ -114,10 +114,7 @@ wLogTextPrivate::wLogTextPrivate(wLogText *base) :
         q(base), m_gutterOffset{textBorder}
 {
     palettes[defaultPaletteNameString] =  new logTextPalette(
-            defaultPaletteNameString, 1,
-            m_qpalette.color(QPalette::Active, QPalette::WindowText),
-            m_qpalette.color(QPalette::Active, QPalette::Base),
-            m_qpalette.color(QPalette::Active, QPalette::AlternateBase));
+            defaultPaletteNameString, 1);
 }
 
 
@@ -270,6 +267,7 @@ void wLogTextPrivate::drawContents(const QRect& bounds)
         m_characterWidth = pixmapPainter.fontMetrics().horizontalAdvance(QLatin1Char('X'));
         m_textLineHeight = pixmapPainter.fontMetrics().lineSpacing();
         pixmapPainter.end();
+        q->updateFontMetrics(m_textLineHeight, m_characterWidth);
         q->adjustHorizontalScrollBar();
         q->setUpdatesNeeded(wLogText::updateFull); // Force repaint because scroll bars may show
         return;
@@ -599,7 +597,7 @@ inline int wLogTextPrivate::lastVisibleLine() const
 
 void wLogText::adjustHorizontalScrollBar()
 {
-    if (d->m_characterWidth) {
+    if (d->m_characterWidth != 0) {
         int const visibleChars = (viewport()->size().width() - d->m_gutterOffset) / d->m_characterWidth;
         int const j = (m_maxLineChars > visibleChars ) ? (m_maxLineChars - visibleChars) : 0;
         horizontalScrollBar()->setMaximum(j);
@@ -968,7 +966,7 @@ void wLogText::wheelEvent(QWheelEvent *event)
         hDelta = dir * hsb->pageStep();
     } else if (modifiers == (Qt::ControlModifier | Qt::AltModifier)) {
         // Scroll horizontal 1 character:
-        if (d->m_characterWidth)
+        if (d->m_characterWidth != 0)
             hDelta = dir * d->m_characterWidth;
     } else if (modifiers == Qt::ControlModifier) {
         // Zoom font:
@@ -1460,6 +1458,13 @@ void wLogText::setMaxLogLines(lineNumber_t mll)
     }
 }
 
+static auto findMaxLineLength(logItemsImplList const& items)
+{
+    if (items.empty())
+        return 0;
+    auto test = [](logTextItemCPtr x, logTextItemCPtr y) {return x->text().length() < y->text().length();};
+    return (*std::ranges::max_element(items, test))->text().length();
+}
 
 void wLogText::trimLines()
 {
@@ -1470,9 +1475,7 @@ void wLogText::trimLines()
         std::for_each(begin, end, [](auto item) {delete item;});
         items.erase(begin, end);
         m_lineCount = items.size();
-        m_maxLineChars = (m_lineCount == 0) ? 0 :
-            (*std::ranges::max_element(items, [](auto x, auto y) {
-                return x->text().length() < y->text().length();}))->text().length();
+        m_maxLineChars = findMaxLineLength(items);
 
         // Adjust selection:
         if (d->selecting) {
@@ -1630,36 +1633,26 @@ void wLogText::clear(int top, int count)
 
     d->m_maxVScroll = 0;
     m_lineCount = items.size();
-    m_maxLineChars = (m_lineCount == 0) ? 0 :
-        (*std::ranges::max_element(items, [](auto x, auto y) {
-            return x->text().size() < y->text().size();}))->text().size();
+    m_maxLineChars = findMaxLineLength(items);
 
     d->caretPosition = cell(0, 0);
     d->setContentSize();
 }
 
-static void KFindOptionsToQRegularExpr(ulong opts, QRegularExpression& re)
-{
-    QRegularExpression::PatternOptions reOpts{QRegularExpression::NoPatternOption};
-    if (!(opts & KFind::CaseSensitive))
-        reOpts |= QRegularExpression::QRegularExpression::CaseInsensitiveOption;
-    re.setPatternOptions(reOpts);
-}
-
-
 std::optional<cell> wLogText::find(QString const& str, long options)
 {
     cell pos = (options & KFind::FromCursor) ? caretPosition() : cell{};
     bool forward = !(options & KFind::FindBackwards);
-    auto sensitivity = (options & KFind::CaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive;
     if (options & KFind::RegularExpression) {
         QRegularExpression re{str};
-        KFindOptionsToQRegularExpr(options, re);
+        if (!(options & KFind::CaseSensitive))
+            re.setPatternOptions(re.patternOptions() | QRegularExpression::CaseInsensitiveOption);
         if (find(re, &pos, forward))
-            return {pos};
+            return pos;
     } else {
+        auto sensitivity = (options & KFind::CaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive;
         if (find(str, &pos, sensitivity, forward))
-            return {pos};
+            return pos;
     }
     return std::nullopt;
 }
@@ -1674,10 +1667,9 @@ bool wLogText::find(const QString& str, cell *at,
     cell pos;
     if (!d->prepareFind(forward, pos, at))
         return false;
+    auto [lineNumber, col] = pos;
 
     bool match = false;
-    lineNumber_t lineNumber = pos.lineNumber();
-    int col = pos.columnNumber();
     auto it = items.cbegin() + lineNumber;
     if (forward) {
 qWarning() << __func__ << "fwd start:" << pos << *at;
@@ -1823,13 +1815,13 @@ void wLogText::clearPixmap(int pixmapId)
 
 void wLogText::clearLinePixmap(lineNumber_t lineNo)
 {
-    if (validLineNumber(lineNo)) [[likely]] {
+    if (validLineNumber(lineNo)) {
         items[lineNo]->clearPixmap();
         if (updatesEnabled() && d->gutterWidth > 0) {
             setUpdatesNeeded(updateFull);
             update(0, lineNo * d->m_textLineHeight, d->gutterWidth,
                     (lineNo+1) * d->m_textLineHeight);
-            update(); // FIXME bug in single line update, invalid entire view area
+            update(); // FIXME bug in single line update, invalidate entire view area
         }
     }
 }
@@ -1837,7 +1829,7 @@ void wLogText::clearLinePixmap(lineNumber_t lineNo)
 
 void wLogText::setLinePixmap(lineNumber_t lineNo, int pixmapId)
 {
-    if (validLineNumber(lineNo)) [[likely]] {
+    if (validLineNumber(lineNo)) {
         items[lineNo]->m_pixmapId = pixmapId;
         if (updatesEnabled() && d->gutterWidth > 0) {
             setUpdatesNeeded(updateFull);
@@ -1922,7 +1914,7 @@ void wLogText::setEscJumpsToEnd(bool state)
 
 void wLogText::setLineStyle(lineNumber_t line, int style)
 {
-    logTextItemPtr const item = items[line];
+    logTextItemPtr const item = validLineNumber(line) ? items[line] : nullptr;
     if (item && item->styleId() != style) {
         item->setStyleId(style);
         // TODO Only refresh if item is in view
@@ -1936,7 +1928,7 @@ void wLogText::visitItems(logTextItemVisitor& v, lineNumber_t firstLine)
     if (firstLine >= m_lineCount)
         return;
 
-    QSignalBlocker disabler(this);
+    QSignalBlocker signalBlock(this);
     for (lineNumber_t lineNumber = firstLine; auto& item : items) {
         if (!v.visit({this, item, lineNumber++}))
             break;
@@ -1946,7 +1938,7 @@ void wLogText::visitItems(logTextItemVisitor& v, lineNumber_t firstLine)
 
 void wLogText::visitItems(bool (*v)(const logTextItemVisitor::visitedItem& item))
 {
-    QSignalBlocker disabler(this);
+    QSignalBlocker signalBlock(this);
     for (lineNumber_t lineNumber = 1; auto& item : items) {
         if (!v({this, item, lineNumber++}))
             break;
@@ -1960,7 +1952,7 @@ void wLogText::visitSelection(logTextItemVisitor &v)
         auto it  = items.cbegin() + d->selectTop.lineNumber();
         auto const end = items.cbegin() + std::min(d->selectBottom.lineNumber(), m_lineCount);
 
-        QSignalBlocker disabler(this);
+        QSignalBlocker signalBlock(this);
         for (lineNumber_t lineNumber = d->selectTop.lineNumber(); it != end; ++it) {
             if (!v.visit({this, *it, lineNumber++}))
                 break;
@@ -1989,6 +1981,11 @@ void wLogText::visitSelection(bool (*v)(const logTextItemVisitor::visitedItem&))
  *    palette class:
  *
  ******************************************************************************/
+
+logTextPalette::logTextPalette(const QString& nm, int ns) : name(nm)
+{
+    styles.fill(logTextPaletteEntry{}, std::max(ns, 1));
+}
 
 logTextPalette::logTextPalette(const QString& nm, int ns,
                                QColor const& defText, QColor const& defBack,
@@ -2030,13 +2027,17 @@ logTextPaletteEntry& logTextPalette::style(styleId_t id)
  *
  ******************************************************************************/
 
-logTextPaletteEntry::logTextPaletteEntry() :
-        logTextPaletteEntry(logTextPaletteEntry::attrNone)
+logTextPaletteEntry::logTextPaletteEntry(QPalette const& palette)
 {
-    QPalette const m_qpalette;
-    m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
-    m_clBackgroundColor = m_qpalette.color(QPalette::Active, QPalette::AlternateBase);
-    m_textColor = m_qpalette.color(QPalette::Active, QPalette::WindowText);
+    fromPalette(palette);
+}
+
+
+logTextPaletteEntry::logTextPaletteEntry(QPalette::ColorGroup cg)
+{
+    QPalette palette;
+    palette.setCurrentColorGroup(cg);
+    fromPalette(palette);
 }
 
 
@@ -2047,13 +2048,18 @@ logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, const QColor& bc,
 }
 
 logTextPaletteEntry::logTextPaletteEntry(const QColor& tc, textAttributes a) :
-        m_textColor(tc), m_attributes(a)
+    logTextPaletteEntry{QPalette::Active}
 {
-    QPalette const m_qpalette;
-    m_backgroundColor = m_qpalette.color(QPalette::Active, QPalette::Base);
-    m_clBackgroundColor = m_qpalette.color(QPalette::Active, QPalette::AlternateBase);
+    m_textColor = tc;
+    m_attributes = a;
 }
 
+void logTextPaletteEntry::fromPalette(QPalette const& palette)
+{
+    m_backgroundColor = palette.color(QPalette::Base);
+    m_clBackgroundColor = palette.color(QPalette::AlternateBase);
+    m_textColor = palette.color(QPalette::WindowText);
+}
 
 QColor const& logTextPaletteEntry::backgroundColor() const
 {

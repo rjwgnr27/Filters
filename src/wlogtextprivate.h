@@ -127,9 +127,15 @@ protected:
     int gutterWidth = 0;            //!< Space on left edge left of pixmaps.
     int m_gutterOffset;             //!< gutterWidth + gutterBorder, or zero.
 
-    int m_textLineHeight = 10;       //!< Calculated text line height, based on current (zoomed) font size.
+    int m_textLineHeight = 10;      //!< Calculated text line height, based on current (zoomed) font size.
     int textLineBaselineOffset = 0; //!< Physical offset of line bottom from baseline, font.descent().
-    int m_characterWidth = 0;       //!< calculated character width,  based on current (zoomed) font size.
+
+    /** calculated character width,  based on current (zoomed) font size. Note
+     * that the character width for a font cannot be determine unless attached
+     * to a paint event, so is zero initially and after a font change, until a
+     * paint event occurs.
+     */
+    int m_characterWidth = 0;
     int fontBaseSize = 10;          //!< Selected base font size in pixels
     int magnify = 0;                //!< Increment from base font size for font zooming
 

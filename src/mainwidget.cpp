@@ -359,7 +359,7 @@ void mainWidget::setupUi()
             SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
     connect(result, SIGNAL(gutterContextClick(lineNumber_t,QPoint,QContextMenuEvent*)),
             SLOT(resultContextClick(lineNumber_t,QPoint,QContextMenuEvent*)));
-    connect(result, SIGNAL(lineSpacingChange(int,int)), SLOT(lineSpacingChange(int,int)));
+    connect(result, SIGNAL(fontMetricsChanged(int,int)), SLOT(fontMetricsChanged(int,int)));
 
     QMetaObject::connectSlotsByName(this);
 
@@ -1180,17 +1180,17 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
 
 void mainWidget::gotoBookmark(int entry)
 {
-    if (entry < bmLineNums.size())
+    if (std::cmp_less(entry, bmLineNums.size()))
         jumpToSourceLine(bmLineNums[entry]);
 }
 
-void mainWidget::lineSpacingChange([[maybe_unused]] int oldHeight, int newHeight)
+void mainWidget::fontMetricsChanged(int lineHeight, [[maybe_unused]] int charWidth)
 {
-    QPixmap pmU = pixBmUser.scaledToHeight(newHeight);
+    QPixmap pmU = pixBmUser.scaledToHeight(lineHeight);
     auto pmUWidth = pmU.width();
     result->setPixmap(pixmapIdBookMark, std::move(pmU));
 
-    QPixmap pmA = pixBmAnnotation.scaledToHeight(newHeight);
+    QPixmap pmA = pixBmAnnotation.scaledToHeight(lineHeight);
     auto pmAWidth = pmA.width();
     result->setPixmap(pixmapIdAnnotation, std::move(pmA));
 
