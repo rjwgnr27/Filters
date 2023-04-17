@@ -150,7 +150,7 @@ static filterData batchLoadFilterFile(const QString& fileName)
         if (auto it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
             result.dialect = it->toString();
 
-        if (auto it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
+        if (auto const it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
             for (const auto& entry : it->toArray())
                 result.filters << filterEntry::fromJson(entry.toObject());
             result.valid = true;
@@ -184,7 +184,6 @@ static itemsList batchLoadSubjectFile(const commandLineOptions& opts)
 {
     QFile source(opts.subjectFile);
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
-
         itemsList lines;
         int srcLine = 0;
         for(QTextStream stream(&source); !stream.atEnd(); )
@@ -211,7 +210,7 @@ static stepList batchApplyQRegularExpressions(const filterData& filters, stepLis
 {
     for (const filterEntry& entry : filters.filters) {
         if (entry.enabled) {
-            bool exclude = entry.exclude;
+            bool const exclude = entry.exclude;
             QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
             if (entry.ignoreCase)
                 pOpts |= QRegularExpression::CaseInsensitiveOption;
@@ -237,15 +236,9 @@ static stepList batchApplyFilters(const filterData& filters, const stepList& lin
 
 int doBatch(const commandLineOptions& opts)
 {
-    filterData filters;
-    itemsList sourceItems;
     try {
-        filters = batchLoadFilters(opts);
-        if (opts.stdin)
-            sourceItems = readStdIn();
-        else
-            sourceItems = batchLoadSubjectFile(opts);
-
+        filterData filters = batchLoadFilters(opts);
+        itemsList sourceItems = opts.stdin ? readStdIn() : batchLoadSubjectFile(opts);
         stepList steps;
         steps.reserve(sourceItems.size());
         std::for_each(sourceItems.begin(), sourceItems.end(),
