@@ -80,7 +80,7 @@ QJsonObject filterEntry::toJson() const
     return filter;
 }
 
-filterEntry filterEntry::fromJson(const QJsonObject& jentry)
+auto filterEntry::fromJson(const QJsonObject& jentry) -> filterEntry
 {
     filterEntry entry;
     entry.enabled = jentry[QStringLiteral("enabled")].toBool();
@@ -99,7 +99,7 @@ protected:
 
 public:
     batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
-    const char* what() const noexcept override {return errorString.c_str();}
+    auto what() const noexcept -> const char* override {return errorString.c_str();}
 };
 
 class filterLoadException : public batchException
@@ -138,7 +138,7 @@ public:
 };
 
 
-static filterData batchLoadFilterFile(const QString& fileName)
+static auto batchLoadFilterFile(const QString& fileName) -> filterData
 {
     filterData result;
 
@@ -162,7 +162,7 @@ static filterData batchLoadFilterFile(const QString& fileName)
 }
 
 
-static filterData batchLoadFilters(const commandLineOptions& opts)
+static auto batchLoadFilters(const commandLineOptions& opts) -> filterData
 {
     filterData result;
     bool initial = true;
@@ -234,7 +234,7 @@ static stepList batchApplyFilters(const filterData& filters, const stepList& lin
     throw dialectTypeException(filters.dialect);
 }
 
-int doBatch(const commandLineOptions& opts)
+auto doBatch(const commandLineOptions& opts) -> int
 {
     try {
         filterData filters = batchLoadFilters(opts);

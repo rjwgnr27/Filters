@@ -97,7 +97,7 @@ QDebug operator<<(QDebug dbg, region const& r)
     return dbg;
 }
 
-cell wLogText::pointToCell(QPoint const& point) const
+auto wLogText::pointToCell(QPoint const& point) const -> cell
 {
     return {std::min(d->yToLine(point.y()), m_lineCount), d->xToCharColumn(point.x())};
 }
@@ -576,19 +576,19 @@ void wLogTextPrivate::adjustTextMetrics()
 }
 
 
-inline int wLogTextPrivate::firstVisibleLine() const
+inline auto wLogTextPrivate::firstVisibleLine() const -> int
 {
     return q->verticalScrollBar()->value() / m_textLineHeight;
 }
 
 
-inline int wLogTextPrivate::linesPerPage() const
+inline auto wLogTextPrivate::linesPerPage() const -> int
 {
     return q->viewport()->size().height() / m_textLineHeight;
 }
 
 
-inline int wLogTextPrivate::lastVisibleLine() const
+inline auto wLogTextPrivate::lastVisibleLine() const -> int
 {
     return (q->verticalScrollBar()->value() + q->viewport()->size().height())
               / m_textLineHeight;
@@ -623,7 +623,7 @@ void wLogText::setFont(QFont font)
 }
 
 
-QFont const& wLogText::font() const
+auto wLogText::font() const -> QFont const&
 {
     return QWidget::font();
 }
@@ -1081,7 +1081,7 @@ inline void wLogTextPrivate::updateCaretPos(const cell& pos)
 }
 
 
-cell wLogText::caretPosition() const
+auto wLogText::caretPosition() const -> cell
 {
     return d->caretPosition;
 }
@@ -1150,12 +1150,12 @@ void wLogText::clearSelection()
 
 
 
-bool wLogText::hasSelectedText() const
+auto wLogText::hasSelectedText() const -> bool
 {
     return d->selecting;
 }
 
-region wLogText::getSelection() const
+auto wLogText::getSelection() const -> region
 {
     region t;
     if (d->selecting)
@@ -1249,13 +1249,13 @@ void wLogText::copy() const
 /*   Public interface functions                                               */
 /*                                                                            */
 /******************************************************************************/
-logTextPalette *wLogText::createPalette(size_t size, const QString& name)
+auto wLogText::createPalette(size_t size, const QString& name) -> logTextPalette *
 {
     return d->createPalette(size, name);
 }
 
 
-logTextPalette *wLogTextPrivate::createPalette(int size, const QString& name)
+auto wLogTextPrivate::createPalette(int size, const QString& name) -> logTextPalette *
 {
     if (name == QString(defaultPaletteNameString)) {
         qWarning() << "Can not delete default palette '" <<  defaultPaletteNameString << "''";
@@ -1271,8 +1271,8 @@ logTextPalette *wLogTextPrivate::createPalette(int size, const QString& name)
 }
 
 
-logTextPalette *wLogText::createPalette(const QString& name,
-                                        const logTextPalette *source)
+auto wLogText::createPalette(const QString& name,
+                                        const logTextPalette *source) -> logTextPalette *
 {
     if (name == QString(defaultPaletteNameString)) {
         qWarning() << "Can not delete default palette '" <<  defaultPaletteNameString << "''";
@@ -1290,13 +1290,13 @@ logTextPalette *wLogText::createPalette(const QString& name,
         }
         deletePalette(name);
     }
-    logTextPalette *np = new logTextPalette(name, *source);
+    auto *np = new logTextPalette(name, *source);
     d->palettes[name] = np;            // Add it to the list of palettes.
     return np;
 }
 
 
-logTextPalette *wLogText::palette(const QString& name) const
+auto wLogText::palette(const QString& name) const -> logTextPalette *
 {
     return d->palettes.value(name, nullptr);
 }
@@ -1336,13 +1336,13 @@ QStringList wLogText::paletteNames() const
 }
 
 
-bool wLogText::activatePalette(const QString& name)
+auto wLogText::activatePalette(const QString& name) -> bool
 {
     return d->activatePalette(name);
 }
 
 
-bool wLogTextPrivate::activatePalette(const QString& name)
+auto wLogTextPrivate::activatePalette(const QString& name) -> bool
 {
     // Null string reactivates (realizes changes to) the current palette.
     if (!name.isEmpty()) {
@@ -1375,13 +1375,13 @@ bool wLogTextPrivate::activatePalette(const QString& name)
 /*                                                                            */
 /******************************************************************************/
 
-int wLogText::lineHeight() const
+auto wLogText::lineHeight() const -> int
 {
     return d->m_textLineHeight;
 }
 
 
-int wLogText::fontZoom() const
+auto wLogText::fontZoom() const -> int
 {
     return d->magnify;
 }
@@ -1427,13 +1427,13 @@ void wLogText::shrinkFont()
 }
 
 
-int wLogText::length(lineNumber_t lineNumber) const
+auto wLogText::length(lineNumber_t lineNumber) const -> int
 {
     return validLineNumber(lineNumber) ? items[lineNumber]->m_text.length() : 0;
 }
 
 
-int wLogText::maxLogLines() const
+auto wLogText::maxLogLines() const -> int
 {
     return maximumLogLines;
 }
@@ -1501,7 +1501,7 @@ void wLogText::trimLines()
 }
 
 
-inline bool wLogTextPrivate::isScrollable() const
+inline auto wLogTextPrivate::isScrollable() const -> bool
 {
     return !isHardLocked() && !isSoftLocked() && (!selecting);
 }
@@ -1544,13 +1544,13 @@ inline QPoint wLogTextPrivate::cellToPoint(const cell& c) const
 }
 
 
-inline bool wLogTextPrivate::inTheGutter(int x) const
+inline auto wLogTextPrivate::inTheGutter(int x) const -> bool
 {
     return (x < m_gutterOffset);
 }
 
 
-inline int wLogTextPrivate::xToCharColumn(int x) const
+inline auto wLogTextPrivate::xToCharColumn(int x) const -> int
 {
     int col=0;
     if (m_characterWidth != 0)
@@ -1560,7 +1560,7 @@ inline int wLogTextPrivate::xToCharColumn(int x) const
 }
 
 
-inline int wLogTextPrivate::yToLine(int y) const
+inline auto wLogTextPrivate::yToLine(int y) const -> int
 {
     return (q->verticalScrollBar()->value() + std::max(y, 0)) / m_textLineHeight;
 }
@@ -1581,7 +1581,7 @@ void wLogText::ensureCaretVisible()
 }
 
 
-bool wLogText::showCaret() const
+auto wLogText::showCaret() const -> bool
 {
     return d->m_ShowCaret;
 }
@@ -1657,8 +1657,8 @@ std::optional<cell> wLogText::find(QString const& str, long options)
     return std::nullopt;
 }
 
-bool wLogText::find(const QString& str, cell *at,
-                    Qt::CaseSensitivity caseSensitive, bool forward)
+auto wLogText::find(const QString& str, cell *at,
+                    Qt::CaseSensitivity caseSensitive, bool forward) -> bool
 {
     //Anything to search?
     if (m_lineCount == 0)
@@ -1709,8 +1709,8 @@ qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelect
 }
 
 
-bool wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
-                    bool forward, lineNumber_t *line, int *col)
+auto wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
+                    bool forward, lineNumber_t *line, int *col) -> bool
 {
     cell pos = d->caretPosition;
     if (line)
@@ -1728,7 +1728,7 @@ bool wLogText::find(const QString& str, Qt::CaseSensitivity caseSensitive,
 }
 
 
-bool wLogText::find(QRegularExpression const& re, cell *at, bool forward)
+auto wLogText::find(QRegularExpression const& re, cell *at, bool forward) -> bool
 {
     // Anything to search?
     if (m_lineCount == 0)
@@ -1779,7 +1779,7 @@ bool wLogText::find(QRegularExpression const& re, cell *at, bool forward)
 }
 
 
-bool wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const
+auto wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const -> bool
 {
     pos = at ? cell(*at) : caretPosition;
     if (!q->validLineNumber(pos.lineNumber())) {
@@ -1841,7 +1841,7 @@ void wLogText::setLinePixmap(lineNumber_t lineNo, int pixmapId)
 }
 
 
-int wLogText::gutter() const
+auto wLogText::gutter() const -> int
 {
     return d->gutterWidth;
 }
@@ -1896,12 +1896,12 @@ void wLogText::setScrollLock(bool state)
 }
 
 
-bool wLogText::scrollLock() const
+auto wLogText::scrollLock() const -> bool
 {
     return d->isHardLocked();
 }
 
-bool wLogText::escJumpsToEnd() const
+auto wLogText::escJumpsToEnd() const -> bool
 {
     return d->escJump;
 }
@@ -2001,21 +2001,21 @@ logTextPalette::logTextPalette(const QString& nm, logTextPalette const& source)
     styles = source.styles;
 }
 
-styleId_t logTextPalette::addStyle(logTextPaletteEntry style)
+auto logTextPalette::addStyle(logTextPaletteEntry style) -> styleId_t
 {
     styleId_t id = styles.size();
     styles.push_back(std::move(style));
     return id;
 }
 
-styleId_t logTextPalette::addStyle(QColor const& textColor, QColor const& bgColor,
-                                   QColor const& clBgColor)
+auto logTextPalette::addStyle(QColor const& textColor, QColor const& bgColor,
+                                   QColor const& clBgColor) -> styleId_t
 {
     return addStyle({textColor, bgColor, clBgColor});
 }
 
 
-logTextPaletteEntry& logTextPalette::style(styleId_t id)
+auto logTextPalette::style(styleId_t id) -> logTextPaletteEntry&
 {
     return (id >= styles.count()) ? styles.last() : styles[id];
 }

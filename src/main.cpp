@@ -27,12 +27,12 @@
 #include "mainwidget.h"
 
 template <typename T>
-std::basic_ostream<char, T>& operator << (std::basic_ostream<char, T>& os, QString const& str)
+auto operator << (std::basic_ostream<char, T>& os, QString const& str) -> std::basic_ostream<char, T>&
 {
     return os << str.toLatin1().constData();
 }
 
-int main(int argc, char *argv[])
+auto main(int argc, char *argv[]) -> int
 {
     QApplication app(argc, argv);
     KLocalizedString::setApplicationDomain("Filters");

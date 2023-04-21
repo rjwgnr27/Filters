@@ -386,7 +386,7 @@ void mainWidget::updateApplicationTitle()
     mainWindow->setCaption(titleFile, subjModified | reModified);
 }
 
-bool mainWidget::initialLoad(const commandLineOptions& opts)
+auto mainWidget::initialLoad(const commandLineOptions& opts) -> bool
 {
     if (opts.stdin)
       QMessageBox::warning(this, i18n("Option Not Supported"),
@@ -449,7 +449,7 @@ void mainWidget::loadSubjectFile()
                             i18nc("@title:window load subject file dialog title", "Open Subject File")));
 }
 
-bool mainWidget::loadSubjectFile(const QString& localFile)
+auto mainWidget::loadSubjectFile(const QString& localFile) -> bool
 {
     if (localFile.isEmpty())
         return true;
@@ -599,7 +599,7 @@ void mainWidget::applyFrom(size_t start)
         qWarning() << QStringLiteral("No source entry %1/%2").arg(start).arg(stepResults.size());
 }
 
-bool mainWidget::validateExpressions(int entry) const
+auto mainWidget::validateExpressions(int entry) const -> bool
 {
     auto table = filtersTable;
     for (int rows = table->rowCount(); entry < rows; ++entry) {
@@ -764,7 +764,7 @@ void mainWidget::moveFilterDown()
     swapFiltersRows(row, row + 1);
 }
 
-filterEntry mainWidget::getFilterRow(int row)
+auto mainWidget::getFilterRow(int row) -> filterEntry
 {
     filterEntry entry;
     entry.enabled = filtersTable->item(row, ColEnable)->checkState() == Qt::Checked;
@@ -877,12 +877,12 @@ void mainWidget::loadFiltersTable(const QUrl& url)
     loadFiltersTable(url.toLocalFile());
 }
 
-bool mainWidget::loadFiltersTable(const QString& fileName)
+auto mainWidget::loadFiltersTable(const QString& fileName) -> bool
 {
     return loadFiltersTable(loadFiltersFile(fileName));
 }
 
-bool mainWidget::loadFiltersTable(const filterData& filters)
+auto mainWidget::loadFiltersTable(const filterData& filters) -> bool
 {
     if (filters.valid) {
         QSignalBlocker blocker(filtersTable);
@@ -895,7 +895,7 @@ bool mainWidget::loadFiltersTable(const filterData& filters)
     return filters.valid;
 }
 
-filterData mainWidget::loadFiltersFile(const QString& fileName)
+auto mainWidget::loadFiltersFile(const QString& fileName) -> filterData
 {
     filterData result;
 
@@ -952,7 +952,7 @@ void mainWidget::saveFiltersAs()
     }
 }
 
-bool mainWidget::doSaveFilters(const QString& fileName)
+auto mainWidget::doSaveFilters(const QString& fileName) -> bool
 {
     QFile dest(fileName);
     if (dest.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -1125,7 +1125,7 @@ void mainWidget::saveResultAs()
             resultFileName = localFile;
 }
 
-bool mainWidget::doSaveResult(const QString& fileName)
+auto mainWidget::doSaveResult(const QString& fileName) -> bool
 {
     QFile dest(fileName);
     bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
