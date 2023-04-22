@@ -56,7 +56,7 @@ private:
 
 #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
     activatedPalette(activatedPalette&) = delete;             /** Declare no copy constructor */
-    activatedPalette& operator =(activatedPalette) = delete;  /** Declare no "operator =()" */
+    auto operator =(activatedPalette) -> activatedPalette& = delete;  /** Declare no "operator =()" */
 #endif  // DOXYGEN_EXCLUDE
 
 public:
@@ -82,7 +82,7 @@ public:
      * Returns the number of styles defined for the palette
      * @return number of styles in the palette
      **/
-    inline int numStyles() const { return styles.size(); };
+    inline auto numStyles() const -> int { return styles.size(); };
 
     /**
      * @brief get style by ID
@@ -94,7 +94,7 @@ public:
      * @param styleId ID of the style to return
      * @return const reference to the style requested
      **/
-    inline const styleItem& style(styleId_t styleId) const {
+    inline auto style(styleId_t styleId) const -> const styleItem& {
             return styles[(styleId < numStyles()) ? styleId : 0]; };
 };
 
@@ -388,7 +388,7 @@ protected:
      * @param x x-axis point in scroll view coordinates.
      * @return @c true is point is in the gutter region.
      **/
-    bool inTheGutter(int x) const;
+    auto inTheGutter(int x) const -> bool;
 
     /**
      * @brief Convert line/column cell to pixel position.
@@ -416,7 +416,7 @@ protected:
      * @param x Scroll view x-coordinate to translate.
      * @return Character column number on text view.
      **/
-    int xToCharColumn(int x) const;
+    auto xToCharColumn(int x) const -> int;
 
     /**
      * @brief scrollView y pixel coordinate to line number
@@ -429,7 +429,7 @@ protected:
      * @param y viewport visible y coordinate to translate.
      * @return Calculated line number based on scroll view coordinate.
      **/
-    lineNumber_t yToLine(int y) const;
+    auto yToLine(int y) const -> lineNumber_t;
 };
 
 #endif //ifndef LOGTEXTPRIVATE_H

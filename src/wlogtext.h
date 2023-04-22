@@ -60,7 +60,7 @@ public:
     cell(int l, int c) : m_line{l}, m_col(c) {};   //!< Constructor from line, column
     cell(const cell& p) = default;   //!< Copy constructor
 
-    cell& operator = (cell const& other) = default;
+    auto operator = (cell const& other) -> cell& = default;
 
     [[deprecated("Use cell(cell&)")]] explicit cell(const QPoint& p) : cell(p.y(), p.x()) {};   //!< Copy contructor
     [[deprecated("Use cell(cell&)")]] explicit operator QPoint() {return QPoint(columnNumber(), lineNumber());}
@@ -182,7 +182,7 @@ public:
     region() = default;
     region(cell first, cell second) : m_first{first}, m_second{second} {}
     region(region const&) = default;
-    region& operator =(region const&) = default;
+    auto operator =(region const&) -> region& = default;
 
     /**
      * test for an empty region
@@ -252,7 +252,7 @@ public:
     auto operator +(cell const& offs) const -> region {return {first() + offs, second() + offs};}
     auto operator +=(cell const& offs) ->region& {m_first += offs; m_second += offs; return *this;}
 
-    [[nodiscard]] cell span() {return first() - second();}
+    [[nodiscard]] auto span() -> cell {return first() - second();}
 };
 template<> inline void std::swap<region>(region &x, region &y) noexcept {x.swap(y);}
 QDebug operator<<(QDebug dbg, region const& r);
@@ -260,7 +260,7 @@ QDebug operator<<(QDebug dbg, region const& r);
 /* structured bindings API: */
 template<> struct std::tuple_size<region> {static constexpr int value = 2;};
 template<size_t N> struct std::tuple_element<N, region> {using type = cell;};
-template<int N> decltype(auto) get(region const& r) {
+template<int N> auto get(region const& r) -> decltype(auto) {
     if constexpr(N == 0) return r.first(); else return r.second();}
 
 /**
@@ -524,7 +524,7 @@ protected:
     friend class wLogTextPrivate;
 
     wLogText(const wLogText&) = delete;
-    wLogText& operator =(const wLogText&) = delete;
+    auto operator =(const wLogText&) -> wLogText& = delete;
 
     /** Pointer to implementation detail */
     std::unique_ptr<wLogTextPrivate> const d;
@@ -1851,7 +1851,7 @@ private:
 
 #ifndef DOXYGEN_EXCLUDE         // Exclude from DOXYGEN generation
     logTextPalette(logTextPalette&) = delete;
-    logTextPalette& operator=(logTextPalette&) = delete;
+    auto operator=(logTextPalette&) -> logTextPalette& = delete;
 #endif  // DOXYGEN_EXCLUDE
 
 public:
