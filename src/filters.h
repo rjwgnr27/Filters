@@ -41,7 +41,7 @@ public:
 
 private:
     /** application widget placed in the main window */
-    mainWidget *m_ui;
+    mainWidget *m_ui = nullptr;
 
     auto setupActions() -> void;
 

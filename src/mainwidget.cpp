@@ -960,7 +960,7 @@ auto mainWidget::doSaveFilters(const QString& fileName) -> bool
         QJsonArray filterArray;
         for (int row = 0; row < rows; ++row) {
             if (!filtersTable->item(row, ColRegEx)->text().isEmpty()) {
-                filterEntry filter = getFilterRow(row);
+                filterEntry const filter = getFilterRow(row);
                 filterArray.append(filter.toJson());
             }
         }
@@ -1153,14 +1153,14 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     if (std::cmp_greater_equal(lineNo, sourceLineMap.size()))
         return;
 
-    bool hasSelectedText = result->hasSelectedText();
+    bool const hasSelectedText = result->hasSelectedText();
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
 
     auto lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
-    auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
+    auto const sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
     if (sourceItem->bookmarked) {
         actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));

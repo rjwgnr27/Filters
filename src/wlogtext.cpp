@@ -595,7 +595,7 @@ inline auto wLogTextPrivate::lastVisibleLine() const -> int
 }
 
 
-void wLogText::adjustHorizontalScrollBar()
+void wLogText::adjustHorizontalScrollBar() const
 {
     if (d->m_characterWidth != 0) {
         int const visibleChars = (viewport()->size().width() - d->m_gutterOffset) / d->m_characterWidth;
@@ -653,7 +653,8 @@ void wLogText::mouseDoubleClickEvent(QMouseEvent *event)
             const int col=std::min(d->xToCharColumn(event->x()), textLen-1);
             d->updateCaretPos(line, col);
             if (textLen) {
-                int selLeft=0, selRight=textLen-1;
+                int selLeft = 0;
+                int selRight = textLen-1;
                 bool haveWord = false;
                 // Rules on double click selection:
                 //   Word characters are letters, numbers, '_', '-'.
@@ -675,7 +676,7 @@ void wLogText::mouseDoubleClickEvent(QMouseEvent *event)
                     // We're starting on a word character
                     // Search left for left word boundary
                     selLeft = str.lastIndexOf(wordBreakRe, col) + 1;
-                    int foundAt = str.indexOf(wordBreakRe, col);
+                    int const foundAt = str.indexOf(wordBreakRe, col);
                     selRight = (foundAt > -1) ? foundAt : textLen;
                     haveWord = true;
                 } else if ((col > 1) && str[col-1].isLetterOrNumber()) {
@@ -686,7 +687,7 @@ void wLogText::mouseDoubleClickEvent(QMouseEvent *event)
                     haveWord = true;
                 }
                 if (haveWord) {
-                    cell r(line, selRight);
+                    cell const r{line, selRight};
                     d->updateCaretPos(r);
                     d->setSelection(cell(line, selLeft), r);
                 }
@@ -699,7 +700,8 @@ void wLogText::mouseDoubleClickEvent(QMouseEvent *event)
 
 void wLogTextPrivate::setSelection(const cell& sel)
 {
-    cell const oldSelTop(selectTop), oldSelBot(selectBottom);
+    cell const oldSelTop(selectTop);
+    cell const oldSelBot(selectBottom);
     if (sel == selectionOrigin) {
         selecting= false;
     } else {
@@ -722,7 +724,8 @@ void wLogTextPrivate::setSelection(const cell& sel)
 
 void wLogTextPrivate::setSelection(const cell& a, const cell& b)
 {
-    cell const oldSelTop(selectTop), oldSelBot(selectBottom);
+    cell const oldSelTop(selectTop);
+    cell const oldSelBot(selectBottom);
     selectionOrigin = a;
     if (a == b) {
         selecting= false;
@@ -816,7 +819,7 @@ void wLogText::mouseMoveEvent(QMouseEvent *event)
         int col=0;
         if (validLineNumber(line))
             col = std::min(d->xToCharColumn(event->x()), items[line]->m_text.length());
-        cell at(line, col);
+        cell const at(line, col);
         d->updateCaretPos(at);
         d->setSelection(at);
         event->accept();
@@ -844,7 +847,7 @@ void wLogText::mousePressEvent(QMouseEvent *event)
         mouseHovering = false;
         Q_EMIT hover(-1, -1);
     }
-    cell at = pointToCell(event->pos());
+    auto at = pointToCell(event->pos());
     if (d->inTheGutter(event->x())) {
         int const line = at.lineNumber();
         if (validLineNumber(line)) {
@@ -948,33 +951,44 @@ void wLogText::wheelEvent(QWheelEvent *event)
         Q_EMIT hover(-1, -1);
     }
 
-    if (modifiers == 0) {
+    switch(modifiers) {
+    case 0:
         // Normal scroll:
         vDelta = dir * qApp->wheelScrollLines() * d->m_textLineHeight;
-    } else if (modifiers == Qt::ShiftModifier) {
+        break;
+
+    case Qt::ShiftModifier:
         // Scroll page:
         vDelta = dir * vsb->pageStep();
 #ifdef TIME_DRAW_REQUEST
         d->timeDraw = true;
         d->drawTimer.start();
 #endif
-    } else if (modifiers == (Qt::ControlModifier | Qt::ShiftModifier)) {
+        break;
+
+    case Qt::ControlModifier | Qt::ShiftModifier:
         // Scroll line:
         vDelta = dir * vsb->singleStep();
-    } else if (modifiers == Qt::AltModifier) {
+        break;
+
+    case Qt::AltModifier:
         // Scroll horizontal 1/4 width:
         hDelta = dir * hsb->pageStep();
-    } else if (modifiers == (Qt::ControlModifier | Qt::AltModifier)) {
+        break;
+
+    case Qt::ControlModifier | Qt::AltModifier:
         // Scroll horizontal 1 character:
         if (d->m_characterWidth != 0)
             hDelta = dir * d->m_characterWidth;
-    } else if (modifiers == Qt::ControlModifier) {
+        break;
+
+    case Qt::ControlModifier:
         // Zoom font:
-        if (dir < 0) {
+        if (dir < 0)
             enlargeFont();
-        } else {
+        else
             shrinkFont();
-        }
+        break;
     }
     if (vDelta) {
         vsb->setValue(qBound(0, vsb->value() + vDelta, vsb->maximum()));
@@ -1070,7 +1084,7 @@ inline void wLogTextPrivate::updateCaretPos(lineNumber_t line, int col)
 inline void wLogTextPrivate::updateCaretPos(const cell& pos)
 {
     if (m_ShowCaret) {
-        cell o(caretPosition);
+        cell const o(caretPosition);
         caretPosition = pos;
 
         updateCellRange(o, o.nextCol());
@@ -1853,11 +1867,8 @@ void wLogText::setGutter(int width)
         width = 0;
     }
     d->gutterWidth = width;
-    if (width != 0) {
-        d->m_gutterOffset = width + gutterBorder + textBorder;
-    } else {
-        d->m_gutterOffset = textBorder;
-    }
+    d->m_gutterOffset = (width != 0) ? width + gutterBorder + textBorder :
+                        d->m_gutterOffset = textBorder;
     if (updatesEnabled()) {
         viewport()->update();
     }
@@ -1868,7 +1879,7 @@ void wLogTextPrivate::setSoftLock(bool state)
 {
     if (softLocked != state) {
         softLocked = state;
-        bool now = isScrollable();
+        bool const now = isScrollable();
         if (now) {
             q->viewport()->update();
         }
@@ -2121,7 +2132,7 @@ activatedPalette::activatedPalette(const QFont& f, logTextPalette& p)
     std::vector<styleItem> tStyles(nStyles);
     for (int i = 0; i < nStyles; ++i) {
         styleItem& style = tStyles[i];
-        logTextPaletteEntry& pe = p.style(i);
+        logTextPaletteEntry const& pe = p.style(i);
 
         QFont font{f};
         logTextPaletteEntry::textAttributes attrs = pe.attributes();

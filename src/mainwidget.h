@@ -71,11 +71,11 @@ struct textItem {
     QStringRef bmText;
 
     textItem(int lineNo, QString const& txt) : srcLineNumber(lineNo), text(txt) {}
-    textItem(int lineNo, QString&& txt) : srcLineNumber(lineNo), text(std::move(txt)) {}
+    textItem(int lineNo, QString&& txt) noexcept : srcLineNumber(lineNo), text(std::move(txt)) {}
     textItem(textItem const&) = default;
-    textItem(textItem&&) = default;
+    textItem(textItem&&) noexcept = default;
     auto operator=(textItem const&) -> textItem& = default;
-    auto operator=(textItem&&) -> textItem& = default;
+    auto operator=(textItem&&) noexcept -> textItem& = default;
 };
 using itemsList = std::vector<textItem>;
 using stepList = QList<textItem*>;

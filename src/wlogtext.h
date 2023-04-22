@@ -56,7 +56,7 @@ private:
     int m_col = 0;
 
 public:
-    cell() {};                                  //!< Default constructor
+    cell() = default;                                  //!< Default constructor
     cell(int l, int c) : m_line{l}, m_col(c) {};   //!< Constructor from line, column
     cell(const cell& p) = default;   //!< Copy constructor
 
@@ -89,7 +89,7 @@ public:
      */
     auto setColumnNumber(int c) -> void {m_col = c;}         //!< Set the character column this cell represents
 
-    int manhattanLength() const {return ::abs(lineNumber()) + ::abs(columnNumber());}
+    auto manhattanLength() const -> int {return ::abs(lineNumber()) + ::abs(columnNumber());}
 
     /**
      * Set the line and column position represented by this cell.
@@ -104,7 +104,7 @@ public:
      * @return A \c cell position one line down from this.
      **/
     [[nodiscard]]
-    auto nextLine() -> cell const {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
+    auto nextLine() const -> cell {return {lineNumber() + 1, columnNumber()};}  //!< Return a cell one line after this
 
     auto advanceLine(lineNumber_t inc = 1) -> void {setLineNumber(lineNumber() + inc);}
 
@@ -114,7 +114,7 @@ public:
      * @return cell location of next column.
      **/
     [[nodiscard]]
-    auto nextCol() -> cell const {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
+    auto nextCol() const -> cell {return {lineNumber(), columnNumber() + 1};}     //!< Return a cell one column after this
     auto advanceColumn(int inc = 1) -> void {setColumnNumber(columnNumber() + inc);}
 
     /**
@@ -252,7 +252,7 @@ public:
     auto operator +(cell const& offs) const -> region {return {first() + offs, second() + offs};}
     auto operator +=(cell const& offs) ->region& {m_first += offs; m_second += offs; return *this;}
 
-    [[nodiscard]] auto span() -> cell {return first() - second();}
+    [[nodiscard]] auto span() const -> cell {return first() - second();}
 };
 template<> inline void std::swap<region>(region &x, region &y) noexcept {x.swap(y);}
 QDebug operator<<(QDebug dbg, region const& r);
@@ -297,8 +297,8 @@ public:
     logTextItem(QString&& text, styleId_t styleNo) :
             m_text(std::move(text)), m_styleId(styleNo) {}
 
-    static auto newItem(const QString& text, styleId_t styleNo) {return new logTextItem{text, styleNo};}
-    static auto newItem(QString&& text, styleId_t styleNo) {return new logTextItem{std::move(text), styleNo};}
+    logTextItem& operator =(logTextItem const&) = delete;
+    logTextItem& operator =(logTextItem&&) noexcept = default;
 
     /**
      * Copy constructor.
@@ -308,6 +308,9 @@ public:
     logTextItem(logTextItem&&) noexcept = default;
 
     virtual ~logTextItem() = default;
+
+    static auto newItem(const QString& text, styleId_t styleNo) {return new logTextItem{text, styleNo};}
+    static auto newItem(QString&& text, styleId_t styleNo) {return new logTextItem{std::move(text), styleNo};}
 
     /**
      * Get the style for a logText line.
@@ -523,9 +526,6 @@ private:
 protected:
     friend class wLogTextPrivate;
 
-    wLogText(const wLogText&) = delete;
-    auto operator =(const wLogText&) -> wLogText& = delete;
-
     /** Pointer to implementation detail */
     std::unique_ptr<wLogTextPrivate> const d;
 
@@ -714,7 +714,7 @@ protected:
      * Called when the character width or max line length changes, to
      * recalculate the horizontal scroll bad limits.
      **/
-    auto adjustHorizontalScrollBar() -> void;
+    auto adjustHorizontalScrollBar() const -> void;
 
     /**
      * @brief Signal the need to refresh the display.
@@ -891,18 +891,6 @@ public:
      * @return const pointer to line item.
      */
     auto item(lineNumber_t lineNo) const -> logTextItem const* {
-        if (lineNo >= m_lineCount)
-            lineNo = m_lineCount - 1;
-        return items[lineNo];
-    }
-
-    /**
-     * @brief Return pointer line item for a line
-     * @overload
-     * @param lineNo number of line to retrieve.
-     * @return pointer to line item.
-     **/
-    auto item(lineNumber_t lineNo) -> logTextItem* {
         if (lineNo >= m_lineCount)
             lineNo = m_lineCount - 1;
         return items[lineNo];
@@ -1849,12 +1837,12 @@ private:
     QString name;               //!< Palette name
     QVector<logTextPaletteEntry> styles; //!< array of styles
 
+public:
 #ifndef DOXYGEN_EXCLUDE         // Exclude from DOXYGEN generation
     logTextPalette(logTextPalette&) = delete;
     auto operator=(logTextPalette&) -> logTextPalette& = delete;
 #endif  // DOXYGEN_EXCLUDE
 
-public:
     /**
      * @brief Constructor with default colors
      *

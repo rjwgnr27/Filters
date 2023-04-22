@@ -22,7 +22,7 @@ enum class dragStates {
     dragDragging        //!< Selected text is dragging
     };
 
-typedef QHash<QString,logTextPalette*> paletteMap;  //!< Map type for styles by name
+using paletteMap = QHash<QString,logTextPalette*>;  //!< Map type for styles by name
 
 
 /**
@@ -54,12 +54,12 @@ class activatedPalette {
 private:
     std::vector<styleItem> styles;                           //!< Array of style items
 
+public:
 #ifndef DOXYGEN_EXCLUDE         // Exlude from DOXYGEN generation
     activatedPalette(activatedPalette&) = delete;             /** Declare no copy constructor */
-    auto operator =(activatedPalette) -> activatedPalette& = delete;  /** Declare no "operator =()" */
+    auto operator =(activatedPalette) -> activatedPalette& = delete;  /** Declare no "operator =()"*/
 #endif  // DOXYGEN_EXCLUDE
 
-public:
     /**
      * Create a drawing style array from a palette.  The drawing array is a
      * permutation of the styles and attributes, formed into a linear array.  The
@@ -75,6 +75,9 @@ public:
      * of the display.
      **/
     activatedPalette(const QFont& f, logTextPalette& p);
+
+    activatedPalette(activatedPalette&&) noexcept = default;
+    activatedPalette& operator =(activatedPalette&&) noexcept = default;
 
     /**
      * @brief number of styles in the palette

@@ -98,42 +98,42 @@ protected:
     std::string errorString;
 
 public:
-    batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
+    explicit batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
     auto what() const noexcept -> const char* override {return errorString.c_str();}
 };
 
 class filterLoadException : public batchException
 {
 public:
-    filterLoadException(QString const& str) :
+    explicit filterLoadException(QString const& str) :
         batchException(QStringLiteral("Error loading filter file: %1").arg(str)) {}
 };
 
 class loadDialectException : public batchException
 {
 public:
-    loadDialectException(QString const& str) :
+    explicit loadDialectException(QString const& str) :
         batchException(QStringLiteral("Dialect mismatch loading filter file: %1").arg(str)) {}
 };
 
 class dialectTypeException : public batchException
 {
 public:
-    dialectTypeException(QString const& str) :
+    explicit dialectTypeException(QString const& str) :
         batchException(QStringLiteral("Unsupported dialect: %1").arg(str)) {}
 };
 
 class badRegexException : public batchException
 {
 public:
-    badRegexException(QString const& str) :
+    explicit badRegexException(QString const& str) :
         batchException(QStringLiteral("bad regular expression: '%1'").arg(str)) {}
 };
 
 class subjectLoadException : public batchException
 {
 public:
-    subjectLoadException(QString const& str) :
+    explicit subjectLoadException(QString const& str) :
         batchException(QStringLiteral("Error loading subject file: %1").arg(str)) {}
 };
 

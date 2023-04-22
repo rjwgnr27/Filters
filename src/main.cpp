@@ -110,13 +110,12 @@ auto main(int argc, char *argv[]) -> int
             return -2;
         }
         return doBatch(opts);
-    } else {
-        if (opts.stdin) {
-            std::cerr << i18n("Can not specify 'stdin' without 'batch'") << '\n';
-            return -2;
-        }
-        Filters *w = new Filters(opts);
-        w->show();
-        return app.exec();
     }
+    if (opts.stdin) {
+        std::cerr << i18n("Can not specify 'stdin' without 'batch'") << '\n';
+        return -2;
+    }
+    Filters *w = new Filters(opts);
+    w->show();
+    return app.exec();
 }
