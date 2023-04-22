@@ -55,7 +55,7 @@ struct filterEntry {
     QString re;
 
     QJsonObject toJson() const;
-    static filterEntry fromJson(const QJsonObject& jentry);
+    static auto fromJson(const QJsonObject& jentry) -> filterEntry;
 };
 
 struct filterData {
@@ -74,8 +74,8 @@ struct textItem {
     textItem(int lineNo, QString&& txt) : srcLineNumber(lineNo), text(std::move(txt)) {}
     textItem(textItem const&) = default;
     textItem(textItem&&) = default;
-    textItem& operator=(textItem const&) = default;
-    textItem& operator=(textItem&&) = default;
+    auto operator=(textItem const&) -> textItem& = default;
+    auto operator=(textItem&&) -> textItem& = default;
 };
 using itemsList = std::vector<textItem>;
 using stepList = QList<textItem*>;
