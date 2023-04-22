@@ -71,5 +71,5 @@ add_subdirectory(icons)
 
 # Install the executable
 install(TARGETS filters DESTINATION bin)
-install(PROGRAMS filters.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
-install(FILES filtersui.rc DESTINATION ${KDE_INSTALL_KXMLGUI5DIR}/filters)
+install(PROGRAMS src/filters.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
+install(FILES src/filtersui.rc DESTINATION ${KDE_INSTALL_KXMLGUI5DIR}/filters)
