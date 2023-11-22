@@ -1809,20 +1809,20 @@ auto wLogTextPrivate::prepareFind(bool forward, cell& pos, const cell *at) const
 }
 
 
-void wLogText::setPixmap(int pixmapId, QPixmap const& pixmap)
+void wLogText::setPixmap(pixmapId_t pixmapId, QPixmap const& pixmap)
 {
     if (pixmapId >= 0)
         d->itemPixMaps[pixmapId] = pixmap;
 }
 
-void wLogText::setPixmap(int pixmapId, QPixmap&& pixmap)
+void wLogText::setPixmap(pixmapId_t pixmapId, QPixmap&& pixmap)
 {
     if (pixmapId >= 0)
         d->itemPixMaps[pixmapId] = std::move(pixmap);
 }
 
 
-void wLogText::clearPixmap(int pixmapId)
+void wLogText::clearPixmap(pixmapId_t pixmapId)
 {
     d->itemPixMaps.remove(pixmapId);
 }
@@ -1841,7 +1841,7 @@ void wLogText::clearLinePixmap(lineNumber_t lineNo)
 }
 
 
-void wLogText::setLinePixmap(lineNumber_t lineNo, int pixmapId)
+void wLogText::setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId)
 {
     if (validLineNumber(lineNo)) {
         items[lineNo]->m_pixmapId = pixmapId;

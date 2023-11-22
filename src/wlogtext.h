@@ -21,6 +21,7 @@
 #include <QDate>
 
 using styleId_t = uint16_t;        //!< Style id within a palette
+using pixmapId_t = uint16_t;
 using lineNumber_t = int32_t;
 
 class QClipboard;
@@ -281,7 +282,7 @@ class logTextItem {
 
 private:
     QString m_text;                     //!< actual line text
-    qint16 m_pixmapId = -1;             //!< ID within the pixmap palette for the gutter pixmap
+    std::optional<pixmapId_t> m_pixmapId; //!< ID within the pixmap palette for the gutter pixmap
     styleId_t m_styleId = 0;            //!< style ID within the active palette to paint this line
 
 public:
@@ -294,7 +295,7 @@ public:
     logTextItem(const QString& text, styleId_t styleNo) :
             m_text(text), m_styleId(styleNo) {}
 
-    logTextItem(QString&& text, styleId_t styleNo) :
+    logTextItem(QString&& text, styleId_t styleNo) noexcept :
             m_text(std::move(text)), m_styleId(styleNo) {}
 
     logTextItem& operator =(logTextItem const&) = delete;
@@ -317,7 +318,7 @@ public:
      *
      * @return Style number applied to this text.
      **/
-    auto styleId() const ->styleId_t {return m_styleId;}
+    auto styleId() const noexcept ->styleId_t {return m_styleId;}
 
     /**
      * @brief set line style
@@ -330,7 +331,7 @@ public:
      * so that it can synchronize the on screen view with changes.
      * @param styleNo New style number to be applied to this text.
      */
-    auto setStyleId(styleId_t styleNo) -> void {m_styleId = styleNo;}
+    auto setStyleId(styleId_t styleNo) noexcept -> void {m_styleId = styleNo;}
 
     /**
      * Get the text of the log item.
@@ -348,15 +349,28 @@ public:
      *
      * @param pm Pixmap ID in logtext to attach to the logTextItem.
      **/
-    auto setPixmap(int pm) {m_pixmapId = pm;}
+    auto setPixmap(pixmapId_t pm) noexcept {m_pixmapId = pm;}
 
     /**
      * Remove the pixmap selector from this text item
      **/
-    auto clearPixmap() {m_pixmapId = -1;}
+    auto clearPixmap() noexcept {m_pixmapId.reset();}
 
-    auto hasPixmap() const {return m_pixmapId != -1;}
-    auto pixmapId() const {return m_pixmapId;}
+    /**
+     * test if item has a pixmap ID assigned
+     * @return @c true if pixmap ID is assigned; otherwise @c false
+     */
+    auto hasPixmap() const noexcept {return m_pixmapId.has_value();}
+
+    /**
+     * return the item's assigned pixmap ID
+     *
+     * If the item has a pixmap ID assigned, then return its value. If no ID was assigned,
+     * returns an out-of-range value, rather than throwing an exception. Generally,
+     * @c hasPixmap() would be tested first, rather than relying of OOR return value.
+     * @return ID of assigned pixmap; if no pixmap is assigned, return out-of-range value
+     */
+    auto pixmapId() const noexcept {return m_pixmapId.value_or(std::numeric_limits<pixmapId_t>::max());}
 };
 using logTextItemPtr = logTextItem *;
 using logTextItemCPtr = logTextItem const *;
@@ -1286,8 +1300,8 @@ public:
      * @param pixmapId ID of the pixmap to map
      * @param pixmap visual pixmap assigned to the @p pixmapId
      **/
-    auto setPixmap(int pixmapId, QPixmap const& pixmap) -> void;
-    auto setPixmap(int pixmapId, QPixmap&& pixmap) -> void;
+    auto setPixmap(pixmapId_t pixmapId, QPixmap const& pixmap) -> void;
+    auto setPixmap(pixmapId_t pixmapId, QPixmap&& pixmap) -> void;
 
     /**
      * @brief unmap a pixmap ID
@@ -1296,7 +1310,7 @@ public:
      *
      * @param pixmapId pixmap ID to unmap
      **/
-    auto clearPixmap(int pixmapId) -> void;
+    auto clearPixmap(pixmapId_t pixmapId) -> void;
 
     /**
      * @brief Assign a gutter pixmap to a line.
@@ -1310,7 +1324,7 @@ public:
      * @param lineNo Number of the line to receive the pixmap.
      * @param pixmapId identifier for the pixmap on this line.
      */
-    auto setLinePixmap(lineNumber_t lineNo, int pixmapId) -> void;
+    auto setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId) -> void;
 
     /**
      * @brief Remove a pixmap for the line

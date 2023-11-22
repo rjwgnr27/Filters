@@ -34,8 +34,12 @@
 #include <KStandardAction>
 #include <KXmlGuiWindow>
 
+#include <ranges>
+#include <vector>
+namespace rng=std::ranges;
+
 mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
-    QWidget(parent), mainWindow(main)
+    QWidget{parent}, mainWindow{main}
 {
     setupUi();
     appendEmptyRow();
@@ -44,17 +48,17 @@ mainWidget::mainWidget(KXmlGuiWindow *main, QWidget *parent) :
 
 void mainWidget::setupUi()
 {
-    QVBoxLayout *verticalLayout_3 = new QVBoxLayout(this);
+    QVBoxLayout *verticalLayout_3{new QVBoxLayout(this)};
     verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
 
-    QSplitter *splitter = new QSplitter(this);
+    QSplitter *splitter{new QSplitter(this)};
     splitter->setObjectName(QString::fromUtf8("splitter"));
     splitter->setOrientation(Qt::Vertical);
 
-    QGroupBox *groupBox_2 = new QGroupBox(splitter);
+    QGroupBox *groupBox_2{new QGroupBox(splitter)};
     groupBox_2->setObjectName(QString::fromUtf8("groupBox_2"));
 
-    QVBoxLayout *verticalLayout = new QVBoxLayout(groupBox_2);
+    QVBoxLayout *verticalLayout{new QVBoxLayout(groupBox_2)};
     verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
 
     filtersTable = new QTableWidget(groupBox_2);
@@ -65,7 +69,7 @@ void mainWidget::setupUi()
     filtersTable->horizontalHeader()->setStretchLastSection(true);
     filtersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-    auto item = new QTableWidgetItem;
+    auto item{new QTableWidgetItem};
     item->setTextAlignment(Qt::AlignLeft);
     item->setText(QCoreApplication::translate("mainwidget", "En", nullptr));
     item->setToolTip(i18n("Expression entry is enabled when checked"));
@@ -98,7 +102,7 @@ void mainWidget::setupUi()
 
     splitter->addWidget(groupBox_2);
 
-    QGroupBox *groupBox_3 = new QGroupBox(splitter);
+    QGroupBox *groupBox_3{new QGroupBox(splitter)};
     groupBox_3->setObjectName(QStringLiteral("groupBox_3"));
 
     result = new wLogText(groupBox_3);
@@ -124,8 +128,7 @@ void mainWidget::setupUi()
     result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
     result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
 
-    KActionCollection *ac = mainWindow->actionCollection();
-    QAction *action;
+    KActionCollection *ac{mainWindow->actionCollection()};
 
     /***********************/
     /***    File menu    ***/
@@ -167,7 +170,7 @@ void mainWidget::setupUi()
 
     actionBookmarkMenu = new KSelectAction(QIcon::fromTheme(QStringLiteral("bookmarks")),
                                            QStringLiteral("Jump to bookmark"), ac);
-    action = ac->addAction(QStringLiteral("goto_bookmark"), actionBookmarkMenu);
+    auto action{ac->addAction(QStringLiteral("goto_bookmark"), actionBookmarkMenu)};
     action->setIcon(QIcon::fromTheme(QStringLiteral("bookmarks")));
     connect(actionBookmarkMenu, SIGNAL(triggered(int)), SLOT(gotoBookmark(int)));
     ac->setDefaultShortcut(action, QKeySequence(QStringLiteral("Ctrl+J")));
@@ -389,13 +392,19 @@ void mainWidget::updateApplicationTitle()
 auto mainWidget::initialLoad(const commandLineOptions& opts) -> bool
 {
     if (opts.stdin)
-      QMessageBox::warning(this, i18n("Option Not Supported"),
-                   i18n("--stdin option not supported in graphic mode"));
+      QMessageBox::warning(this,
+                           i18nc("Warning message box caption for option not supported",
+                                 "Option Not Supported"),
+                           i18nc("Warning message box content for option not supported",
+                                 "--stdin option not supported in GUI mode"));
 
     if (!opts.subjectFile.isEmpty()) {
         if (!loadSubjectFile(opts.subjectFile))
-            QMessageBox::warning(this, i18n("Could Not Load"),
-                    i18n("Subject file '%1' could not be loaded").arg(opts.subjectFile));
+            QMessageBox::warning(this,
+                                 i18nc("Warning message box caption for could not load file",
+                                       "Could Not Load"),
+                                 i18nc("Warning message box content for could not load file",
+                                       "Subject file '%1' could not be loaded").arg(opts.subjectFile));
     }
 
     if (!opts.filters.empty()) {
@@ -454,8 +463,7 @@ auto mainWidget::loadSubjectFile(const QString& localFile) -> bool
     if (localFile.isEmpty())
         return true;
 
-    QFile source(localFile);
-    if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (QFile source(localFile); source.open(QIODevice::ReadOnly | QIODevice::Text)) {
         titleFile = QFileInfo(localFile).fileName();
         subjModified = false;
         resultFileName.clear();
@@ -530,8 +538,7 @@ stepList mainWidget::applyExpression(size_t entry, stepList src)
     if (src.empty())
         return src;
 
-    size_t rows = filtersTable->rowCount();
-    if (entry >= rows) {
+    if (size_t const rows = filtersTable->rowCount(); entry >= rows) {
         qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
         return stepList{};
     }
@@ -550,20 +557,19 @@ stepList mainWidget::applyExpression(size_t entry, stepList src)
         return src;
     }
 
-    auto reStr = item->text();
-    bool exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
+    bool const exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
     QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
     if (filtersTable->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
         pOpts |= QRegularExpression::CaseInsensitiveOption;
-    QRegularExpression re(reStr, pOpts);
+    QRegularExpression re{item->text(), pOpts};
     if (!re.isValid())
         return src;
     re.optimize();
 
     QElapsedTimer timer;
     timer.start();
-    auto result = QtConcurrent::blockingFiltered(src,
-        [&re, exclude](const textItem* item) -> bool {return re.match(item->text).hasMatch() ^ exclude;});
+    auto const result = QtConcurrent::blockingFiltered(src,
+        [&re, exclude](const textItem* item) {return re.match(item->text).hasMatch() ^ exclude;});
     item->setToolTip(QStringLiteral("%L1 of %L2 -- %L3us").arg(result.size())
             .arg(src.size()).arg(timer.nsecsElapsed()/1000));
     return result;
@@ -602,12 +608,12 @@ void mainWidget::applyFrom(size_t start)
 auto mainWidget::validateExpressions(int entry) const -> bool
 {
     auto table = filtersTable;
-    for (int rows = table->rowCount(); entry < rows; ++entry) {
+    for (int const rows = table->rowCount(); entry < rows; ++entry) {
         if (table->item(entry, ColEnable)->checkState() == Qt::Checked) {
             auto* reItem = table->item(entry, ColRegEx);
-            auto reStr = reItem->text();
+            auto const reStr = reItem->text();
             if (!reStr.isEmpty()) {
-                QRegularExpression re(reStr);
+                QRegularExpression const re{reStr};
                 if (!re.isValid()) {
                     status->setText(QStringLiteral("Invalid RE at %1: '%2'")
                             .arg(entry).arg(re.errorString()));
@@ -626,7 +632,7 @@ void mainWidget::clearResultsAfter(size_t startIndex)
 {
     /* startIndex is zero based item rows. The items in the table start
      * at one, with zero being the header. */
-    int const rowLast = filtersTable->rowCount() + 1;
+    int const rowLast{filtersTable->rowCount() + 1};
     stepResults.resize(rowLast);
     for (int rowNumber = startIndex + 1; rowNumber < rowLast; ++rowNumber) {
         stepResults[rowNumber].clear();
@@ -646,26 +652,30 @@ void mainWidget::clearResults()
 
 void mainWidget::displayResult()
 {
-    size_t resultLines = 0;
+    size_t resultLines{0};
 
     if (!stepResults.empty() && !stepResults.back().empty()) {
-        QSignalBlocker disabler{result};
-        result->clear();
-        stepList& items = stepResults.back();
+        stepList& items{stepResults.back()};
         std::vector<int> lineMap(items.size());
-        auto mapIt = lineMap.begin();
+        auto mapIt{lineMap.begin()};
+        QSignalBlocker const disabler{result};
+        result->clear();
         if (actionLineNumbers->isChecked()) {
-            int width = QStringLiteral("%1").arg(items.back()->srcLineNumber).size();
-            for (auto const& item : items) {
-                QString line = QStringLiteral("%1| ").arg(item->srcLineNumber, width) + item->text;
-                result->append(new resultTextItem(item, std::move(line), 0));
-                *(mapIt++) = item->srcLineNumber;
-            }
+            const int width{QStringLiteral("%1").arg(items.back()->srcLineNumber).size()};
+            rng::for_each(items, [this,width,&mapIt](auto const& item) {
+                QString prefix{QStringLiteral("%1| %2").arg(item->srcLineNumber, width).arg(item->text)};
+                auto ltItem = new resultTextItem{item, std::move(prefix), styleBase};
+                if (item->isBoomkmarked())
+                    ltItem->setPixmap(pixmapIdBookMark);
+                result->append(ltItem);
+                *(mapIt++) = item->srcLineNumber;});
         } else {
-            for (auto const& item : items) {
-                result->append(new resultTextItem(item, item->text, 0));
-                *(mapIt++) = item->srcLineNumber;
-            }
+            rng::for_each(items, [this,&mapIt](auto const& item){
+                auto ltItem = new resultTextItem(item, item->text, styleBase);
+                if (item->isBoomkmarked())
+                    ltItem->setPixmap(pixmapIdBookMark);
+                result->append(ltItem);
+                *(mapIt++) = item->srcLineNumber;});
         }
         sourceLineMap = std::move(lineMap);
         resultLines = items.size();
@@ -682,7 +692,7 @@ void mainWidget::displayResult()
 
 void mainWidget::clearFilters()
 {
-    QSignalBlocker blocker(filtersTable);
+    QSignalBlocker const blocker{filtersTable};
     filtersFileName.clear();
     filtersTable->setRowCount(0);
     appendEmptyRow();
@@ -695,9 +705,9 @@ void mainWidget::appendEmptyRow()
 
 void mainWidget::insertEmptyRowAt(int row)
 {
-    QSignalBlocker blocker(filtersTable);
+    QSignalBlocker const blocker{filtersTable};
     filtersTable->insertRow(row);
-    QTableWidgetItem *item = new QTableWidgetItem();
+    QTableWidgetItem *item{new QTableWidgetItem()};
     item->setCheckState(Qt::Checked);
     item->setFlags(item->flags() & ~(Qt::ItemIsEditable));
     filtersTable->setItem(row, ColEnable, item);
@@ -719,8 +729,7 @@ void mainWidget::insertEmptyRowAt(int row)
 
 void mainWidget::insertEmptyFilterAbove()
 {
-    int row = filtersTable->currentRow();
-    if (row >= 0 && row < filtersTable->rowCount()) {
+    if (auto const row = filtersTable->currentRow(); row >= 0 && row < filtersTable->rowCount()) {
         insertEmptyRowAt(row);
         maybeAutoApply(row);
     }
@@ -728,9 +737,8 @@ void mainWidget::insertEmptyFilterAbove()
 
 void mainWidget::deleteFilterRow()
 {
-    int row = filtersTable->currentRow();
-    if (row >= 0 && row < filtersTable->rowCount()) {
-        QSignalBlocker blocker(filtersTable);
+    if (auto const row = filtersTable->currentRow(); row >= 0 && row < filtersTable->rowCount()) {
+        QSignalBlocker blocker{filtersTable};
         filtersTable->removeRow(row);
         if (filtersTable->rowCount() == 0)
             appendEmptyRow();
@@ -741,8 +749,7 @@ void mainWidget::deleteFilterRow()
 
 void mainWidget::clearFilterRow()
 {
-    int row = filtersTable->currentRow();
-    if (row >= 0 && row < filtersTable->rowCount()) {
+    if (auto const row = filtersTable->currentRow(); row >= 0 && row < filtersTable->rowCount()) {
         setFilterRow(row, filterEntry());
         maybeAutoApply(row);
     }
@@ -750,18 +757,14 @@ void mainWidget::clearFilterRow()
 
 void mainWidget::moveFilterUp()
 {
-    int row = filtersTable->currentRow();
-    if (row < 1 || row >= filtersTable->rowCount())
-        return;
-    swapFiltersRows(row, row - 1);
+    if (auto const row = filtersTable->currentRow(); row > 0 && row <= filtersTable->rowCount())
+        swapFiltersRows(row, row - 1);
 }
 
 void mainWidget::moveFilterDown()
 {
-    int row = filtersTable->currentRow();
-    if (row < 0 || row >= filtersTable->rowCount() - 1)
-        return;
-    swapFiltersRows(row, row + 1);
+    if (auto const row = filtersTable->currentRow(); row >= 0 && row < filtersTable->rowCount())
+        swapFiltersRows(row, row + 1);
 }
 
 auto mainWidget::getFilterRow(int row) -> filterEntry
@@ -776,7 +779,7 @@ auto mainWidget::getFilterRow(int row) -> filterEntry
 
 void mainWidget::setFilterRow(int row, filterEntry const& entry)
 {
-    QSignalBlocker blocker(filtersTable);
+    QSignalBlocker const blocker{filtersTable};
     filtersTable->item(row, ColEnable)->setCheckState(entry.enabled ? Qt::Checked : Qt::Unchecked);
     filtersTable->item(row, ColExclude)->setCheckState(entry.exclude ? Qt::Checked : Qt::Unchecked);
     filtersTable->item(row, ColCaseIgnore)->setCheckState(entry.ignoreCase ? Qt::Checked : Qt::Unchecked);
@@ -785,7 +788,7 @@ void mainWidget::setFilterRow(int row, filterEntry const& entry)
 
 void mainWidget::swapFiltersRows(int a, int b)
 {
-    auto temp = getFilterRow(a);
+    auto const temp{getFilterRow(a)};
     setFilterRow(a, getFilterRow(b));
     setFilterRow(b, temp);
     maybeAutoApply(std::min(a, b));
@@ -793,7 +796,7 @@ void mainWidget::swapFiltersRows(int a, int b)
 
 void mainWidget::autoRunClicked()
 {
-    bool checked = actionAutorun->isChecked();
+    bool const checked{actionAutorun->isChecked()};
     actionRun->setEnabled(!checked);
     if (checked)
         applyFrom(0);
@@ -807,7 +810,7 @@ void mainWidget::dialectChanged([[maybe_unused]] QString const& text)
 
 void mainWidget::tableItemChanged(QTableWidgetItem *item)
 {
-    QSignalBlocker blocker(filtersTable);
+    QSignalBlocker const blocker{filtersTable};
     status->clear();
     auto tbl = filtersTable;
     if (item->column() == ColRegEx) {
@@ -847,15 +850,15 @@ QString mainWidget::getFilterFile()
 
 void mainWidget::insertFiltersAbove()
 {
-    int row = filtersTable->currentRow();
+    auto const row = filtersTable->currentRow();
     if (row < 0 || row >= filtersTable->rowCount())
         return;
 
-    QString fileName = getFilterFile();
+    QString const fileName = getFilterFile();
     if (!fileName.isEmpty()) {
-        filterData filters = loadFiltersFile(fileName);
+        filterData const filters{loadFiltersFile(fileName)};
         if (filters.valid) {
-            QSignalBlocker blocker(filtersTable);
+            QSignalBlocker const blocker{filtersTable};
             insertFiltersAt(row, filters);
             filtersTable->setCurrentCell(row, filtersTable->currentColumn());
             maybeAutoApply(row);
@@ -865,7 +868,7 @@ void mainWidget::insertFiltersAbove()
 
 void mainWidget::loadFilters()
 {
-    QString fileName = getFilterFile();
+    QString const fileName = getFilterFile();
     if (!fileName.isEmpty()) {
         if (loadFiltersTable(fileName))
             recentFiltersAction->addUrl(QUrl::fromLocalFile(fileName));
@@ -885,7 +888,7 @@ auto mainWidget::loadFiltersTable(const QString& fileName) -> bool
 auto mainWidget::loadFiltersTable(const filterData& filters) -> bool
 {
     if (filters.valid) {
-        QSignalBlocker blocker(filtersTable);
+        QSignalBlocker const blocker{filtersTable};
         filtersTable->setRowCount(0);
         insertFiltersAt(0, filters);
         appendEmptyRow();
@@ -901,10 +904,10 @@ auto mainWidget::loadFiltersFile(const QString& fileName) -> filterData
 
     QFile file(fileName);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QByteArray data = file.readAll();
+        QByteArray const data = file.readAll();
         QJsonDocument doc(QJsonDocument::fromJson(data));
-        QJsonObject filters = doc.object();
-        if (auto it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
+        QJsonObject const filters = doc.object();
+        if (auto const it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
             result.dialect = it->toString();
 
         if (auto it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
@@ -941,7 +944,7 @@ void mainWidget::saveFilters()
 
 void mainWidget::saveFiltersAs()
 {
-    QString localFile = QFileDialog::getSaveFileName(this,
+    QString const localFile = QFileDialog::getSaveFileName(this,
                     i18nc("@title:window save filters file name dialog", "Save Filters To"),
                     QString(), i18n("JSON file (*.json);;All files (*.*)"));
     if (!localFile.isEmpty()) {
@@ -956,7 +959,7 @@ auto mainWidget::doSaveFilters(const QString& fileName) -> bool
 {
     QFile dest(fileName);
     if (dest.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        int rows = filtersTable->rowCount();
+        int const rows = filtersTable->rowCount();
         QJsonArray filterArray;
         for (int row = 0; row < rows; ++row) {
             if (!filtersTable->item(row, ColRegEx)->text().isEmpty()) {
@@ -985,7 +988,7 @@ void mainWidget::toggleBookmark()
     if (sourceLineMap.empty())
         return;
 
-    auto lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
+    auto const lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
@@ -1016,7 +1019,7 @@ void mainWidget::toggleBookmark()
     auto const& items = stepResults[0];
     for(lineNumber_t lineNo : lineNums) {
         if (lineNo < items.size()) [[likely]] {/* should always be true, but check */
-            auto srcIdx = std::max(0, lineNo - 1);
+            auto const srcIdx = std::max(0, lineNo - 1);
             bms.push_back(QStringLiteral("%1: %2").arg(lineNo).arg(items[srcIdx]->bmText));
             bmLineNums.push_back(lineNo);
         } else
@@ -1036,7 +1039,7 @@ void mainWidget::gotoLine()
     if (sourceLineMap.empty())
         return;
 
-    auto currentPos = result->caretPosition();
+    auto const currentPos = result->caretPosition();
     if (currentPos.lineNumber() > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto sourceLineNo = sourceLineMap[currentPos.lineNumber()];
@@ -1051,7 +1054,7 @@ void mainWidget::gotoLine()
 
 void mainWidget::jumpToSourceLine(int lineNumber)
 {
-    auto it = std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), lineNumber);
+    auto const it{std::lower_bound(sourceLineMap.cbegin(), sourceLineMap.cend(), lineNumber)};
     auto currentPos = result->caretPosition();
     currentPos.setLineNumber(std::distance(sourceLineMap.cbegin(), it));
     result->setCaretPosition(currentPos);
@@ -1071,7 +1074,7 @@ void mainWidget::resultFind()
     if (findDlg.exec() != QDialog::Accepted)
         return;
 
-    QString text = findDlg.pattern();
+    QString const text = findDlg.pattern();
     if (text.size() > 0) {
         lastFoundText = text;
         findHistory.removeAll(lastFoundText);
@@ -1117,7 +1120,7 @@ void mainWidget::saveResult()
 
 void mainWidget::saveResultAs()
 {
-    QString localFile = QFileDialog::getSaveFileName(this,
+    QString const localFile = QFileDialog::getSaveFileName(this,
                 i18nc("@title:window title of save to file dialog", "Save Results To")
                 /*,QString(), i18n("Log files (*.txt *.log);;All files (*.*)")*/);
     if (!localFile.isEmpty())
@@ -1128,7 +1131,7 @@ void mainWidget::saveResultAs()
 auto mainWidget::doSaveResult(const QString& fileName) -> bool
 {
     QFile dest(fileName);
-    bool saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
+    bool const saved = dest.open(QIODevice::WriteOnly | QIODevice::Text) &&
            dest.write(result->toPlainText().toLatin1()) >= 0;
     subjModified = !saved;
     if (saved) {
@@ -1140,7 +1143,7 @@ auto mainWidget::doSaveResult(const QString& fileName) -> bool
 
 void mainWidget::filtersTableMenuRequested(QPoint point)
 {
-    int row = filtersTable->currentRow();
+    int const row = filtersTable->currentRow();
     if (row < 0 || row >= filtersTable->rowCount())
         return;
     actionMoveFilterUp->setEnabled(row > 0);
@@ -1157,18 +1160,18 @@ void mainWidget::resultContextClick(lineNumber_t lineNo, QPoint pos, [[maybe_unu
     actionCopySelection->setEnabled(hasSelectedText);
     actionClearSelection->setEnabled(hasSelectedText);
 
-    auto lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
+    auto const lineNumber = result->caretPosition().lineNumber();      /*!< line number in results */
     if (lineNumber > result->lineCount())   /* shouldn't happen, but be safe */
         return;
     auto const sourceItem = resultTextItem::asResultTextItem(result->item(lineNumber))->sourceItem();
     if (sourceItem->bookmarked) {
         actionToggleBookmark->setText(i18nc("@action:inmenu remove bookmark", "Clear bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip remove bookmark", "Remove the bookmark on the current line."));
-	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-remove")));
+        actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-remove")));
     } else {
         actionToggleBookmark->setText(i18nc("@action:inmenu set bookmark", "Set bookmark"));
         actionToggleBookmark->setToolTip(i18nc("@info:tooltip set bookmark", "Place a bookmark on the current line."));
-	actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
+        actionToggleBookmark->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
     }
     ctxtMenu->exec(pos);
 }
@@ -1194,7 +1197,7 @@ void mainWidget::fontMetricsChanged(int lineHeight, [[maybe_unused]] int charWid
 void mainWidget::selectFilterFont()
 {
     bool ok;
-    QFont font = QFontDialog::getFont(&ok, filtersTable->font(), this);
+    QFont const font = QFontDialog::getFont(&ok, filtersTable->font(), this);
     if (ok) {
         KConfigGroup filtersConfig{KSharedConfig::openConfig(), filtersConfigName};
         filtersConfig.writeEntry(QStringLiteral("font"), font);
@@ -1205,7 +1208,7 @@ void mainWidget::selectFilterFont()
 void mainWidget::selectResultFont()
 {
     bool ok;
-    QFont font = QFontDialog::getFont(&ok, result->font(), this);
+    QFont const font = QFontDialog::getFont(&ok, result->font(), this);
     if (ok) {
         KConfigGroup resultessConfig{KSharedConfig::openConfig(), resultsConfigName};
         resultessConfig.writeEntry(QStringLiteral("font"), font);

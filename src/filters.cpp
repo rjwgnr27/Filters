@@ -98,7 +98,7 @@ protected:
     std::string errorString;
 
 public:
-    explicit batchException(QString const& str) : errorString(str.toUtf8().constData()) {}
+    explicit batchException(QString const& str) : errorString{str.toUtf8().constData()} {}
     auto what() const noexcept -> const char* override {return errorString.c_str();}
 };
 
@@ -106,35 +106,35 @@ class filterLoadException : public batchException
 {
 public:
     explicit filterLoadException(QString const& str) :
-        batchException(QStringLiteral("Error loading filter file: %1").arg(str)) {}
+        batchException{QStringLiteral("Error loading filter file: %1").arg(str)} {}
 };
 
 class loadDialectException : public batchException
 {
 public:
     explicit loadDialectException(QString const& str) :
-        batchException(QStringLiteral("Dialect mismatch loading filter file: %1").arg(str)) {}
+        batchException{QStringLiteral("Dialect mismatch loading filter file: %1").arg(str)} {}
 };
 
 class dialectTypeException : public batchException
 {
 public:
     explicit dialectTypeException(QString const& str) :
-        batchException(QStringLiteral("Unsupported dialect: %1").arg(str)) {}
+        batchException{QStringLiteral("Unsupported dialect: %1").arg(str)} {}
 };
 
 class badRegexException : public batchException
 {
 public:
     explicit badRegexException(QString const& str) :
-        batchException(QStringLiteral("bad regular expression: '%1'").arg(str)) {}
+        batchException{QStringLiteral("bad regular expression: '%1'").arg(str)} {}
 };
 
 class subjectLoadException : public batchException
 {
 public:
     explicit subjectLoadException(QString const& str) :
-        batchException(QStringLiteral("Error loading subject file: %1").arg(str)) {}
+        batchException{QStringLiteral("Error loading subject file: %1").arg(str)} {}
 };
 
 
@@ -142,12 +142,12 @@ static auto batchLoadFilterFile(const QString& fileName) -> filterData
 {
     filterData result;
 
-    QFile file(fileName);
+    QFile file{fileName};
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QByteArray data = file.readAll();
+        QByteArray const data = file.readAll();
         QJsonDocument doc(QJsonDocument::fromJson(data));
         QJsonObject filters = doc.object();
-        if (auto it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
+        if (auto const it = filters.find(QStringLiteral("dialect")); it != filters.end() && it->isString())
             result.dialect = it->toString();
 
         if (auto const it = filters.find(QStringLiteral("filters")); it != filters.end() && it->isArray()) {
@@ -165,9 +165,9 @@ static auto batchLoadFilterFile(const QString& fileName) -> filterData
 static auto batchLoadFilters(const commandLineOptions& opts) -> filterData
 {
     filterData result;
-    bool initial = true;
+    bool initial{true};
     for (const QString& fileName : opts.filters) {
-        filterData t = batchLoadFilterFile(fileName);
+        filterData const t = batchLoadFilterFile(fileName);
         if (initial) {
             initial = false;
             result = t;
@@ -182,7 +182,7 @@ static auto batchLoadFilters(const commandLineOptions& opts) -> filterData
 
 static itemsList batchLoadSubjectFile(const commandLineOptions& opts)
 {
-    QFile source(opts.subjectFile);
+    QFile source{opts.subjectFile};
     if (source.open(QIODevice::ReadOnly | QIODevice::Text)) {
         itemsList lines;
         int srcLine = 0;
@@ -210,7 +210,7 @@ static stepList batchApplyQRegularExpressions(const filterData& filters, stepLis
 {
     for (const filterEntry& entry : filters.filters) {
         if (entry.enabled) {
-            bool const exclude = entry.exclude;
+            bool const exclude{entry.exclude};
             QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
             if (entry.ignoreCase)
                 pOpts |= QRegularExpression::CaseInsensitiveOption;
@@ -219,7 +219,7 @@ static stepList batchApplyQRegularExpressions(const filterData& filters, stepLis
                 throw badRegexException(entry.re);
             re.optimize();
             items = QtConcurrent::blockingFiltered(items,
-                    [&re, exclude](const textItem* item) -> bool {return re.match(item->text).hasMatch() ^ exclude;});
+                    [&re, exclude](const textItem* item) {return re.match(item->text).hasMatch() ^ exclude;});
             if (items.empty())
                 break;
         }
@@ -237,7 +237,7 @@ static stepList batchApplyFilters(const filterData& filters, const stepList& lin
 auto doBatch(const commandLineOptions& opts) -> int
 {
     try {
-        filterData filters = batchLoadFilters(opts);
+        filterData const filters{batchLoadFilters(opts)};
         itemsList sourceItems = opts.stdin ? readStdIn() : batchLoadSubjectFile(opts);
         stepList steps;
         steps.reserve(sourceItems.size());

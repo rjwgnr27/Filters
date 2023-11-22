@@ -37,8 +37,6 @@
 
 #include "wlogtext.h"
 
-
-
 class QCheckBox;
 class QLabel;
 class QMenu;
@@ -70,12 +68,14 @@ struct textItem {
     QString text;
     QStringRef bmText;
 
-    textItem(int lineNo, QString const& txt) : srcLineNumber(lineNo), text(txt) {}
-    textItem(int lineNo, QString&& txt) noexcept : srcLineNumber(lineNo), text(std::move(txt)) {}
+    textItem(int lineNo, QString const& txt) : srcLineNumber{lineNo}, text{txt} {}
+    textItem(int lineNo, QString&& txt) noexcept : srcLineNumber{lineNo}, text{std::move(txt)} {}
     textItem(textItem const&) = default;
     textItem(textItem&&) noexcept = default;
     auto operator=(textItem const&) -> textItem& = default;
     auto operator=(textItem&&) noexcept -> textItem& = default;
+
+    auto isBoomkmarked() const {return bookmarked;}
 };
 using itemsList = std::vector<textItem>;
 using stepList = QList<textItem*>;
@@ -85,19 +85,23 @@ class mainWidget : public QWidget {
     Q_OBJECT
 
 private:
+    /** Constants for column addressing */
     enum {ColEnable = 0, ColExclude, ColCaseIgnore, ColRegEx, NumCol};
-    enum {pixmapIdBookMark = 0, pixmapIdAnnotation = 1};
+    /** Pixmap ID values */
+    enum : pixmapId_t {pixmapIdBookMark = 0, pixmapIdAnnotation = 1};
+    /** style IDs */
+    enum : styleId_t {styleBase = 0};
 
     class resultTextItem : public logTextItem {
     private:
-        textItem* srcItem;
+        textItem* const srcItem;
 
     public:
-        resultTextItem(textItem* item, const QString& text, styleId_t styleNo) :
-                logTextItem(text, styleNo), srcItem(item) {}
+        resultTextItem(textItem* item, const QString& text, styleId_t styleNo = styleBase) :
+                logTextItem{text, styleNo}, srcItem{item} {}
 
-        resultTextItem(textItem* item, QString&& text, styleId_t styleNo) :
-                logTextItem(text, styleNo), srcItem(item) {}
+        resultTextItem(textItem* item, QString&& text, styleId_t styleNo = styleBase) :
+                logTextItem{text, styleNo}, srcItem{item} {}
 
         resultTextItem(resultTextItem const&) = default;
         resultTextItem(resultTextItem&&) = default;
@@ -107,7 +111,7 @@ private:
         static auto asResultTextItem(logTextItem const* item) -> resultTextItem const* {
             return static_cast<resultTextItem const*>(item);}
 
-        auto sourceItem() const -> textItem* {return srcItem;}
+        auto sourceItem() const {return srcItem;}
     };
 
 public:
