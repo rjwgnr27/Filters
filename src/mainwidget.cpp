@@ -662,14 +662,17 @@ void mainWidget::displayResult()
         result->clear();
         if (actionLineNumbers->isChecked()) {
             const int width{QStringLiteral("%1").arg(items.back()->srcLineNumber).size()};
+            lineNoColCount = width + 2;         /* +2 for the '| ' separator */
             rng::for_each(items, [this,width,&mapIt](auto const& item) {
-                QString prefix{QStringLiteral("%1| %2").arg(item->srcLineNumber, width).arg(item->text)};
-                auto ltItem = new resultTextItem{item, std::move(prefix), styleBase};
+                auto ltItem = new resultTextItem{item,
+                    QStringLiteral("%1| %2").arg(item->srcLineNumber, width).arg(item->text),
+                    styleBase};
                 if (item->isBoomkmarked())
                     ltItem->setPixmap(pixmapIdBookMark);
                 result->append(ltItem);
                 *(mapIt++) = item->srcLineNumber;});
         } else {
+            lineNoColCount = 0;
             rng::for_each(items, [this,&mapIt](auto const& item){
                 auto ltItem = new resultTextItem(item, item->text, styleBase);
                 if (item->isBoomkmarked())
@@ -996,6 +999,7 @@ void mainWidget::toggleBookmark()
         sourceItem->bookmarked = true;
         QString const& sourceText = sourceItem->text;
         if (auto sel = result->getSelection().normalized(); sel.singleLine()) {
+            sel += cell{0, -lineNoColCount};
             auto [start, end] = sel;
             sourceItem->bmText = sourceText.midRef(
                 start.columnNumber(), end.columnNumber() - start.columnNumber());

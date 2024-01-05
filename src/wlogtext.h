@@ -905,9 +905,7 @@ public:
      * @return const pointer to line item.
      */
     auto item(lineNumber_t lineNo) const -> logTextItem const* {
-        if (lineNo >= m_lineCount)
-            lineNo = m_lineCount - 1;
-        return items[lineNo];
+        return items[validLineNumber(lineNo) ? lineNo : (m_lineCount - 1)];
     }
 
     // Palette operations:
@@ -1266,7 +1264,7 @@ public:
      * view will jump to the last line.
      * @return @c false escape key will not release a scroll lock
      **/
-    auto escJumpsToEnd() const -> bool;
+    auto escJumpsToEnd() const noexcept -> bool;
 
     /**
      * @brief set behavior of escape key press when the view is scroll-locked
@@ -1276,7 +1274,7 @@ public:
      *
      * @param jump new state for the escJumpsToEnd property
      **/
-    auto setEscJumpsToEnd(bool jump) -> void;
+    auto setEscJumpsToEnd(bool jump) noexcept -> void;
 
     /**
      * @brief Returns the current gutter width.
@@ -1287,7 +1285,7 @@ public:
      * @return Width in pixels of the gutter.  The vertical space per line is the
      *  same as the text height, @a lineHeight().
      */
-    auto gutter() const -> int;
+    auto gutter() const noexcept -> int;
 
     /**
      * @brief map a pixmap to a pixmap ID
@@ -1310,7 +1308,7 @@ public:
      *
      * @param pixmapId pixmap ID to unmap
      **/
-    auto clearPixmap(pixmapId_t pixmapId) -> void;
+    auto clearPixmap(pixmapId_t pixmapId) noexcept -> void;
 
     /**
      * @brief Assign a gutter pixmap to a line.
@@ -1324,7 +1322,7 @@ public:
      * @param lineNo Number of the line to receive the pixmap.
      * @param pixmapId identifier for the pixmap on this line.
      */
-    auto setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId) -> void;
+    auto setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId) noexcept -> void;
 
     /**
      * @brief Remove a pixmap for the line
@@ -1333,7 +1331,7 @@ public:
      *
      * @param lineNo Line number of line on which to remove the pixmap.
      */
-    auto clearLinePixmap(lineNumber_t lineNo) -> void;
+    auto clearLinePixmap(lineNumber_t lineNo) noexcept -> void;
 
     /**
      * @brief Set the style on an item.
@@ -1346,7 +1344,7 @@ public:
      * @param item pointer to the item to be updated.
      * @param style New style value for the item.
      */
-    auto setLineStyle( lineNumber_t line, int style) -> void;
+    auto setLineStyle( lineNumber_t line, int style) noexcept -> void;
 
     /**
      * @brief Apply a function to items in the item list.
@@ -1746,10 +1744,11 @@ public:
      *
      * Default constructor, using widget default font, color, and no attributes.
      */
-    logTextPaletteEntry(logTextPaletteEntry const&) = default;
-
     explicit logTextPaletteEntry(QPalette::ColorGroup cg = QPalette::Active);
     explicit logTextPaletteEntry(QPalette const& palette);
+
+    logTextPaletteEntry(logTextPaletteEntry const&) = default;
+    logTextPaletteEntry& operator =(logTextPaletteEntry const&) = default;
 
     void fromPalette(QPalette const& palette);
 

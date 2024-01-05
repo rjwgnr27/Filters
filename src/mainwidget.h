@@ -196,6 +196,10 @@ private:
     /** lines read from the source file */
     int sourceLineCount = -1;
 
+    /** number of columns in the painted line number; used for mapping wLogText cell
+     * positions to source columns */
+    int lineNoColCount = 0;
+
     KRecentFilesAction *recentFileAction = nullptr;
 
     /** subject file name to display in the application title; latest of last loaded or saved */

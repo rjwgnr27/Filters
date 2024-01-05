@@ -1822,12 +1822,12 @@ void wLogText::setPixmap(pixmapId_t pixmapId, QPixmap&& pixmap)
 }
 
 
-void wLogText::clearPixmap(pixmapId_t pixmapId)
+void wLogText::clearPixmap(pixmapId_t pixmapId) noexcept
 {
     d->itemPixMaps.remove(pixmapId);
 }
 
-void wLogText::clearLinePixmap(lineNumber_t lineNo)
+void wLogText::clearLinePixmap(lineNumber_t lineNo) noexcept
 {
     if (validLineNumber(lineNo)) {
         items[lineNo]->clearPixmap();
@@ -1841,7 +1841,7 @@ void wLogText::clearLinePixmap(lineNumber_t lineNo)
 }
 
 
-void wLogText::setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId)
+void wLogText::setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId) noexcept
 {
     if (validLineNumber(lineNo)) {
         items[lineNo]->m_pixmapId = pixmapId;
@@ -1855,7 +1855,7 @@ void wLogText::setLinePixmap(lineNumber_t lineNo, pixmapId_t pixmapId)
 }
 
 
-auto wLogText::gutter() const -> int
+auto wLogText::gutter() const noexcept -> int
 {
     return d->gutterWidth;
 }
@@ -1912,18 +1912,18 @@ auto wLogText::scrollLock() const -> bool
     return d->isHardLocked();
 }
 
-auto wLogText::escJumpsToEnd() const -> bool
+auto wLogText::escJumpsToEnd() const noexcept -> bool
 {
     return d->escJump;
 }
 
-void wLogText::setEscJumpsToEnd(bool state)
+void wLogText::setEscJumpsToEnd(bool state) noexcept
 {
     d->escJump = state;
 }
 
 
-void wLogText::setLineStyle(lineNumber_t line, int style)
+void wLogText::setLineStyle(lineNumber_t line, int style) noexcept
 {
     logTextItemPtr const item = validLineNumber(line) ? items[line] : nullptr;
     if (item && item->styleId() != style) {
