@@ -160,6 +160,7 @@ private:
 
     QTableWidget *filtersTable = nullptr;
     wLogText *result = nullptr;
+    styleId_t styleBookMarked = 0;
 
     bool doInitialApply = false;
 
@@ -250,13 +251,13 @@ private:
      * @param src input string list to apply
      * @return result of the filter applied to the input list @p entry
      */
-    auto applyExpression(size_t entry, stepList src) -> stepList;
+    auto applyExpression(size_t const entry, stepList src) -> stepList;
 
     /**
      * @brief apply filter chain from point and those following
      * @param entry table entry (row) number to start applying from
      */
-    auto applyFrom(size_t entry) -> void;;
+    auto applyFrom(size_t const entry) -> void;;
 
     /**
      * @brief clear the interim and final results from a given entry

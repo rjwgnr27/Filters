@@ -67,6 +67,8 @@ if(${WITH_LTO})
 endif()
 add_feature_info(lto WITH_LTO "inter-procedural optimization (LTO)")
 
+set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=*,cppcoreguidelines-*)
+
 # qt5_wrap_ui(filters_SRC
 #     mainwidget.ui
 # )

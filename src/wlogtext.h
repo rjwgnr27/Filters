@@ -932,7 +932,7 @@ public:
      *
      * @param size Number of palette style items to allocate.
      * @param name Name assigned to the palette.
-     * @return Pointer to a palette if creation was successful; 0 on failure.
+     * @return Pointer to a palette if creation was successful; @c nullptr on failure.
      */
     auto createPalette(size_t size, const QString& name) ->logTextPalette *;
 
@@ -944,7 +944,7 @@ public:
      *
      * @param name Name assigned to the palette.
      * @param source Source palette to clone.
-     * @return Pointer to a palette if creation was successful; 0 on failure.
+     * @return Pointer to a palette if creation was successful; @c nullptr on failure.
      */
     auto createPalette(const QString& name, const logTextPalette *source) ->logTextPalette *;
 
@@ -954,7 +954,7 @@ public:
      * If the palette named exits, return a pointer to it, else return 0.
      *
      * @param name  Name of the palette to get.
-     * @return Pointer to the named palette.  Zero if it does not exist.
+     * @return Pointer to the named palette.  @c nullptr if it does not exist.
      */
     auto palette(const QString& name) const ->logTextPalette*;
 

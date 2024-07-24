@@ -127,6 +127,11 @@ void mainWidget::setupUi()
     pixBmAnnotation = QIcon::fromTheme(QStringLiteral("status-note")).pixmap(16,16);
     result->setPixmap(pixmapIdAnnotation,  pixBmAnnotation);
     result->setGutter(std::max(pixBmUser.width(), pixBmAnnotation.width()));
+    /* create a style for bookmarked lines, and add it to the default palette */
+    auto defaultPalette = result->palette(result->defaultPaletteName());
+    auto bmStyle = defaultPalette->style(0);
+    bmStyle.setBackgroundColor(Qt::cyan);
+    styleBookMarked = defaultPalette->addStyle(bmStyle);
 
     KActionCollection *ac{mainWindow->actionCollection()};
 
@@ -533,44 +538,44 @@ void mainWidget::loadSubjectFromCB()
 }
 
 
-stepList mainWidget::applyExpression(size_t entry, stepList src)
+stepList mainWidget::applyExpression(size_t const entry, stepList src)
 {
     if (src.empty())
         return src;
 
-    if (size_t const rows = filtersTable->rowCount(); entry >= rows) {
-        qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(rows);
+    if (std::cmp_greater_equal(entry, filtersTable->rowCount())) {
+        qWarning() << QStringLiteral("Range failure %1/%2").arg(entry).arg(filtersTable->rowCount());
         return stepList{};
     }
 
-    auto* item = filtersTable->item(entry, ColRegEx);
-    if (!item)
+    auto* reItem = filtersTable->item(entry, ColRegEx);
+    if (!reItem)
         return src;
+
+    if (reItem->text().isEmpty()) {
+        reItem->setToolTip(QString{});
+        return src;
+    }
 
     if (filtersTable->item(entry, ColEnable)->checkState() != Qt::Checked) {
-        item->setToolTip(i18nc("@info:tooltip filter table entry when expression is disabled", "disabled"));
+        reItem->setToolTip(i18nc("@info:tooltip filter table entry when expression is disabled", "disabled"));
         return src;
     }
 
-    if (item->text().isEmpty()) {
-        item->setToolTip(QString{});
-        return src;
-    }
-
-    bool const exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
     QRegularExpression::PatternOptions pOpts = QRegularExpression::NoPatternOption;
     if (filtersTable->item(entry, ColCaseIgnore)->checkState() == Qt::Checked)
         pOpts |= QRegularExpression::CaseInsensitiveOption;
-    QRegularExpression re{item->text(), pOpts};
+    QElapsedTimer timer;
+    timer.start();
+    QRegularExpression re{reItem->text(), pOpts};
     if (!re.isValid())
         return src;
     re.optimize();
 
-    QElapsedTimer timer;
-    timer.start();
+    bool const exclude = filtersTable->item(entry, ColExclude)->checkState() == Qt::Checked;
     auto const result = QtConcurrent::blockingFiltered(src,
         [&re, exclude](const textItem* item) {return re.match(item->text).hasMatch() ^ exclude;});
-    item->setToolTip(QStringLiteral("%L1 of %L2 -- %L3us").arg(result.size())
+    reItem->setToolTip(QStringLiteral("%L1 of %L2 -- %L3us").arg(result.size())
             .arg(src.size()).arg(timer.nsecsElapsed()/1000));
     return result;
 }
@@ -582,14 +587,14 @@ void mainWidget::maybeAutoApply(int entry)
         applyFrom(entry);
 }
 
-void mainWidget::applyFrom(size_t start)
+void mainWidget::applyFrom(size_t const start)
 {
     clearResultsAfter(start);
     if (stepResults.size() > start) {
         if (!validateExpressions(start))
             return;
 
-        size_t rows = filtersTable->rowCount();
+        size_t const rows = filtersTable->rowCount();
         QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
         stepResults.resize(rows+1);
         for (size_t row = start; row < rows; ++row) {
@@ -611,6 +616,8 @@ auto mainWidget::validateExpressions(int entry) const -> bool
     for (int const rows = table->rowCount(); entry < rows; ++entry) {
         if (table->item(entry, ColEnable)->checkState() == Qt::Checked) {
             auto* reItem = table->item(entry, ColRegEx);
+            if (!reItem)
+                continue;
             auto const reStr = reItem->text();
             if (!reStr.isEmpty()) {
                 QRegularExpression const re{reStr};
@@ -619,8 +626,10 @@ auto mainWidget::validateExpressions(int entry) const -> bool
                             .arg(entry).arg(re.errorString()));
                     table->setCurrentCell(entry, ColRegEx);
                     reItem->setToolTip(status->text());
+                    reItem->setForeground(Qt::darkRed);
                     return false;
                 }
+                reItem->setForeground(Qt::black);
                 reItem->setToolTip(QString{});
             }
         }
@@ -632,7 +641,7 @@ void mainWidget::clearResultsAfter(size_t startIndex)
 {
     /* startIndex is zero based item rows. The items in the table start
      * at one, with zero being the header. */
-    int const rowLast{filtersTable->rowCount() + 1};
+    int const rowLast = filtersTable->rowCount() + 1;
     stepResults.resize(rowLast);
     for (int rowNumber = startIndex + 1; rowNumber < rowLast; ++rowNumber) {
         stepResults[rowNumber].clear();
@@ -652,45 +661,44 @@ void mainWidget::clearResults()
 
 void mainWidget::displayResult()
 {
-    size_t resultLines{0};
-
     if (!stepResults.empty() && !stepResults.back().empty()) {
-        stepList& items{stepResults.back()};
-        std::vector<int> lineMap(items.size());
-        auto mapIt{lineMap.begin()};
+        stepList const& items{stepResults.back()};
+        sourceLineMap.resize(items.size());
+        rng::transform(items, sourceLineMap.begin(), [](auto const& item){return item->srcLineNumber;});
         QSignalBlocker const disabler{result};
         result->clear();
         if (actionLineNumbers->isChecked()) {
             const int width{QStringLiteral("%1").arg(items.back()->srcLineNumber).size()};
             lineNoColCount = width + 2;         /* +2 for the '| ' separator */
-            rng::for_each(items, [this,width,&mapIt](auto const& item) {
+            rng::for_each(items, [this,width](auto const& item) {
                 auto ltItem = new resultTextItem{item,
                     QStringLiteral("%1| %2").arg(item->srcLineNumber, width).arg(item->text),
                     styleBase};
-                if (item->isBoomkmarked())
+                if (item->isBoomkmarked()) {
                     ltItem->setPixmap(pixmapIdBookMark);
-                result->append(ltItem);
-                *(mapIt++) = item->srcLineNumber;});
+                    ltItem->setStyleId(styleBookMarked);
+                }
+                result->append(ltItem);});
         } else {
             lineNoColCount = 0;
-            rng::for_each(items, [this,&mapIt](auto const& item){
+            rng::for_each(items, [this](auto const& item){
                 auto ltItem = new resultTextItem(item, item->text, styleBase);
-                if (item->isBoomkmarked())
+                if (item->isBoomkmarked()) {
                     ltItem->setPixmap(pixmapIdBookMark);
-                result->append(ltItem);
-                *(mapIt++) = item->srcLineNumber;});
+                    ltItem->setStyleId(styleBookMarked);
+                }
+                result->append(ltItem);});
         }
-        sourceLineMap = std::move(lineMap);
-        resultLines = items.size();
     } else {
         result->clear();
         sourceLineMap.clear();
     }
     result->setCaretPosition(10, 10);
     result->ensureCaretVisible();
-    actionSaveResults->setEnabled(resultLines != 0);
-    actionSaveResultsAs->setEnabled(resultLines != 0);
-    status->setText(QStringLiteral("Source: %L1, final %L2 lines").arg(sourceLineCount).arg(resultLines));
+    auto const resultsCount = result->lineCount();
+    actionSaveResults->setEnabled(resultsCount != 0);
+    actionSaveResultsAs->setEnabled(resultsCount != 0);
+    status->setText(QStringLiteral("Source: %L1, final %L2 lines").arg(sourceLineCount).arg(resultsCount));
 }
 
 void mainWidget::clearFilters()
@@ -1036,6 +1044,7 @@ void mainWidget::actionLineNumbersTriggerd(bool checked)
 {
     KConfigGroup resultsConfig{KSharedConfig::openConfig(), resultsConfigName};
     resultsConfig.writeEntry(QStringLiteral("showLineNumbers"), checked);
+    displayResult();
 }
 
 void mainWidget::gotoLine()

@@ -1686,7 +1686,7 @@ auto wLogText::find(const QString& str, cell *at,
     bool match = false;
     auto it = items.cbegin() + lineNumber;
     if (forward) {
-qWarning() << __func__ << "fwd start:" << pos << *at;
+// qWarning() << __func__ << "fwd start:" << pos << *at;
         for (auto const end=items.cend(); it != end; ++it, ++lineNumber) {
             col = (*it)->m_text.indexOf(str, col, caseSensitive);
             match = (col != -1);
@@ -1694,13 +1694,13 @@ qWarning() << __func__ << "fwd start:" << pos << *at;
                 int end = col + str.length();
                 d->updateCaretPos(cell(lineNumber, end));
                 d->setSelection(cell(lineNumber, col), d->caretPosition);
-qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
+// qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
                 break;
             }
             col = 0;
         }
     } else {
-qWarning() << __func__ << "rev start:" << pos << *at;
+// qWarning() << __func__ << "rev start:" << pos << *at;
         for (auto const end = items.cbegin(); it != end; --it, --lineNumber) {
             col = (*it)->m_text.lastIndexOf(str, col, caseSensitive);
             match = (col != -1);
@@ -1708,7 +1708,7 @@ qWarning() << __func__ << "rev start:" << pos << *at;
                 int end = col + str.length();
                 d->updateCaretPos(cell(lineNumber, col));
                 d->setSelection(cell(lineNumber, end), cell(lineNumber, col));
-qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
+// qWarning() << __func__ << "match:" << col << end << caretPosition() << getSelection();
                 break;
             }
             // col is already == -1 from find fail
